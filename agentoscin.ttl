@@ -90,7 +90,7 @@
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/employsCoordinationPattern
 :employsCoordinationPattern rdf:type owl:ObjectProperty ;
                             rdfs:subPropertyOf owl:topObjectProperty ;
-                            rdfs:domain :Orchestration ;
+                            rdfs:domain :Team ;
                             rdfs:range :CoordinationPattern .
 
 
@@ -266,7 +266,7 @@
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTerminationCondition
 :hasTerminationCondition rdf:type owl:ObjectProperty ;
                          rdfs:subPropertyOf owl:topObjectProperty ;
-                         rdfs:domain :Task ;
+                         rdfs:domain :Team ;
                          rdfs:range :TerminationCondition .
 
 
@@ -723,11 +723,6 @@
 :CoordinationPattern rdf:type owl:Class .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/CustomPattern
-:CustomPattern rdf:type owl:Class ;
-               rdfs:subClassOf :CoordinationPattern .
-
-
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/EndStep
 :EndStep rdf:type owl:Class ;
          rdfs:subClassOf :WorkflowStep .
@@ -752,11 +747,6 @@
 :Guardrail rdf:type owl:Class .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/HierachicalPattern
-:HierachicalPattern rdf:type owl:Class ;
-                    rdfs:subClassOf :CoordinationPattern .
-
-
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/HumanAgent
 :HumanAgent rdf:type owl:Class ;
             rdfs:subClassOf :Agent .
@@ -778,18 +768,12 @@
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/LLMAgent
 :LLMAgent rdf:type owl:Class ;
-          rdfs:subClassOf :Agent ,
-                          :Tool .
+          rdfs:subClassOf :Agent .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/LanguageModel
 :LanguageModel rdf:type owl:Class ;
                rdfs:subClassOf :StatisticalModel .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/MagenticOnePattern
-:MagenticOnePattern rdf:type owl:Class ;
-                    rdfs:subClassOf :CoordinationPattern .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Memory
@@ -812,7 +796,8 @@
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Orchestration
-:Orchestration rdf:type owl:Class .
+:Orchestration rdf:type owl:Class ;
+               rdfs:subClassOf :Team .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Plan
@@ -841,11 +826,6 @@
 :Ressource rdf:type owl:Class .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoundRobinPattern
-:RoundRobinPattern rdf:type owl:Class ;
-                   rdfs:subClassOf :CoordinationPattern .
-
-
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoutingTermination
 :RoutingTermination rdf:type owl:Class ;
                     rdfs:subClassOf :TerminationCondition .
@@ -853,16 +833,6 @@
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Schema
 :Schema rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelectorBasedPattern
-:SelectorBasedPattern rdf:type owl:Class ;
-                      rdfs:subClassOf :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SequentielPattern
-:SequentielPattern rdf:type owl:Class ;
-                   rdfs:subClassOf :CoordinationPattern .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/StartStep
@@ -877,11 +847,6 @@
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Step
 :Step rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SwarmPattern
-:SwarmPattern rdf:type owl:Class ;
-              rdfs:subClassOf :CoordinationPattern .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/System
@@ -939,12 +904,7 @@
 #    Individuals
 #################################################################
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#Custom
-:Custom rdf:type owl:NamedIndividual ,
-                 :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#FlowStepReview
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStepReview
 :FlowStepReview rdf:type owl:NamedIndividual ,
                          :WorkflowStep ;
                 :nextStep :FlowStep_CheckReview ;
@@ -952,7 +912,7 @@
                 :dcterms:title "review_post" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#FlowStep_CheckReview
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_CheckReview
 :FlowStep_CheckReview rdf:type owl:NamedIndividual ,
                                :ConditionalStep ;
                       :nextStep :FlowStepReview ,
@@ -962,7 +922,7 @@
                       :dcterms:title "check review" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#FlowStep_Generate
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_Generate
 :FlowStep_Generate rdf:type owl:NamedIndividual ,
                             :StartStep ;
                    :nextStep :FlowStepReview ;
@@ -970,14 +930,14 @@
                    :dcterms:title "generate_post" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#FlowStep_Publish
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_Publish
 :FlowStep_Publish rdf:type owl:NamedIndividual ,
                            :EndStep ;
                   :agentType "publishPost" ;
                   :stepOrder 4 .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#FlowStep_Retry
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_Retry
 :FlowStep_Retry rdf:type owl:NamedIndividual ,
                          :WorkflowStep ;
                 :nextStep :FlowStep_CheckReview ;
@@ -985,7 +945,7 @@
                 :dcterms:title "retry_generation" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#FlowWorkflowPattern
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowWorkflowPattern
 :FlowWorkflowPattern rdf:type owl:NamedIndividual ,
                               :WorkflowPattern ;
                      :hasWorkflowStep :FlowStepReview ,
@@ -996,51 +956,51 @@
                      :dcterms:title "Self-Evaluation Loop Workflow" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#GPT4o
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GPT4o
 :GPT4o rdf:type owl:NamedIndividual ,
                 :LanguageModel ;
        :dcterms:title "gpt-4o" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#GenCrewStep1
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GenCrewStep1
 :GenCrewStep1 rdf:type owl:NamedIndividual ,
                        :StartStep ;
               :hasAssociatedTask :WritePostTask ;
               :stepOrder 1 .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#GenCrewTermination
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GenCrewTermination
 :GenCrewTermination rdf:type owl:NamedIndividual ,
                              :TaskCompletionTermination .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#GenCrewWorkflow
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GenCrewWorkflow
 :GenCrewWorkflow rdf:type owl:NamedIndividual ,
                           :WorkflowPattern ;
                  :hasWorkflowStep :GenCrewStep1 ;
                  :dcterms:title "X Post Generation Workflow" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewCrewStep1
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewCrewStep1
 :ReviewCrewStep1 rdf:type owl:NamedIndividual ,
                           :StartStep ;
                  :hasAssociatedTask :ReviewTask ;
                  :stepOrder 1 .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewCrewTermination
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewCrewTermination
 :ReviewCrewTermination rdf:type owl:NamedIndividual ,
                                 :TaskCompletionTermination .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewCrewWorkflow
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewCrewWorkflow
 :ReviewCrewWorkflow rdf:type owl:NamedIndividual ,
                              :WorkflowPattern ;
                     :hasWorkflowStep :ReviewCrewStep1 ;
                     :dcterms:title "X Post Review Workflow" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewTask
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewTask
 :ReviewTask rdf:type owl:NamedIndividual ,
                      :Task ;
             :dependsOn :WritePostTask ;
@@ -1051,7 +1011,7 @@
             :hasExpectedOutput "Either VALID or INVALID with specific feedback." .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewerAgent
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerAgent
 :ReviewerAgent rdf:type owl:NamedIndividual ,
                         :LLMAgent ;
                :agentPrompt :ReviewerAgentPrompt ;
@@ -1063,7 +1023,7 @@
                :hasReasoningEnabled "false"^^xsd:boolean .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewerAgentPrompt
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerAgentPrompt
 :ReviewerAgentPrompt rdf:type owl:NamedIndividual ,
                               :Prompt ;
                      :hasDirectiveFunction "DualDirective" ;
@@ -1074,13 +1034,13 @@
                      :promptInstruction "X Post Quality Reviewer: Review X posts for quality, character count, and style compliance" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewerGoal
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerGoal
 :ReviewerGoal rdf:type owl:NamedIndividual ,
                        :Goal ;
               :dcterms:description "Review X posts for quality, character count, and style compliance" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#ReviewerTaskPrompt
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerTaskPrompt
 :ReviewerTaskPrompt rdf:type owl:NamedIndividual ,
                              :Prompt ;
                     :hasSourceAttribute "description" ,
@@ -1089,16 +1049,15 @@
                     :promptOutputIndicator "Either VALID or INVALID with specific feedback." .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#SelfEvalOrchestration
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelfEvalOrchestration
 :SelfEvalOrchestration rdf:type owl:NamedIndividual ,
                                 :Orchestration ;
-                       :employsCoordinationPattern :Custom ;
                        :hasWorkflowPattern :FlowWorkflowPattern ;
                        :orchestratesTeam :XPostGenerationCrew ,
                                          :XPostReviewCrew .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#SelfEvalSystem
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelfEvalSystem
 :SelfEvalSystem rdf:type owl:NamedIndividual ,
                          :AgenticSystem ;
                 :containsAgent :WriterAgent ;
@@ -1108,17 +1067,7 @@
                 :hasSourceFramework "CrewAI" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#Sequentiel
-:Sequentiel rdf:type owl:NamedIndividual ,
-                     :CoordinationPattern ;
-            :employsCoordinationPattern :Sequentiel ;
-            :hasAgentMember :WriterAgent ;
-            :hasTerminationCondition :GenCrewTermination ;
-            :hasWorkflowPattern :GenCrewWorkflow ;
-            :dcterms:title "x-post-crew" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#WritePostTask
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WritePostTask
 :WritePostTask rdf:type owl:NamedIndividual ,
                         :Task ;
                :performedByAgent :WriterAgent ;
@@ -1128,7 +1077,7 @@
                :hasExpectedOutput "A single X post in Shakespearean style, under 280 characters, no emojis." .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#WriterAgent
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterAgent
 :WriterAgent rdf:type owl:NamedIndividual ,
                       :LLMAgent ;
              :agentPrompt :WriterAgentPrompt ;
@@ -1140,7 +1089,7 @@
              :hasReasoningEnabled "false"^^xsd:boolean .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#WriterAgentPrompt
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterAgentPrompt
 :WriterAgentPrompt rdf:type owl:NamedIndividual ,
                             :Prompt ;
                    :hasDirectiveFunction "DualDirective" ;
@@ -1151,13 +1100,13 @@
                    :promptInstruction "Write a witty, Shakespearean-style X post on the given topic" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#WriterGoal
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterGoal
 :WriterGoal rdf:type owl:NamedIndividual ,
                      :Goal ;
             :dcterms:description "Write a witty, Shakespearean-style X post on the given topic" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#WriterPostTaskPrompt
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterPostTaskPrompt
 :WriterPostTaskPrompt rdf:type owl:NamedIndividual ,
                                :Prompt ;
                       :hasSourceAttribute "description" ,
@@ -1166,16 +1115,15 @@
                       :promptOutputIndicator "A single X post in Shakespearean style, under 280 characters, no emojis." .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#XPostGenerationCrew
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/XPostGenerationCrew
 :XPostGenerationCrew rdf:type owl:NamedIndividual ,
                               :Team ;
                      :dcterms:title "x_post_crew" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#XPostReviewCrew
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/XPostReviewCrew
 :XPostReviewCrew rdf:type owl:NamedIndividual ,
                           :Team ;
-                 :employsCoordinationPattern :Sequentiel ;
                  :hasAgentMember :ReviewerAgent ;
                  :hasTerminationCondition :ReviewCrewTermination ;
                  :hasWorkflowPattern :ReviewCrewWorkflow ;
