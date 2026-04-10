@@ -797,47 +797,10 @@ class CrewAIParser(BaseSourceParser):
     def _pydantic_fields_to_json_schema(fields: dict[str, dict[str, str] | str]) -> str:
         """
         Convert extracted Pydantic field definitions to a JSON Schema string.
-        Accepts both legacy format {name: type_str} and enriched format
-        {name: {"type": type_str, "description": desc}}.
+        Delegates to :func:`oscin.utils.pydantic_fields_to_json_schema`.
         """
-        type_map = {
-            "str": "string",
-            "int": "integer",
-            "float": "number",
-            "bool": "boolean",
-            "Optional[str]": "string",
-            "Optional[int]": "integer",
-            "Optional[float]": "number",
-            "Optional[bool]": "boolean",
-        }
-
-        properties = {}
-        required = []
-        for name, field_info in fields.items():
-            # Handle both dict and plain string formats
-            if isinstance(field_info, dict):
-                type_str = field_info.get("type", "str")
-                desc = field_info.get("description", "")
-            else:
-                type_str = field_info
-                desc = ""
-
-            json_type = type_map.get(type_str, "string")
-            prop: dict[str, Any] = {"type": json_type}
-            if desc:
-                prop["description"] = desc
-            if type_str.startswith("Optional"):
-                prop["nullable"] = True
-            else:
-                required.append(name)
-            properties[name] = prop
-
-        schema = {
-            "type": "object",
-            "properties": properties,
-            "required": required,
-        }
-        return json.dumps(schema, separators=(",", ":"))
+        from oscin.utils import pydantic_fields_to_json_schema
+        return pydantic_fields_to_json_schema(fields)
 
     @staticmethod
     def _clean_yaml_string(value: Any) -> str:

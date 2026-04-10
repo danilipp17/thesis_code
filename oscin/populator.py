@@ -304,11 +304,11 @@ class OntologyPopulator:
             # --- Output Schema ---
             # Mapping table 2: Task.output_pydantic → hasOutputSchema → Schema
             if task.output_pydantic and task.output_pydantic in self.parser.pydantic_models:
-                from oscin.parsers.crewai_parser import CrewAIParser
+                from oscin.utils import pydantic_fields_to_json_schema
                 model = self.parser.pydantic_models[task.output_pydantic]
                 schema_uri = self.EX[f"Schema_{self._safe_id(task.output_pydantic)}"]
                 self.g.add((schema_uri, RDF.type, AGENTOSCIN.Schema))
-                schema_json = CrewAIParser._pydantic_fields_to_json_schema(model.fields)
+                schema_json = pydantic_fields_to_json_schema(model.fields)
                 self.g.add((schema_uri, AGENTOSCIN.hasSchemaDefinition,
                             Literal(schema_json, datatype=XSD.string)))
                 self.g.add((uri, AGENTOSCIN.hasOutputSchema, schema_uri))
@@ -603,9 +603,13 @@ def print_validation_report(graph: Graph, parser: BaseSourceParser) -> None:
     """
     Print a summary of what was extracted and populated, highlighting
     any properties that could not be populated (information loss).
+
+    The "unexercised properties" section is computed dynamically by
+    comparing all object properties defined in the agentoscin namespace
+    against the predicates actually used in the populated graph.
     """
     # Count individuals by type
-    type_counts = {}
+    type_counts: dict[str, int] = {}
     for s, p, o in graph.triples((None, RDF.type, None)):
         type_name = str(o).split("/")[-1]
         type_counts[type_name] = type_counts.get(type_name, 0) + 1
@@ -616,7 +620,7 @@ def print_validation_report(graph: Graph, parser: BaseSourceParser) -> None:
 
     # Check for unpopulated properties (information loss)
     print("\nInformation loss analysis:")
-    loss_items = []
+    loss_items: list[str] = []
 
     for key, agent in parser.agents.items():
         if not agent.llm:
@@ -631,16 +635,49 @@ def print_validation_report(graph: Graph, parser: BaseSourceParser) -> None:
         for item in loss_items:
             print(item)
 
-    # Properties never exercised by this example
-    print("\nProperties not exercised by this example (not information loss):")
-    unexercised = [
-        "hasMemoryBinding (no memory configured)",
-        "employsReasoningPattern (reasoning not enabled)",
-        "dependsOn (no task dependencies via context=)",
-        "taskToolUsage (no task-level tools)",
-        "hasGuardrail (no guardrail= on tasks)",
-        "hasHumanCheckpoint (no human_input=True)",
-        "interactsWith (single-agent crews)",
+    # Dynamically compute unexercised properties
+    # Collect all predicates actually used in the graph
+    used_predicates = {str(p) for _, p, _ in graph}
+
+    # Known agentoscin object properties that could be exercised
+    # (derived from the ontology schema)
+    agentoscin_ns = str(AGENTOSCIN)
+    all_ontology_properties = [
+        "agentPrompt", "agentResourceUsage", "agentToolUsage",
+        "bindsMemory", "containsAgent", "containsOrchestration",
+        "containsResource", "containsTeam", "contributesToGoal",
+        "contributesToObjective", "dependsOn", "employsCoordinationPattern",
+        "employsReasoningPattern", "hasAgentCapability", "hasAgentConfig",
+        "hasAgentGoal", "hasAgentMember", "hasAssociatedTask",
+        "hasCapability", "hasConfig", "hasEnvironmentConfig",
+        "hasGoal", "hasGuardrail", "hasHumanCheckpoint",
+        "hasKnowledge", "hasMemoryBinding", "hasObjective",
+        "hasOutputSchema", "hasRelatedPattern", "hasSubCondition",
+        "hasSubPattern", "hasSystemConfig", "hasTeamGoal",
+        "hasTeamMemoryBinding", "hasTerminationCondition",
+        "hasToolConfig", "hasWorkflowPattern", "hasWorkflowStep",
+        "humanParticipatedIn", "interactsWith", "memoryBoundTo",
+        "nextPattern", "nextStep", "operatesIn",
+        "orchestratesTeam", "performedBy", "performedByAgent",
+        "producedResource", "relatedStep", "requiresCapability",
+        "requiresResource", "resourceUsage", "taskPrompt",
+        "taskToolUsage", "toolUsage", "useLanguageModel",
     ]
-    for prop in unexercised:
-        print(f"  {prop}")
+
+    unexercised = [
+        prop for prop in all_ontology_properties
+        if f"{agentoscin_ns}{prop}" not in used_predicates
+    ]
+
+    if unexercised:
+        print(f"\nObject properties not exercised ({len(unexercised)}/{len(all_ontology_properties)}):")
+        for prop in sorted(unexercised):
+            print(f"  {prop}")
+    else:
+        print("\nAll ontology object properties were exercised.")
+
+    exercised_count = len(all_ontology_properties) - len(unexercised)
+    total = len(all_ontology_properties)
+    print(f"\nProperty coverage: {exercised_count}/{total} "
+          f"({100 * exercised_count / total:.0f}%)")
+
