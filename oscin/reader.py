@@ -40,8 +40,8 @@ from oscin.namespaces import (
     AGENTOSCIN,
     COORD_CUSTOM,
     COORD_SEQUENTIAL,
-    DCTERMS_DESCRIPTION,
-    DCTERMS_TITLE,
+    HAS_DESCRIPTION,
+    HAS_TITLE,
 )
 
 log = logging.getLogger("oscin")
@@ -119,7 +119,7 @@ class OntologyReader:
     def _read_system(self) -> None:
         """Read the AgenticSystem individual."""
         for sys_uri in self.g.subjects(RDF.type, AGENTOSCIN.AgenticSystem):
-            self.system_name = self._str_value(sys_uri, DCTERMS_TITLE) or ""
+            self.system_name = self._str_value(sys_uri, HAS_TITLE) or ""
             self.source_framework = (
                 self._str_value(sys_uri, AGENTOSCIN.hasSourceFramework) or "Unknown"
             )
@@ -136,8 +136,8 @@ class OntologyReader:
             if (tool_uri, RDF.type, AGENTOSCIN.LLMAgent) in self.g:
                 continue
 
-            name = self._str_value(tool_uri, DCTERMS_TITLE) or ""
-            description = self._str_value(tool_uri, DCTERMS_DESCRIPTION) or ""
+            name = self._str_value(tool_uri, HAS_TITLE) or ""
+            description = self._str_value(tool_uri, HAS_DESCRIPTION) or ""
             input_schema = self._str_value(tool_uri, AGENTOSCIN.hasInputSchema) or "{}"
             impl_ref = self._str_value(tool_uri, AGENTOSCIN.hasImplementationReference) or ""
 
@@ -169,7 +169,7 @@ class OntologyReader:
             # Goal — follow hasAgentGoal → Goal → dcterms:description
             goal = ""
             for goal_uri in self.g.objects(agent_uri, AGENTOSCIN.hasAgentGoal):
-                goal = self._str_value(goal_uri, DCTERMS_DESCRIPTION) or ""
+                goal = self._str_value(goal_uri, HAS_DESCRIPTION) or ""
 
             # Backstory — follow agentPrompt → Prompt → promptContext
             backstory = ""
@@ -179,7 +179,7 @@ class OntologyReader:
             # LLM — follow useLanguageModel → LanguageModel → dcterms:title
             llm = None
             for lm_uri in self.g.objects(agent_uri, AGENTOSCIN.useLanguageModel):
-                llm = self._str_value(lm_uri, DCTERMS_TITLE)
+                llm = self._str_value(lm_uri, HAS_TITLE)
 
             # Tools — follow agentToolUsage → Tool URIs
             tool_keys = []
@@ -297,7 +297,7 @@ class OntologyReader:
     def _read_teams(self) -> None:
         """Read all Team individuals."""
         for team_uri in self.g.subjects(RDF.type, AGENTOSCIN.Team):
-            title = self._str_value(team_uri, DCTERMS_TITLE) or ""
+            title = self._str_value(team_uri, HAS_TITLE) or ""
 
             # Agent members
             agent_keys = []
@@ -356,7 +356,7 @@ class OntologyReader:
     def _read_flow(self) -> None:
         """Read the Orchestration individual and its workflow steps."""
         for orch_uri in self.g.subjects(RDF.type, AGENTOSCIN.Orchestration):
-            class_name = self._str_value(orch_uri, DCTERMS_TITLE) or "Flow"
+            class_name = self._str_value(orch_uri, HAS_TITLE) or "Flow"
 
             # Crew references
             crew_refs = []
@@ -391,7 +391,7 @@ class OntologyReader:
 
         # Phase 1: Collect step info
         for step_uri in self.g.objects(wp_uri, AGENTOSCIN.hasWorkflowStep):
-            name = self._str_value(step_uri, DCTERMS_TITLE) or self._local_name(step_uri)
+            name = self._str_value(step_uri, HAS_TITLE) or self._local_name(step_uri)
             order = self._int_value(step_uri, AGENTOSCIN.stepOrder) or 0
 
             # Determine decorator type from RDF type
@@ -482,7 +482,7 @@ class OntologyReader:
         steps: list[tuple[int, str, Optional[str]]] = []
         for step_uri in self.g.objects(wp_uri, AGENTOSCIN.hasWorkflowStep):
             order = self._int_value(step_uri, AGENTOSCIN.stepOrder) or 0
-            title = self._str_value(step_uri, DCTERMS_TITLE) or ""
+            title = self._str_value(step_uri, HAS_TITLE) or ""
 
             task_key = None
             for task_uri in self.g.objects(step_uri, AGENTOSCIN.hasAssociatedTask):
