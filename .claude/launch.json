@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "oscin extract (CrewAI)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "oscin.cli", "extract", "examples/crewai", "--framework", "crewai", "--system-name", "crewai-example", "--namespace", "http://example.org/oscin/", "--output", "output/crewai/extracted.ttl"],
+      "port": null
+    },
+    {
+      "name": "oscin extract (AutoGen)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "oscin.cli", "extract", "examples/autogen", "--framework", "autogen", "--system-name", "autogen-example", "--namespace", "http://example.org/oscin/", "--output", "output/autogen/extracted.ttl"],
+      "port": null
+    },
+    {
+      "name": "oscin extract (LangGraph)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "oscin.cli", "extract", "examples/langgraph", "--framework", "langgraph", "--system-name", "langgraph-example", "--namespace", "http://example.org/oscin/", "--output", "output/langgraph/extracted.ttl"],
+      "port": null
+    },
+    {
+      "name": "oscin generate → CrewAI",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "oscin.cli", "generate", "output/autogen/extracted.ttl", "--target-framework", "crewai", "--output-dir", "generated/crewai"],
+      "port": null
+    },
+    {
+      "name": "oscin generate → AutoGen",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "oscin.cli", "generate", "output/crewai/extracted.ttl", "--target-framework", "autogen", "--output-dir", "generated/autogen"],
+      "port": null
+    },
+    {
+      "name": "oscin generate → LangGraph",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "oscin.cli", "generate", "output/crewai/extracted.ttl", "--target-framework", "langgraph", "--output-dir", "generated/langgraph"],
+      "port": null
+    }
+  ]
+}
