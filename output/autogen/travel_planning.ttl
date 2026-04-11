@@ -1,0 +1,23 @@
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/travel_planning#> .
+@prefix ns1: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:TravelPlanningSystem a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_AssistantAgent ;
+    ns1:title "TravelPlanningSystem"^^xsd:string ;
+    agentoscin:hasSourceFramework "AutoGen"^^xsd:string .
+
+ex:AgentPrompt_AssistantAgent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are a helpful assistant that can take in all of the suggestions and advice from the other agents and provide a detailed final travel plan. You must ensure that the final plan is integrated and complete. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN. When the plan is complete and all perspectives are integrated, you can respond with TERMINATE."^^xsd:string ;
+    agentoscin:promptInstruction "AssistantAgent"^^xsd:string .
+
+ex:Agent_AssistantAgent a agentoscin:LLMAgent ;
+    agentoscin:agentID "AssistantAgent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_AssistantAgent ;
+    agentoscin:agentRole "AssistantAgent"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false .
+

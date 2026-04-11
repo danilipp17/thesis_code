@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, XSD
@@ -39,6 +39,7 @@ from oscin.namespaces import (
     DCTERMS_TITLE,
     make_instance_namespace,
 )
+from oscin.utils import pydantic_fields_to_json_schema
 
 log = logging.getLogger("oscin")
 
@@ -135,25 +136,16 @@ class OntologyPopulator:
 
     def _populate_tools(self) -> None:
         for key, tool in self.parser.tools.items():
-            uri = self.EX[f"Tool_{self._safe_id(tool.class_name)}"]
+            uri = self._create_individual("Tool", tool.class_name, AGENTOSCIN.Tool)
             self.tool_uris[key] = uri
 
-            # Mapping table 5: Tool instantiation → Tool individual
-            self.g.add((uri, RDF.type, AGENTOSCIN.Tool))
+            # Mapping table 5 assertions
+            self._add_str(uri, DCTERMS_TITLE, tool.name)
+            self._add_str(uri, DCTERMS_DESCRIPTION, tool.description)
+            self._add_str(uri, AGENTOSCIN.hasInputSchema, tool.args_schema_json)
+            self._add_str(uri, AGENTOSCIN.hasImplementationReference, tool.implementation_ref)
 
-            # Mapping table 5: Tool class name → dcterms:title
-            self.g.add((uri, DCTERMS_TITLE, Literal(tool.name, datatype=XSD.string)))
-
-            # Mapping table 5: Tool class docstring → dcterms:description
-            self.g.add((uri, DCTERMS_DESCRIPTION, Literal(tool.description, datatype=XSD.string)))
-
-            # Mapping table 5: BaseTool.args_schema → hasInputSchema
-            self.g.add((uri, AGENTOSCIN.hasInputSchema, Literal(tool.args_schema_json, datatype=XSD.string)))
-
-            # Mapping table 5: BaseTool._run → hasImplementationReference
-            self.g.add((uri, AGENTOSCIN.hasImplementationReference, Literal(tool.implementation_ref, datatype=XSD.string)))
-
-            log.info("  [Tool] %s → %s", tool.name, uri)
+            log.info("  [Tool] %s \u2192 %s", tool.name, uri)
 
     # -----------------------------------------------------------
     # Agent Population
@@ -162,67 +154,43 @@ class OntologyPopulator:
 
     def _populate_agents(self) -> None:
         for key, agent in self.parser.agents.items():
-            uri = self.EX[f"Agent_{self._safe_id(key)}"]
+            uri = self._create_individual("Agent", key, AGENTOSCIN.LLMAgent)
             self.agent_uris[key] = uri
 
-            # Mapping table 1: Agent class instantiation → LLMAgent individual
-            self.g.add((uri, RDF.type, AGENTOSCIN.LLMAgent))
-
-            # Mapping table 1: Agent.role → agentID
-            self.g.add((uri, AGENTOSCIN.agentID, Literal(agent.role, datatype=XSD.string)))
-
-            # Mapping table 1: Agent.role → agentRole (same value for CrewAI)
-            self.g.add((uri, AGENTOSCIN.agentRole, Literal(agent.role, datatype=XSD.string)))
-
-            # Mapping table 1: Agent (no explicit type) → agentType = "GeneralPurpose"
-            self.g.add((uri, AGENTOSCIN.agentType, Literal("GeneralPurpose", datatype=XSD.string)))
-
-            # Mapping table 1: Agent.reasoning → hasReasoningEnabled
-            self.g.add((uri, AGENTOSCIN.hasReasoningEnabled, Literal(agent.reasoning, datatype=XSD.boolean)))
+            # Basic Agent props (Mapping table 1)
+            self._add_str(uri, AGENTOSCIN.agentID, agent.role)
+            self._add_str(uri, AGENTOSCIN.agentRole, agent.role)
+            self._add_str(uri, AGENTOSCIN.agentType, "GeneralPurpose")
+            self._add_bool(uri, AGENTOSCIN.hasReasoningEnabled, agent.reasoning)
 
             # --- Goal ---
-            # Mapping table 1: Agent.goal → hasAgentGoal → Goal individual
             if agent.goal:
-                goal_uri = self.EX[f"Goal_{self._safe_id(key)}"]
-                self.g.add((goal_uri, RDF.type, AGENTOSCIN.Goal))
-                self.g.add((goal_uri, DCTERMS_DESCRIPTION, Literal(agent.goal, datatype=XSD.string)))
+                goal_uri = self._create_individual("Goal", key, AGENTOSCIN.Goal)
+                self._add_str(goal_uri, DCTERMS_DESCRIPTION, agent.goal)
                 self.g.add((uri, AGENTOSCIN.hasAgentGoal, goal_uri))
 
             # --- Agent Prompt ---
-            # Mapping table 1: Agent.backstory → agentPrompt → Prompt.promptContext
-            # Mapping table 1: Agent.role + Agent.goal → Prompt.promptInstruction
-            prompt_uri = self.EX[f"AgentPrompt_{self._safe_id(key)}"]
+            prompt_uri = self._create_individual("AgentPrompt", key, AGENTOSCIN.Prompt)
             self.prompt_uris[f"agent_{key}"] = prompt_uri
-            self.g.add((prompt_uri, RDF.type, AGENTOSCIN.Prompt))
-
-            # Compose instruction from role + goal (mapping table row 6)
+            
+            # Compose instruction: role + goal
             instruction = f"{agent.role}: {agent.goal}" if agent.goal else agent.role
-            self.g.add((prompt_uri, AGENTOSCIN.promptInstruction, Literal(instruction, datatype=XSD.string)))
-
-            # Backstory → promptContext (mapping table row 5)
-            if agent.backstory:
-                self.g.add((prompt_uri, AGENTOSCIN.promptContext, Literal(agent.backstory, datatype=XSD.string)))
-
-            # Mapping table 1: Always DualDirective for CrewAI agents
-            self.g.add((prompt_uri, AGENTOSCIN.hasDirectiveFunction, Literal("DualDirective", datatype=XSD.string)))
-
-            # Mapping table 1: Three source attributes
-            self.g.add((prompt_uri, AGENTOSCIN.hasSourceAttribute, Literal("role, goal, backstory", datatype=XSD.string)))
+            self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, instruction)
+            self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+            self._add_str(prompt_uri, AGENTOSCIN.hasDirectiveFunction, "DualDirective")
+            self._add_str(prompt_uri, AGENTOSCIN.hasSourceAttribute, "role, goal, backstory")
 
             self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
 
             # --- Tool bindings ---
-            # Mapping table 1: Agent.tools → agentToolUsage → Tool
-            for tool_class_name in agent.tools:
-                if tool_class_name in self.tool_uris:
-                    self.g.add((uri, AGENTOSCIN.agentToolUsage, self.tool_uris[tool_class_name]))
+            for tool_key in agent.tools:
+                if tool_key in self.tool_uris:
+                    self.g.add((uri, AGENTOSCIN.agentToolUsage, self.tool_uris[tool_key]))
 
             # --- Language Model ---
-            # Mapping table 1: Agent.llm → useLanguageModel → LanguageModel
             if agent.llm:
-                lm_uri = self.EX[f"LM_{self._safe_id(agent.llm)}"]
-                self.g.add((lm_uri, RDF.type, AGENTOSCIN.LanguageModel))
-                self.g.add((lm_uri, DCTERMS_TITLE, Literal(agent.llm, datatype=XSD.string)))
+                lm_uri = self._create_individual("LM", agent.llm, AGENTOSCIN.LanguageModel)
+                self._add_str(lm_uri, DCTERMS_TITLE, agent.llm)
                 self.g.add((uri, AGENTOSCIN.useLanguageModel, lm_uri))
 
             # --- Agent-level config ---
@@ -232,29 +200,19 @@ class OntologyPopulator:
                 self._add_config(uri, AGENTOSCIN.hasAgentConfig, "allow_delegation", str(agent.allow_delegation).lower())
 
             # --- Reasoning ---
-            # Mapping table 1: Agent.reasoning=True → employsReasoningPattern
             if agent.reasoning:
                 rp_uri = self.EX["ReasoningPattern_Unspecified"]
                 self.g.add((rp_uri, RDF.type, AGENTOSCIN.Unspecified))
                 self.g.add((uri, AGENTOSCIN.employsReasoningPattern, rp_uri))
-                self.g.add((uri, AGENTOSCIN.hasReasoningOrigin, Literal("FrameworkManaged", datatype=XSD.string)))
+                self._add_str(uri, AGENTOSCIN.hasReasoningOrigin, "FrameworkManaged")
                 if agent.max_reasoning_attempts is not None:
-                    self.g.add((uri, AGENTOSCIN.hasMaxReasoningAttempts,
-                                Literal(agent.max_reasoning_attempts, datatype=XSD.integer)))
+                    self._add_int(uri, AGENTOSCIN.hasMaxReasoningAttempts, agent.max_reasoning_attempts)
 
             # --- Memory ---
-            # Mapping table 1: Agent.memory=True → hasMemoryBinding → MemoryBinding
             if agent.memory:
-                mb_uri = self.EX[f"MemoryBinding_Agent_{self._safe_id(key)}"]
-                mem_uri = self.EX[f"Memory_Agent_{self._safe_id(key)}"]
-                self.g.add((mb_uri, RDF.type, AGENTOSCIN.MemoryBinding))
-                self.g.add((mb_uri, AGENTOSCIN.hasMemoryScope, Literal("AgentPrivate", datatype=XSD.string)))
-                self.g.add((mb_uri, AGENTOSCIN.bindsMemory, mem_uri))
-                self.g.add((mem_uri, RDF.type, AGENTOSCIN.Memory))
-                self.g.add((mem_uri, AGENTOSCIN.hasPersistenceScope, Literal("Persistent", datatype=XSD.string)))
-                self.g.add((uri, AGENTOSCIN.hasMemoryBinding, mb_uri))
+                self._bind_memory(uri, key, "AgentPrivate")
 
-            log.info("  [Agent] %s → %s", agent.role, uri)
+            log.info("  [Agent] %s \u2192 %s", agent.role, uri)
 
     # -----------------------------------------------------------
     # Task Population
@@ -263,85 +221,57 @@ class OntologyPopulator:
 
     def _populate_tasks(self) -> None:
         for key, task in self.parser.tasks.items():
-            uri = self.EX[f"Task_{self._safe_id(key)}"]
+            uri = self._create_individual("Task", key, AGENTOSCIN.Task)
             self.task_uris[key] = uri
 
-            # Mapping table 2: Task class instantiation → Task individual
-            self.g.add((uri, RDF.type, AGENTOSCIN.Task))
-
-            # --- Expected Output ---
-            # Mapping table 2: Task.expected_output → hasExpectedOutput
-            if task.expected_output:
-                self.g.add((uri, AGENTOSCIN.hasExpectedOutput, Literal(task.expected_output, datatype=XSD.string)))
+            # Basic Task attributes
+            self._add_str(uri, AGENTOSCIN.hasExpectedOutput, task.expected_output)
 
             # --- Agent Assignment ---
-            # Mapping table 2: Task.agent → performedByAgent → LLMAgent
             if task.agent_key and task.agent_key in self.agent_uris:
                 self.g.add((uri, AGENTOSCIN.performedByAgent, self.agent_uris[task.agent_key]))
-                # Mapping table 2: Task.agent present → ExplicitAssignment
-                self.g.add((uri, AGENTOSCIN.hasDelegationStrategy, Literal("ExplicitAssignment", datatype=XSD.string)))
+                self._add_str(uri, AGENTOSCIN.hasDelegationStrategy, "ExplicitAssignment")
             else:
-                # Mapping table 2: Task.agent absent → OrchestratorDelegated
-                self.g.add((uri, AGENTOSCIN.hasDelegationStrategy, Literal("OrchestratorDelegated", datatype=XSD.string)))
+                self._add_str(uri, AGENTOSCIN.hasDelegationStrategy, "OrchestratorDelegated")
 
             # --- Task Prompt ---
-            # Mapping table 2: Task.description → taskPrompt → Prompt.promptInstruction
-            task_prompt_uri = self.EX[f"TaskPrompt_{self._safe_id(key)}"]
+            task_prompt_uri = self._create_individual("TaskPrompt", key, AGENTOSCIN.Prompt)
             self.prompt_uris[f"task_{key}"] = task_prompt_uri
-            self.g.add((task_prompt_uri, RDF.type, AGENTOSCIN.Prompt))
-
-            if task.description:
-                self.g.add((task_prompt_uri, AGENTOSCIN.promptInstruction,
-                            Literal(task.description, datatype=XSD.string)))
-
-            # Mapping table 2: Task.expected_output → Prompt.promptOutputIndicator
-            if task.expected_output:
-                self.g.add((task_prompt_uri, AGENTOSCIN.promptOutputIndicator,
-                            Literal(task.expected_output, datatype=XSD.string)))
-
-            # Mapping table 2: Source attributes
-            self.g.add((task_prompt_uri, AGENTOSCIN.hasSourceAttribute,
-                        Literal("description, expected_output", datatype=XSD.string)))
+            
+            self._add_str(task_prompt_uri, AGENTOSCIN.promptInstruction, task.description)
+            self._add_str(task_prompt_uri, AGENTOSCIN.promptOutputIndicator, task.expected_output)
+            self._add_str(task_prompt_uri, AGENTOSCIN.hasSourceAttribute, "description, expected_output")
 
             self.g.add((uri, AGENTOSCIN.taskPrompt, task_prompt_uri))
 
             # --- Task-level tools ---
-            # Mapping table 2: Task.tools → taskToolUsage → Tool
             for tool_name in task.tools:
                 if tool_name in self.tool_uris:
                     self.g.add((uri, AGENTOSCIN.taskToolUsage, self.tool_uris[tool_name]))
 
             # --- Output Schema ---
-            # Mapping table 2: Task.output_pydantic → hasOutputSchema → Schema
             if task.output_pydantic and task.output_pydantic in self.parser.pydantic_models:
-                from oscin.utils import pydantic_fields_to_json_schema
                 model = self.parser.pydantic_models[task.output_pydantic]
-                schema_uri = self.EX[f"Schema_{self._safe_id(task.output_pydantic)}"]
-                self.g.add((schema_uri, RDF.type, AGENTOSCIN.Schema))
+                schema_uri = self._create_individual("Schema", task.output_pydantic, AGENTOSCIN.Schema)
                 schema_json = pydantic_fields_to_json_schema(model.fields)
-                self.g.add((schema_uri, AGENTOSCIN.hasSchemaDefinition,
-                            Literal(schema_json, datatype=XSD.string)))
+                self._add_str(schema_uri, AGENTOSCIN.hasSchemaDefinition, schema_json)
                 self.g.add((uri, AGENTOSCIN.hasOutputSchema, schema_uri))
 
             # --- Dependencies ---
-            # Mapping table 2: Task.context → dependsOn → Task
             for dep_key in task.context_tasks:
                 if dep_key in self.task_uris:
                     self.g.add((uri, AGENTOSCIN.dependsOn, self.task_uris[dep_key]))
-                    self.g.add((uri, AGENTOSCIN.hasDependencyType,
-                                Literal("ContextProviding", datatype=XSD.string)))
+                    self._add_str(uri, AGENTOSCIN.hasDependencyType, "ContextProviding")
 
             # --- Human Checkpoint ---
-            # Mapping table 2: Task.human_input=True → hasHumanCheckpoint
             if task.human_input:
-                hc_uri = self.EX[f"HumanCheckpoint_{self._safe_id(key)}"]
-                self.g.add((hc_uri, RDF.type, AGENTOSCIN.HumanCheckpoint))
-                self.g.add((hc_uri, AGENTOSCIN.hasCheckpointType, Literal("Review", datatype=XSD.string)))
-                self.g.add((hc_uri, AGENTOSCIN.hasCheckpointPosition, Literal("AfterExecution", datatype=XSD.string)))
-                self.g.add((hc_uri, AGENTOSCIN.isMandatory, Literal(True, datatype=XSD.boolean)))
+                hc_uri = self._create_individual("HumanCheckpoint", key, AGENTOSCIN.HumanCheckpoint)
+                self._add_str(hc_uri, AGENTOSCIN.hasCheckpointType, "Review")
+                self._add_str(hc_uri, AGENTOSCIN.hasCheckpointPosition, "AfterExecution")
+                self._add_bool(hc_uri, AGENTOSCIN.isMandatory, True)
                 self.g.add((uri, AGENTOSCIN.hasHumanCheckpoint, hc_uri))
 
-            log.info("  [Task] %s → %s", key, uri)
+            log.info("  [Task] %s \u2192 %s", key, uri)
 
     # -----------------------------------------------------------
     # Team Population
@@ -350,52 +280,41 @@ class OntologyPopulator:
 
     def _populate_teams(self) -> None:
         for key, team in self.parser.teams.items():
-            uri = self.EX[f"Team_{self._safe_id(key)}"]
+            uri = self._create_individual("Team", key, AGENTOSCIN.Team)
             self.team_uris[key] = uri
-
-            # Mapping table 3: Crew class instantiation → Team individual
-            self.g.add((uri, RDF.type, AGENTOSCIN.Team))
-            self.g.add((uri, DCTERMS_TITLE, Literal(team.team_class_name, datatype=XSD.string)))
+            self._add_str(uri, DCTERMS_TITLE, team.team_class_name)
 
             # --- Agent Members ---
-            # Mapping table 3: Crew.agents → hasAgentMember → LLMAgent
             for agent_key in team.agent_keys:
                 if agent_key in self.agent_uris:
                     self.g.add((uri, AGENTOSCIN.hasAgentMember, self.agent_uris[agent_key]))
 
             # --- Coordination Pattern ---
-            # Mapping table 3: Crew.process → employsCoordinationPattern
-            # Uses the named individuals defined in agentoscin.ttl
             pattern_map = {
                 "sequential": COORD_SEQUENTIAL,
                 "hierarchical": AGENTOSCIN["HierachicalPattern"],
             }
             pattern_uri = pattern_map.get(team.process, COORD_CUSTOM)
+            # Ensure type is set even if using predefined individual
             self.g.add((pattern_uri, RDF.type, AGENTOSCIN.CoordinationPattern))
             self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, pattern_uri))
 
             # --- Termination ---
-            # Mapping table 3: Crew implicit termination → TaskCompletionTermination
-            term_uri = self.EX[f"Termination_{self._safe_id(key)}"]
-            self.g.add((term_uri, RDF.type, AGENTOSCIN.TaskCompletionTermination))
+            term_uri = self._create_individual("Termination", key, AGENTOSCIN.TaskCompletionTermination)
             self.g.add((uri, AGENTOSCIN.hasTerminationCondition, term_uri))
 
             # --- Workflow Pattern ---
-            # Mapping table 3: Crew.tasks → WorkflowPattern with WorkflowSteps
-            wp_uri = self.EX[f"WorkflowPattern_{self._safe_id(key)}"]
-            self.g.add((wp_uri, RDF.type, AGENTOSCIN.WorkflowPattern))
+            wp_uri = self._create_individual("WorkflowPattern", key, AGENTOSCIN.WorkflowPattern)
             self.g.add((uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
 
             prev_step_uri = None
             for idx, task_key in enumerate(team.task_keys):
                 step_uri = self.EX[f"CrewStep_{self._safe_id(key)}_{self._safe_id(task_key)}"]
-
-                # Determine step type based on position
+                
+                # Determine type
                 is_first = idx == 0
                 is_last = idx == len(team.task_keys) - 1
-
                 if is_first and is_last:
-                    # Single-step crew: both StartStep and EndStep
                     self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
                     self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
                 elif is_first:
@@ -405,37 +324,25 @@ class OntologyPopulator:
                 else:
                     self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
 
-                self.g.add((step_uri, DCTERMS_TITLE, Literal(task_key, datatype=XSD.string)))
-                self.g.add((step_uri, AGENTOSCIN.stepOrder, Literal(idx + 1, datatype=XSD.integer)))
+                self._add_str(step_uri, DCTERMS_TITLE, task_key)
+                self._add_int(step_uri, AGENTOSCIN.stepOrder, idx + 1)
 
-                # Link step to task
                 if task_key in self.task_uris:
                     self.g.add((step_uri, AGENTOSCIN.hasAssociatedTask, self.task_uris[task_key]))
 
-                # Link sequential steps
                 if prev_step_uri is not None:
                     self.g.add((prev_step_uri, AGENTOSCIN.nextStep, step_uri))
 
                 self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, step_uri))
                 prev_step_uri = step_uri
 
-            # --- System Config ---
+            # --- Config & Memory ---
             if team.verbose:
                 self._add_config(uri, AGENTOSCIN.hasSystemConfig, "verbose", "true")
-
-            # --- Crew-level Memory ---
-            # Mapping table 3: Crew.memory=True → hasTeamMemoryBinding
             if team.memory:
-                mb_uri = self.EX[f"MemoryBinding_Team_{self._safe_id(key)}"]
-                mem_uri = self.EX[f"Memory_Team_{self._safe_id(key)}"]
-                self.g.add((mb_uri, RDF.type, AGENTOSCIN.MemoryBinding))
-                self.g.add((mb_uri, AGENTOSCIN.hasMemoryScope, Literal("GroupShared", datatype=XSD.string)))
-                self.g.add((mb_uri, AGENTOSCIN.bindsMemory, mem_uri))
-                self.g.add((mem_uri, RDF.type, AGENTOSCIN.Memory))
-                self.g.add((mem_uri, AGENTOSCIN.hasPersistenceScope, Literal("Persistent", datatype=XSD.string)))
-                self.g.add((uri, AGENTOSCIN.hasTeamMemoryBinding, mb_uri))
+                self._bind_memory(uri, key, "GroupShared")
 
-            log.info("  [Team] %s → %s (process: %s)", key, uri, team.process)
+            log.info("  [Team] %s \u2192 %s (process: %s)", key, uri, team.process)
 
     # -----------------------------------------------------------
     # Flow Population
@@ -445,111 +352,89 @@ class OntologyPopulator:
     def _populate_flow(self) -> None:
         flow = self.parser.flow
         if not flow:
-            log.info("  [Flow] No Flow class found — skipping.")
+            log.info("  [Flow] No Flow class found \u2014 skipping.")
             return
 
-        # --- Orchestration individual ---
-        # Mapping table 4: Flow class definition → Orchestration
-        orch_uri = self.EX[f"Orchestration_{self._safe_id(flow.class_name)}"]
-        self.g.add((orch_uri, RDF.type, AGENTOSCIN.Orchestration))
-        self.g.add((orch_uri, DCTERMS_TITLE, Literal(flow.class_name, datatype=XSD.string)))
-
-        # Mapping table 4: Flow coordination pattern → Custom
-        self.g.add((COORD_CUSTOM, RDF.type, AGENTOSCIN.CoordinationPattern))
-        self.g.add((orch_uri, AGENTOSCIN.employsCoordinationPattern, COORD_CUSTOM))
-
-        # --- Link to teams ---
-        # Mapping table 4: Crew references inside Flow → orchestratesTeam
+        orch_uri = self._setup_orchestration_metadata(flow)
+        
+        # Mapping table 4: Crew references
         for crew_ref in flow.crew_references:
             if crew_ref in self.team_uris:
                 self.g.add((orch_uri, AGENTOSCIN.orchestratesTeam, self.team_uris[crew_ref]))
 
-        # --- Flow Workflow Pattern ---
-        wp_uri = self.EX[f"FlowWorkflowPattern_{self._safe_id(flow.class_name)}"]
-        self.g.add((wp_uri, RDF.type, AGENTOSCIN.WorkflowPattern))
+        wp_uri = self._create_individual("FlowWorkflowPattern", flow.class_name, AGENTOSCIN.WorkflowPattern)
         self.g.add((orch_uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
 
-        # --- Build step URIs and resolve routing ---
+        step_uris, outgoing_edges = self._create_flow_steps(flow, wp_uri)
+        self._resolve_flow_edges(flow, step_uris, outgoing_edges)
+
+        log.info("  [Flow] %s \u2192 %s (%d steps, %d crew references)",
+                 flow.class_name, orch_uri, len(flow.steps), len(flow.crew_references))
+
+    def _setup_orchestration_metadata(self, flow) -> URIRef:
+        uri = self._create_individual("Orchestration", flow.class_name, AGENTOSCIN.Orchestration)
+        self._add_str(uri, DCTERMS_TITLE, flow.class_name)
+        
+        # Default for CrewAI Flow
+        self.g.add((COORD_CUSTOM, RDF.type, AGENTOSCIN.CoordinationPattern))
+        self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, COORD_CUSTOM))
+        return uri
+
+    def _create_flow_steps(self, flow, wp_uri: URIRef) -> tuple[dict[str, URIRef], dict[str, list[str]]]:
         step_uris: dict[str, URIRef] = {}
-        step_order = 1
+        outgoing_edges: dict[str, list[str]] = {}
 
-        # Phase 1: Create all step individuals
-        for step in flow.steps:
-            step_uri = self.EX[f"FlowStep_{self._safe_id(step.method_name)}"]
-            step_uris[step.method_name] = step_uri
+        for idx, step in enumerate(flow.steps):
+            uri = self._create_individual("FlowStep", step.method_name, AGENTOSCIN.WorkflowStep)
+            step_uris[step.method_name] = uri
+            outgoing_edges[step.method_name] = []
 
-            # Mapping table 4: Determine step type from decorator
+            # Determine specific step types
             if step.decorator_type == "start":
-                self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
+                self.g.add((uri, RDF.type, AGENTOSCIN.StartStep))
             elif step.decorator_type == "router":
-                self.g.add((step_uri, RDF.type, AGENTOSCIN.ConditionalStep))
-            elif step.decorator_type == "listen":
-                # Listen steps with no outgoing connections are EndSteps.
-                # We determine this in Phase 2 after resolving all edges.
-                self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
-            else:
-                self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
+                self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
+                self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
 
-            self.g.add((step_uri, DCTERMS_TITLE, Literal(step.method_name, datatype=XSD.string)))
-            self.g.add((step_uri, AGENTOSCIN.stepOrder, Literal(step_order, datatype=XSD.integer)))
-            self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, step_uri))
+            self._add_str(uri, DCTERMS_TITLE, step.method_name)
+            self._add_int(uri, AGENTOSCIN.stepOrder, idx + 1)
+            self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, uri))
+        
+        return step_uris, outgoing_edges
 
-            # Store routing logic for router steps
-            if step.decorator_type == "router" and step.function_body:
-                self.g.add((step_uri, AGENTOSCIN.hasRoutingLogic,
-                            Literal(step.function_body, datatype=XSD.string)))
-
-            step_order += 1
-
-        # Phase 2: Resolve nextStep edges
-        # Build a map from labels/method names to step URIs so that
-        # @listen and @start decorator args can be resolved to targets.
-        label_to_step: dict[str, URIRef] = {}
+    def _resolve_flow_edges(self, flow, step_uris: dict[str, URIRef], outgoing_edges: dict[str, list[str]]) -> None:
+        # Resolve target mapping: @listen("label") or method names
+        label_map: dict[str, URIRef] = {}
         for step in flow.steps:
-            # A @listen("label") makes this step the target for that label
-            if step.decorator_type == "listen":
+            label_map[step.method_name] = step_uris[step.method_name]
+            if step.decorator_type in ("listen", "start"):
                 for arg in step.decorator_args:
-                    label_to_step[arg] = step_uris[step.method_name]
-            # A @start("label") also listens for that label
-            if step.decorator_type == "start":
-                for arg in step.decorator_args:
-                    label_to_step[arg] = step_uris[step.method_name]
-            # Methods can be referenced by name (for @router(method_ref))
-            label_to_step[step.method_name] = step_uris[step.method_name]
+                    label_map[arg] = step_uris[step.method_name]
 
-        # Now resolve edges
-        outgoing_edges: dict[str, list[str]] = {s.method_name: [] for s in flow.steps}
-
+        # Connect edges
         for step in flow.steps:
+            src_uri = step_uris[step.method_name]
+            
             if step.decorator_type == "router":
-                # Router return values map to @listen labels or @start labels
                 for ret_val in step.return_values:
-                    if ret_val in label_to_step:
-                        self.g.add((step_uris[step.method_name], AGENTOSCIN.nextStep,
-                                    label_to_step[ret_val]))
+                    if ret_val in label_map:
+                        self.g.add((src_uri, AGENTOSCIN.nextStep, label_map[ret_val]))
                         outgoing_edges[step.method_name].append(ret_val)
 
             elif step.decorator_type == "start":
-                # @start methods flow to the next step — which is the
-                # method that has @router(this_method) or @listen(this_method)
                 for other in flow.steps:
                     if other.decorator_type in ("router", "listen"):
-                        for arg in other.decorator_args:
-                            if arg == step.method_name:
-                                self.g.add((step_uris[step.method_name], AGENTOSCIN.nextStep,
-                                            step_uris[other.method_name]))
-                                outgoing_edges[step.method_name].append(other.method_name)
+                        if any(arg == step.method_name for arg in other.decorator_args):
+                            self.g.add((src_uri, AGENTOSCIN.nextStep, step_uris[other.method_name]))
+                            outgoing_edges[step.method_name].append(other.method_name)
 
-        # Phase 3: Reclassify listen steps with no outgoing edges as EndStep
-        for step in flow.steps:
-            if step.decorator_type == "listen" and not outgoing_edges[step.method_name]:
-                step_uri = step_uris[step.method_name]
-                # Remove generic WorkflowStep type and add EndStep
-                self.g.remove((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
-                self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
-
-        log.info("  [Flow] %s → %s (%d steps, %d crew references)",
-                 flow.class_name, orch_uri, len(flow.steps), len(flow.crew_references))
+        # Reclassify dead-ends as EndSteps
+        for step_name, edges in outgoing_edges.items():
+            if not edges:
+                uri = step_uris[step_name]
+                # If it's a generic step or listen step, make it an EndStep
+                self.g.remove((uri, RDF.type, AGENTOSCIN.WorkflowStep))
+                self.g.add((uri, RDF.type, AGENTOSCIN.EndStep))
 
     # -----------------------------------------------------------
     # System-Level Population
@@ -557,68 +442,72 @@ class OntologyPopulator:
     # -----------------------------------------------------------
 
     def _populate_system(self) -> None:
-        """Create the AgenticSystem individual that contains everything."""
         sys_uri = self.EX[self._safe_id(self.system_name)]
-
-        # Mapping table 6: Entire source file → AgenticSystem
         self.g.add((sys_uri, RDF.type, AGENTOSCIN.AgenticSystem))
+        
+        self._add_str(sys_uri, DCTERMS_TITLE, self.system_name)
+        self._add_str(sys_uri, AGENTOSCIN.hasSourceFramework, self.parser.framework_name())
 
-        # Mapping table 6: System dcterms:title
-        self.g.add((sys_uri, DCTERMS_TITLE, Literal(self.system_name, datatype=XSD.string)))
-
-        # Mapping table 6: hasSourceFramework — from the parser
-        self.g.add((sys_uri, AGENTOSCIN.hasSourceFramework,
-                    Literal(self.parser.framework_name(), datatype=XSD.string)))
-
-        # Mapping table 6: All Team instances → containsTeam
+        # Link containers
         for team_uri in self.team_uris.values():
             self.g.add((sys_uri, AGENTOSCIN.containsTeam, team_uri))
-
-        # Mapping table 6: All Agent instances → containsAgent
         for agent_uri in self.agent_uris.values():
             self.g.add((sys_uri, AGENTOSCIN.containsAgent, agent_uri))
-
-        # Mapping table 6: Flow instance → containsOrchestration
+        
         if self.parser.flow:
             orch_uri = self.EX[f"Orchestration_{self._safe_id(self.parser.flow.class_name)}"]
             self.g.add((sys_uri, AGENTOSCIN.containsOrchestration, orch_uri))
 
-        log.info("  [System] %s → %s", self.system_name, sys_uri)
+        log.info("  [System] %s \u2192 %s", self.system_name, sys_uri)
 
     # -----------------------------------------------------------
-    # Helpers
+    # Refined Helpers
     # -----------------------------------------------------------
 
-    def _add_config(
-        self, subject: URIRef, property_uri: URIRef, key: str, value: str
-    ) -> None:
-        """Create a Config individual and link it to the subject."""
-        config_uri = self.EX[f"Config_{self._safe_id(key)}_{self._safe_id(str(subject).split('#')[-1])}"]
-        self.g.add((config_uri, RDF.type, AGENTOSCIN.Config))
-        self.g.add((config_uri, AGENTOSCIN.configKey, Literal(key, datatype=XSD.string)))
-        self.g.add((config_uri, AGENTOSCIN.configValue, Literal(value, datatype=XSD.string)))
-        self.g.add((subject, property_uri, config_uri))
+    def _create_individual(self, prefix: str, key: str, owl_class: URIRef) -> URIRef:
+        """Create a URI and declare its RDF:type."""
+        uri = self.EX[f"{prefix}_{self._safe_id(key)}"]
+        self.g.add((uri, RDF.type, owl_class))
+        return uri
+
+    def _bind_memory(self, parent_uri: URIRef, key: str, scope: str) -> None:
+        """Standardized memory instantiation for Agents and Teams."""
+        mb_uri = self._create_individual(f"MemoryBinding_{scope}", key, AGENTOSCIN.MemoryBinding)
+        mem_uri = self._create_individual(f"Memory_{scope}", key, AGENTOSCIN.Memory)
+        
+        self._add_str(mb_uri, AGENTOSCIN.hasMemoryScope, scope)
+        self._add_str(mem_uri, AGENTOSCIN.hasPersistenceScope, "Persistent")
+        self.g.add((mb_uri, AGENTOSCIN.bindsMemory, mem_uri))
+        
+        prop = AGENTOSCIN.hasTeamMemoryBinding if scope == "GroupShared" else AGENTOSCIN.hasMemoryBinding
+        self.g.add((parent_uri, prop, mb_uri))
+
+    def _add_str(self, subject: URIRef, predicate: URIRef, text: str | None) -> None:
+        if text:
+            self.g.add((subject, predicate, Literal(text, datatype=XSD.string)))
+
+    def _add_int(self, subject: URIRef, predicate: URIRef, val: int | None) -> None:
+        if val is not None:
+            self.g.add((subject, predicate, Literal(val, datatype=XSD.integer)))
+
+    def _add_bool(self, subject: URIRef, predicate: URIRef, val: bool | None) -> None:
+        if val is not None:
+            self.g.add((subject, predicate, Literal(val, datatype=XSD.boolean)))
+
+    def _add_config(self, subject: URIRef, property_uri: URIRef, key: str, value: str) -> None:
+        c_uri = self.EX[f"Config_{self._safe_id(key)}_{self._safe_id(str(subject).split('#')[-1])}"]
+        self.g.add((c_uri, RDF.type, AGENTOSCIN.Config))
+        self._add_str(c_uri, AGENTOSCIN.configKey, key)
+        self._add_str(c_uri, AGENTOSCIN.configValue, value)
+        self.g.add((subject, property_uri, c_uri))
 
     @staticmethod
     def _safe_id(name: str) -> str:
-        """Convert a name to a URI-safe identifier."""
         return name.replace(" ", "_").replace("-", "_").replace(".", "_")
 
 
-# ===================================================================
-# Validation Report (optional utility)
-# ===================================================================
-
 def print_validation_report(graph: Graph, parser: BaseSourceParser) -> None:
-    """
-    Print a summary of what was extracted and populated, highlighting
-    any properties that could not be populated (information loss).
-
-    The "unexercised properties" section is computed dynamically by
-    comparing all object properties defined in the agentoscin namespace
-    against the predicates actually used in the populated graph.
-    """
-    # Count individuals by type
+    """Print extraction and population summary."""
     type_counts: dict[str, int] = {}
     for s, p, o in graph.triples((None, RDF.type, None)):
         type_name = str(o).split("/")[-1]
@@ -628,66 +517,38 @@ def print_validation_report(graph: Graph, parser: BaseSourceParser) -> None:
     for cls, count in sorted(type_counts.items()):
         print(f"  {cls}: {count}")
 
-    # Check for unpopulated properties (information loss)
     print("\nInformation loss analysis:")
-    loss_items: list[str] = []
-
+    loss_items = []
     for key, agent in parser.agents.items():
         if not agent.llm:
-            loss_items.append(
-                f"  Agent '{agent.role}': useLanguageModel NOT populated "
-                f"(no explicit llm= parameter)"
-            )
-
+            loss_items.append(f"  Agent '{agent.role}': useLanguageModel NOT populated")
+    
     if not loss_items:
         print("  No information loss detected for populated constructs.")
     else:
         for item in loss_items:
             print(item)
 
-    # Dynamically compute unexercised properties
-    # Collect all predicates actually used in the graph
+    # Dynamics check
     used_predicates = {str(p) for _, p, _ in graph}
-
-    # Known agentoscin object properties that could be exercised
-    # (derived from the ontology schema)
-    agentoscin_ns = str(AGENTOSCIN)
     all_ontology_properties = [
-        "agentPrompt", "agentResourceUsage", "agentToolUsage",
-        "bindsMemory", "containsAgent", "containsOrchestration",
-        "containsResource", "containsTeam", "contributesToGoal",
-        "contributesToObjective", "dependsOn", "employsCoordinationPattern",
-        "employsReasoningPattern", "hasAgentCapability", "hasAgentConfig",
-        "hasAgentGoal", "hasAgentMember", "hasAssociatedTask",
-        "hasCapability", "hasConfig", "hasEnvironmentConfig",
-        "hasGoal", "hasGuardrail", "hasHumanCheckpoint",
-        "hasKnowledge", "hasMemoryBinding", "hasObjective",
-        "hasOutputSchema", "hasRelatedPattern", "hasSubCondition",
-        "hasSubPattern", "hasSystemConfig", "hasTeamGoal",
-        "hasTeamMemoryBinding", "hasTerminationCondition",
-        "hasToolConfig", "hasWorkflowPattern", "hasWorkflowStep",
-        "humanParticipatedIn", "interactsWith", "memoryBoundTo",
-        "nextPattern", "nextStep", "operatesIn",
-        "orchestratesTeam", "performedBy", "performedByAgent",
-        "producedResource", "relatedStep", "requiresCapability",
-        "requiresResource", "resourceUsage", "taskPrompt",
-        "taskToolUsage", "toolUsage", "useLanguageModel",
+        "agentPrompt", "agentResourceUsage", "agentToolUsage", "bindsMemory", "containsAgent", 
+        "containsOrchestration", "containsResource", "containsTeam", "contributesToGoal", 
+        "contributesToObjective", "dependsOn", "employsCoordinationPattern", "employsReasoningPattern", 
+        "hasAgentCapability", "hasAgentConfig", "hasAgentGoal", "hasAgentMember", "hasAssociatedTask", 
+        "hasCapability", "hasConfig", "hasEnvironmentConfig", "hasGoal", "hasGuardrail", 
+        "hasHumanCheckpoint", "hasKnowledge", "hasMemoryBinding", "hasObjective", "hasOutputSchema", 
+        "hasRelatedPattern", "hasSubCondition", "hasSubPattern", "hasSystemConfig", "hasTeamGoal", 
+        "hasTeamMemoryBinding", "hasTerminationCondition", "hasToolConfig", "hasWorkflowPattern", 
+        "hasWorkflowStep", "humanParticipatedIn", "interactsWith", "memoryBoundTo", "nextPattern", 
+        "nextStep", "operatesIn", "orchestratesTeam", "performedBy", "performedByAgent", 
+        "producedResource", "relatedStep", "requiresCapability", "requiresResource", "resourceUsage", 
+        "taskPrompt", "taskToolUsage", "toolUsage", "useLanguageModel"
     ]
-
-    unexercised = [
-        prop for prop in all_ontology_properties
-        if f"{agentoscin_ns}{prop}" not in used_predicates
-    ]
+    agentoscin_ns = str(AGENTOSCIN)
+    unexercised = [p for p in all_ontology_properties if f"{agentoscin_ns}{p}" not in used_predicates]
 
     if unexercised:
         print(f"\nObject properties not exercised ({len(unexercised)}/{len(all_ontology_properties)}):")
         for prop in sorted(unexercised):
             print(f"  {prop}")
-    else:
-        print("\nAll ontology object properties were exercised.")
-
-    exercised_count = len(all_ontology_properties) - len(unexercised)
-    total = len(all_ontology_properties)
-    print(f"\nProperty coverage: {exercised_count}/{total} "
-          f"({100 * exercised_count / total:.0f}%)")
-

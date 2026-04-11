@@ -1,0 +1,51 @@
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/company_research#> .
+@prefix ns1: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:CompanyResearchSystem a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_Google_Search_Agent,
+        ex:Agent_Report_Agent,
+        ex:Agent_Stock_Analysis_Agent ;
+    ns1:title "CompanyResearchSystem"^^xsd:string ;
+    agentoscin:hasSourceFramework "AutoGen"^^xsd:string .
+
+ex:AgentPrompt_Google_Search_Agent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are a helpful AI assistant. Solve tasks using your tools."^^xsd:string ;
+    agentoscin:promptInstruction "Google_Search_Agent"^^xsd:string .
+
+ex:AgentPrompt_Report_Agent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are a helpful assistant that can generate a comprehensive report on a given topic based on search and stock analysis. When you done with generating the report, reply with TERMINATE."^^xsd:string ;
+    agentoscin:promptInstruction "Report_Agent"^^xsd:string .
+
+ex:AgentPrompt_Stock_Analysis_Agent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "Perform data analysis."^^xsd:string ;
+    agentoscin:promptInstruction "Stock_Analysis_Agent"^^xsd:string .
+
+ex:Agent_Google_Search_Agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "Google_Search_Agent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_Google_Search_Agent ;
+    agentoscin:agentRole "Google_Search_Agent"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false .
+
+ex:Agent_Report_Agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "Report_Agent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_Report_Agent ;
+    agentoscin:agentRole "Report_Agent"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false .
+
+ex:Agent_Stock_Analysis_Agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "Stock_Analysis_Agent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_Stock_Analysis_Agent ;
+    agentoscin:agentRole "Stock_Analysis_Agent"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false .
+

@@ -1,0 +1,156 @@
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/email_flow#> .
+@prefix ns1: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/email_flow> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+ex:EmailFlowSystem a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_email_action_agent,
+        ex:Agent_email_filter_agent,
+        ex:Agent_email_response_writer ;
+    agentoscin:containsOrchestration ex:Orchestration_EmailAutoResponderFlow ;
+    agentoscin:containsTeam ex:Team_EmailFilterCrew ;
+    ns1:title "EmailFlowSystem"^^xsd:string ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string .
+
+ex:AgentPrompt_email_action_agent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptInstruction "email_action_agent"^^xsd:string .
+
+ex:AgentPrompt_email_filter_agent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptInstruction "email_filter_agent"^^xsd:string .
+
+ex:AgentPrompt_email_response_writer a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptInstruction "email_response_writer"^^xsd:string .
+
+ex:Config_allow_delegation_Agent_email_filter_agent a agentoscin:Config ;
+    agentoscin:configKey "allow_delegation"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_action_agent a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_filter_agent a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_response_writer a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_EmailFilterCrew a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:CrewStep_EmailFilterCrew_filter_emails_task a agentoscin:StartStep ;
+    ns1:title "filter_emails_task"^^xsd:string ;
+    agentoscin:hasAssociatedTask ex:Task_filter_emails_task ;
+    agentoscin:nextStep ex:CrewStep_EmailFilterCrew_action_required_emails_task ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowStep_fetch_new_emails a agentoscin:StartStep ;
+    ns1:title "fetch_new_emails"^^xsd:string ;
+    agentoscin:nextStep ex:FlowStep_generate_draft_responses ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowWorkflowPattern_EmailAutoResponderFlow a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_fetch_new_emails,
+        ex:FlowStep_generate_draft_responses .
+
+ex:Orchestration_EmailAutoResponderFlow a agentoscin:Orchestration ;
+    ns1:title "EmailAutoResponderFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Custom ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_EmailAutoResponderFlow ;
+    agentoscin:orchestratesTeam ex:Team_EmailFilterCrew .
+
+ex:TaskPrompt_action_required_emails_task a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string .
+
+ex:TaskPrompt_draft_responses_task a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string .
+
+ex:TaskPrompt_filter_emails_task a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string .
+
+ex:Task_action_required_emails_task a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
+    agentoscin:taskPrompt ex:TaskPrompt_action_required_emails_task .
+
+ex:Task_draft_responses_task a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
+    agentoscin:taskPrompt ex:TaskPrompt_draft_responses_task .
+
+ex:Task_filter_emails_task a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
+    agentoscin:taskPrompt ex:TaskPrompt_filter_emails_task .
+
+ex:Termination_EmailFilterCrew a agentoscin:TaskCompletionTermination .
+
+ex:WorkflowPattern_EmailFilterCrew a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_EmailFilterCrew_action_required_emails_task,
+        ex:CrewStep_EmailFilterCrew_draft_responses_task,
+        ex:CrewStep_EmailFilterCrew_filter_emails_task .
+
+agentoscin:Custom a agentoscin:CoordinationPattern .
+
+agentoscin:Sequentiel a agentoscin:CoordinationPattern .
+
+ex:Agent_email_action_agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "email_action_agent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_email_action_agent ;
+    agentoscin:agentRole "email_action_agent"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_email_action_agent ;
+    agentoscin:hasReasoningEnabled false .
+
+ex:Agent_email_filter_agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "email_filter_agent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_email_filter_agent ;
+    agentoscin:agentRole "email_filter_agent"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_allow_delegation_Agent_email_filter_agent,
+        ex:Config_verbose_Agent_email_filter_agent ;
+    agentoscin:hasReasoningEnabled false .
+
+ex:Agent_email_response_writer a agentoscin:LLMAgent ;
+    agentoscin:agentID "email_response_writer"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_email_response_writer ;
+    agentoscin:agentRole "email_response_writer"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_email_response_writer ;
+    agentoscin:hasReasoningEnabled false .
+
+ex:CrewStep_EmailFilterCrew_action_required_emails_task a agentoscin:WorkflowStep ;
+    ns1:title "action_required_emails_task"^^xsd:string ;
+    agentoscin:hasAssociatedTask ex:Task_action_required_emails_task ;
+    agentoscin:nextStep ex:CrewStep_EmailFilterCrew_draft_responses_task ;
+    agentoscin:stepOrder 2 .
+
+ex:CrewStep_EmailFilterCrew_draft_responses_task a agentoscin:EndStep ;
+    ns1:title "draft_responses_task"^^xsd:string ;
+    agentoscin:hasAssociatedTask ex:Task_draft_responses_task ;
+    agentoscin:stepOrder 3 .
+
+ex:FlowStep_generate_draft_responses a agentoscin:EndStep ;
+    ns1:title "generate_draft_responses"^^xsd:string ;
+    agentoscin:stepOrder 2 .
+
+ex:Team_EmailFilterCrew a agentoscin:Team ;
+    ns1:title "EmailFilterCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequentiel ;
+    agentoscin:hasAgentMember ex:Agent_email_action_agent,
+        ex:Agent_email_filter_agent,
+        ex:Agent_email_response_writer ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_EmailFilterCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_EmailFilterCrew ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_EmailFilterCrew .
+

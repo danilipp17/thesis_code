@@ -1,0 +1,100 @@
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/v4#> .
+@prefix ns1: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/v4> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+ex:DataAnalysisV4 a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_Budget_Reviewer,
+        ex:Agent_Local_Guide,
+        ex:Agent_Travel_Planner ;
+    agentoscin:containsOrchestration ex:Orchestration_AutoGenV04Flow ;
+    agentoscin:containsTeam ex:Team_RoundRobinGroupChat_0 ;
+    ns1:title "DataAnalysisV4"^^xsd:string ;
+    agentoscin:hasSourceFramework "AutoGen_v0.4"^^xsd:string .
+
+ex:AgentPrompt_Budget_Reviewer a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You review the proposed itinerary to ensure it stays under budget."^^xsd:string ;
+    agentoscin:promptInstruction "Budget_Reviewer"^^xsd:string .
+
+ex:AgentPrompt_Local_Guide a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You provide local recommendations for restaurants and sights."^^xsd:string ;
+    agentoscin:promptInstruction "Local_Guide"^^xsd:string .
+
+ex:AgentPrompt_Travel_Planner a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are a travel planner. You organize itineraries and schedule events."^^xsd:string ;
+    agentoscin:promptInstruction "Travel_Planner"^^xsd:string .
+
+ex:FlowStep_run_asyncio a agentoscin:StartStep ;
+    ns1:title "run_asyncio"^^xsd:string ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowStep_run_team a agentoscin:StartStep ;
+    ns1:title "run_team"^^xsd:string ;
+    agentoscin:stepOrder 2 .
+
+ex:FlowWorkflowPattern_AutoGenV04Flow a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_run_asyncio,
+        ex:FlowStep_run_team .
+
+ex:LM_gpt_4o a agentoscin:LanguageModel ;
+    ns1:title "gpt-4o"^^xsd:string .
+
+ex:Orchestration_AutoGenV04Flow a agentoscin:Orchestration ;
+    ns1:title "AutoGenV04Flow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Custom ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_AutoGenV04Flow .
+
+ex:Team_RoundRobinGroupChat_0 a agentoscin:Team ;
+    ns1:title "RoundRobinGroupChat"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequentiel ;
+    agentoscin:hasAgentMember ex:Agent_Budget_Reviewer,
+        ex:Agent_Local_Guide,
+        ex:Agent_Travel_Planner ;
+    agentoscin:hasTerminationCondition ex:Termination_RoundRobinGroupChat_0 ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_RoundRobinGroupChat_0 .
+
+ex:Termination_RoundRobinGroupChat_0 a agentoscin:TaskCompletionTermination .
+
+ex:WorkflowPattern_RoundRobinGroupChat_0 a agentoscin:WorkflowPattern .
+
+agentoscin:Custom a agentoscin:CoordinationPattern .
+
+agentoscin:Sequentiel a agentoscin:CoordinationPattern .
+
+ex:Agent_Budget_Reviewer a agentoscin:LLMAgent ;
+    agentoscin:agentID "Budget_Reviewer"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_Budget_Reviewer ;
+    agentoscin:agentRole "Budget_Reviewer"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o_mini .
+
+ex:Agent_Local_Guide a agentoscin:LLMAgent ;
+    agentoscin:agentID "Local_Guide"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_Local_Guide ;
+    agentoscin:agentRole "Local_Guide"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o_mini .
+
+ex:Agent_Travel_Planner a agentoscin:LLMAgent ;
+    agentoscin:agentID "Travel_Planner"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_Travel_Planner ;
+    agentoscin:agentRole "Travel_Planner"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:LM_gpt_4o_mini a agentoscin:LanguageModel ;
+    ns1:title "gpt-4o-mini"^^xsd:string .
+

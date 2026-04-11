@@ -41,6 +41,4 @@ venv.bak/
 *.swp
 *.code-workspace
 
-# Outputs
-output/
-generated/
+
