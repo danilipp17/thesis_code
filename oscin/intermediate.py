@@ -98,8 +98,8 @@ class ExtractedTool:
     Mapping table: Section 5 (Tool Mapping).
     """
     class_name: str             # Python class name
-    name: str                   # → dcterms:title
-    description: str            # → dcterms:description
+    name: str                   # → hasTitle
+    description: str            # → hasDescription
     args_schema_json: str       # Serialized JSON Schema → hasInputSchema
     implementation_ref: str     # Module path → hasImplementationReference
     source_file: str = ""

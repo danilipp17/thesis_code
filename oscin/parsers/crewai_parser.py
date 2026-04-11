@@ -109,8 +109,8 @@ class CrewAIParser(BaseSourceParser):
     def _extract_basetool_subclasses(self, tree: ast.Module, filepath: Path) -> None:
         """
         Detect classes inheriting from BaseTool and extract:
-        - name (class attribute)       → dcterms:title
-        - description (class attribute) → dcterms:description
+        - name (class attribute)       → hasTitle
+        - description (class attribute) → hasDescription
         - args_schema (Pydantic model) → hasInputSchema
         - _run method                  → hasImplementationReference
         """

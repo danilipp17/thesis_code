@@ -19,24 +19,16 @@ AGENTOSCIN = Namespace(
 )
 
 # ---------------------------------------------------------------------------
-# Convenience URIRefs for properties that contain colons in their
-# local names.  RDFLib's Namespace.__getattr__ cannot handle colons,
-# so we construct these manually.
+# Convenience aliases for commonly used data properties
 # ---------------------------------------------------------------------------
-DCTERMS_TITLE = URIRef(
-    "http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:title"
-)
-DCTERMS_DESCRIPTION = URIRef(
-    "http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:description"
-)
-DCTERMS_REFERENCE = URIRef(
-    "http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dcterms:reference"
-)
+HAS_TITLE = AGENTOSCIN.hasTitle
+HAS_DESCRIPTION = AGENTOSCIN.hasDescription
+HAS_REFERENCE = AGENTOSCIN.hasReference
 
 # ---------------------------------------------------------------------------
 # Coordination pattern named individuals (pre-defined in the ontology)
 # ---------------------------------------------------------------------------
-COORD_SEQUENTIAL = AGENTOSCIN["Sequentiel"]    # as spelled in the ontology
+COORD_SEQUENTIAL = AGENTOSCIN["Sequential"]
 COORD_CUSTOM = AGENTOSCIN["Custom"]
 
 

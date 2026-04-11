@@ -34,9 +34,9 @@ from oscin.namespaces import (
     AGENTOSCIN,
     COORD_CUSTOM,
     COORD_SEQUENTIAL,
-    DCTERMS_DESCRIPTION,
-    DCTERMS_REFERENCE,
-    DCTERMS_TITLE,
+    HAS_DESCRIPTION,
+    HAS_REFERENCE,
+    HAS_TITLE,
     make_instance_namespace,
 )
 from oscin.utils import pydantic_fields_to_json_schema
@@ -84,18 +84,26 @@ class OntologyPopulator:
         self.prompt_uris: dict[str, URIRef] = {}
 
     def _bind_namespaces(self) -> None:
+        # Load the base ontology TBox (property & class declarations)
+        # so that Protégé recognises ObjectProperties / DataProperties
+        # instead of falling back to annotation properties.
+        ontology_path = Path(__file__).resolve().parent.parent / "ontology" / "agentoscin.ttl"
+        if ontology_path.is_file():
+            self.g.parse(str(ontology_path), format="turtle")
+            log.info("Loaded base ontology from %s", ontology_path)
+        else:
+            log.warning("Base ontology not found at %s — output will lack TBox declarations", ontology_path)
+
         self.g.bind("agentoscin", AGENTOSCIN)
         self.g.bind("ex", self.EX)
         self.g.bind("owl", OWL)
         self.g.bind("rdfs", RDFS)
 
-        # Declare this output graph as an OWL ontology
+        # Declare this output graph as an OWL ontology that imports the base schema
         onto_uri_str = str(self.EX).rstrip("#")
         onto_uri = URIRef(onto_uri_str)
         self.g.add((onto_uri, RDF.type, OWL.Ontology))
 
-        # Explicitly import the base AgentOSCIN schema so Protégé maps
-        # the predicates to ObjectProperties and DataProperties instead of Annotations
         base_ontology_uri = URIRef(str(AGENTOSCIN).rstrip("/"))
         self.g.add((onto_uri, OWL.imports, base_ontology_uri))
 
@@ -140,8 +148,8 @@ class OntologyPopulator:
             self.tool_uris[key] = uri
 
             # Mapping table 5 assertions
-            self._add_str(uri, DCTERMS_TITLE, tool.name)
-            self._add_str(uri, DCTERMS_DESCRIPTION, tool.description)
+            self._add_str(uri, HAS_TITLE, tool.name)
+            self._add_str(uri, HAS_DESCRIPTION, tool.description)
             self._add_str(uri, AGENTOSCIN.hasInputSchema, tool.args_schema_json)
             self._add_str(uri, AGENTOSCIN.hasImplementationReference, tool.implementation_ref)
 
@@ -166,7 +174,7 @@ class OntologyPopulator:
             # --- Goal ---
             if agent.goal:
                 goal_uri = self._create_individual("Goal", key, AGENTOSCIN.Goal)
-                self._add_str(goal_uri, DCTERMS_DESCRIPTION, agent.goal)
+                self._add_str(goal_uri, HAS_DESCRIPTION, agent.goal)
                 self.g.add((uri, AGENTOSCIN.hasAgentGoal, goal_uri))
 
             # --- Agent Prompt ---
@@ -190,7 +198,7 @@ class OntologyPopulator:
             # --- Language Model ---
             if agent.llm:
                 lm_uri = self._create_individual("LM", agent.llm, AGENTOSCIN.LanguageModel)
-                self._add_str(lm_uri, DCTERMS_TITLE, agent.llm)
+                self._add_str(lm_uri, HAS_TITLE, agent.llm)
                 self.g.add((uri, AGENTOSCIN.useLanguageModel, lm_uri))
 
             # --- Agent-level config ---
@@ -282,7 +290,7 @@ class OntologyPopulator:
         for key, team in self.parser.teams.items():
             uri = self._create_individual("Team", key, AGENTOSCIN.Team)
             self.team_uris[key] = uri
-            self._add_str(uri, DCTERMS_TITLE, team.team_class_name)
+            self._add_str(uri, HAS_TITLE, team.team_class_name)
 
             # --- Agent Members ---
             for agent_key in team.agent_keys:
@@ -292,7 +300,7 @@ class OntologyPopulator:
             # --- Coordination Pattern ---
             pattern_map = {
                 "sequential": COORD_SEQUENTIAL,
-                "hierarchical": AGENTOSCIN["HierachicalPattern"],
+                "hierarchical": AGENTOSCIN["HierarchicalPattern"],
             }
             pattern_uri = pattern_map.get(team.process, COORD_CUSTOM)
             # Ensure type is set even if using predefined individual
@@ -324,7 +332,7 @@ class OntologyPopulator:
                 else:
                     self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
 
-                self._add_str(step_uri, DCTERMS_TITLE, task_key)
+                self._add_str(step_uri, HAS_TITLE, task_key)
                 self._add_int(step_uri, AGENTOSCIN.stepOrder, idx + 1)
 
                 if task_key in self.task_uris:
@@ -373,7 +381,7 @@ class OntologyPopulator:
 
     def _setup_orchestration_metadata(self, flow) -> URIRef:
         uri = self._create_individual("Orchestration", flow.class_name, AGENTOSCIN.Orchestration)
-        self._add_str(uri, DCTERMS_TITLE, flow.class_name)
+        self._add_str(uri, HAS_TITLE, flow.class_name)
         
         # Default for CrewAI Flow
         self.g.add((COORD_CUSTOM, RDF.type, AGENTOSCIN.CoordinationPattern))
@@ -396,7 +404,7 @@ class OntologyPopulator:
                 self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
                 self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
 
-            self._add_str(uri, DCTERMS_TITLE, step.method_name)
+            self._add_str(uri, HAS_TITLE, step.method_name)
             self._add_int(uri, AGENTOSCIN.stepOrder, idx + 1)
             self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, uri))
         
@@ -445,7 +453,7 @@ class OntologyPopulator:
         sys_uri = self.EX[self._safe_id(self.system_name)]
         self.g.add((sys_uri, RDF.type, AGENTOSCIN.AgenticSystem))
         
-        self._add_str(sys_uri, DCTERMS_TITLE, self.system_name)
+        self._add_str(sys_uri, HAS_TITLE, self.system_name)
         self._add_str(sys_uri, AGENTOSCIN.hasSourceFramework, self.parser.framework_name())
 
         # Link containers
