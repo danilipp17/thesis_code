@@ -192,8 +192,8 @@ class OntologyPopulator:
 
             # --- Tool bindings ---
             for tool_key in agent.tools:
-                if tool_key in self.tool_uris:
-                    self.g.add((uri, AGENTOSCIN.agentToolUsage, self.tool_uris[tool_key]))
+                tool_uri = self._resolve_or_create_tool(tool_key)
+                self.g.add((uri, AGENTOSCIN.agentToolUsage, tool_uri))
 
             # --- Language Model ---
             if agent.llm:
@@ -254,8 +254,8 @@ class OntologyPopulator:
 
             # --- Task-level tools ---
             for tool_name in task.tools:
-                if tool_name in self.tool_uris:
-                    self.g.add((uri, AGENTOSCIN.taskToolUsage, self.tool_uris[tool_name]))
+                tool_uri = self._resolve_or_create_tool(tool_name)
+                self.g.add((uri, AGENTOSCIN.taskToolUsage, tool_uri))
 
             # --- Output Schema ---
             if task.output_pydantic and task.output_pydantic in self.parser.pydantic_models:
@@ -436,12 +436,10 @@ class OntologyPopulator:
                             self.g.add((src_uri, AGENTOSCIN.nextStep, step_uris[other.method_name]))
                             outgoing_edges[step.method_name].append(other.method_name)
 
-        # Reclassify dead-ends as EndSteps
+        # Reclassify dead-ends as EndSteps (keep WorkflowStep as parent type)
         for step_name, edges in outgoing_edges.items():
             if not edges:
                 uri = step_uris[step_name]
-                # If it's a generic step or listen step, make it an EndStep
-                self.g.remove((uri, RDF.type, AGENTOSCIN.WorkflowStep))
                 self.g.add((uri, RDF.type, AGENTOSCIN.EndStep))
 
     # -----------------------------------------------------------
@@ -471,6 +469,22 @@ class OntologyPopulator:
     # -----------------------------------------------------------
     # Refined Helpers
     # -----------------------------------------------------------
+
+    def _resolve_or_create_tool(self, tool_key: str) -> URIRef:
+        """
+        Return the URI for a tool, creating a stub for external tools
+        that were not found in the parsed source files.
+        """
+        if tool_key in self.tool_uris:
+            return self.tool_uris[tool_key]
+
+        # Create a minimal Tool individual for an external/imported tool
+        uri = self._create_individual("Tool", tool_key, AGENTOSCIN.Tool)
+        self.tool_uris[tool_key] = uri
+        self._add_str(uri, HAS_TITLE, tool_key)
+        self._add_str(uri, HAS_REFERENCE, f"external:{tool_key}")
+        log.info("  [Tool] Created external stub for '%s' → %s", tool_key, uri)
+        return uri
 
     def _create_individual(self, prefix: str, key: str, owl_class: URIRef) -> URIRef:
         """Create a URI and declare its RDF:type."""

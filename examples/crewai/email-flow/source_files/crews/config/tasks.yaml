@@ -1,26 +1,36 @@
-send_followup_email:
+filter_emails:
   description: >
-    Compose personalized follow-up emails for candidates who applied to a specific job.
+    Analyze the list of emails provided and categorize each email as either
+    'action_required' or 'no_action_needed'. Use your expertise to filter
+    out newsletters, promotional content, and spam.
 
-    You will use the candidate's name, bio, and whether the company wants to proceed with them to generate the email. 
-    If the candidate is proceeding, ask them for their availability for a Zoom call in the upcoming days. 
-    If not, send a polite rejection email.
-
-    CANDIDATE DETAILS
-    -----------------
-    Candidate ID: {candidate_id}
-    Name: {name}
-    Bio:
-    {bio}
-
-    PROCEEDING WITH CANDIDATE: {proceed_with_candidate}
-
-    ADDITIONAL INSTRUCTIONS
-    -----------------------
-    - If we are proceeding, ask for their availability for a Zoom call within the next few days.
-    - If we are not proceeding, send a polite rejection email, acknowledging their effort in applying and appreciating their time.
+    Here are the emails:
+    {emails}
 
   expected_output: >
-    A personalized email based on the candidate's information. It should be professional and respectful, 
-    either inviting them for a Zoom call or letting them know we are pursuing other candidates.
-  agent: email_followup_agent
+    A categorized list of emails with their classification as either
+    'action_required' or 'no_action_needed', along with a brief reason
+    for each classification.
+  agent: email_filter_agent
+
+action_required_emails:
+  description: >
+    For each email classified as 'action_required', analyze the content
+    and determine the specific actions that need to be taken. Consider
+    the urgency, context, and any deadlines mentioned in the emails.
+
+  expected_output: >
+    A detailed action plan for each action-required email, including
+    the specific steps to take, priority level, and any relevant deadlines.
+  agent: email_action_agent
+
+draft_responses:
+  description: >
+    Based on the action plans provided, draft professional email responses
+    for each action-required email. Ensure the responses are clear, concise,
+    and appropriate for the context.
+
+  expected_output: >
+    A set of draft email responses ready to be reviewed and sent,
+    each properly formatted with subject line, greeting, body, and closing.
+  agent: email_response_writer

@@ -105,6 +105,7 @@ class CrewAIParser(BaseSourceParser):
                 continue
             tree = ast.parse(py_file.read_text(), filename=str(py_file))
             self._extract_basetool_subclasses(tree, py_file)
+            self._extract_tool_decorated_functions(tree, py_file)
 
     def _extract_basetool_subclasses(self, tree: ast.Module, filepath: Path) -> None:
         """
@@ -172,6 +173,52 @@ class CrewAIParser(BaseSourceParser):
                 "  [Tool] Extracted '%s' from %s",
                 tool.name, filepath.name,
             )
+
+    def _extract_tool_decorated_functions(self, tree: ast.Module, filepath: Path) -> None:
+        """
+        Detect @tool-decorated functions (langchain / crewai pattern).
+
+        Patterns handled:
+        - Standalone: @tool("Tool Name") def func(...)
+        - Inside a class: class Foo: @tool("Tool Name") def method(...)
+        """
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for deco in node.decorator_list:
+                if not isinstance(deco, ast.Call):
+                    continue
+                # Match @tool("name") or @tool
+                func_node = deco.func if isinstance(deco.func, ast.Name) else None
+                if func_node is None or func_node.id != "tool":
+                    continue
+
+                # Extract tool name from decorator argument
+                tool_name = node.name
+                if deco.args and isinstance(deco.args[0], ast.Constant):
+                    tool_name = str(deco.args[0].value)
+
+                # Extract description from the function docstring
+                tool_desc = ast.get_docstring(node) or ""
+
+                module_path = self._filepath_to_module(filepath)
+                impl_ref = f"{module_path}.{node.name}"
+
+                # Use a stable key that agents can reference
+                tool_key = node.name
+                tool = ExtractedTool(
+                    class_name=tool_key,
+                    name=tool_name,
+                    description=tool_desc.strip(),
+                    args_schema_json="{}",
+                    implementation_ref=impl_ref,
+                    source_file=str(filepath),
+                )
+                self.tools[tool_key] = tool
+                log.info(
+                    "  [Tool] Extracted @tool '%s' from %s",
+                    tool.name, filepath.name,
+                )
 
     # -----------------------------------------------------------
     # Step 2: Pydantic Model Extraction
@@ -248,9 +295,10 @@ class CrewAIParser(BaseSourceParser):
             crew_class_name = node.name
             log.info("  [Crew] Found @CrewBase class: %s", crew_class_name)
 
-            # --- Locate YAML config paths ---
+            # --- Locate YAML config paths and class-level attributes ---
             agents_yaml_path = None
             tasks_yaml_path = None
+            class_llm = None
             for item in node.body:
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
@@ -260,6 +308,8 @@ class CrewAIParser(BaseSourceParser):
                                 agents_yaml_path = filepath.parent / val
                             elif target.id == "tasks_config" and val:
                                 tasks_yaml_path = filepath.parent / val
+                            elif target.id == "llm":
+                                class_llm = self._extract_llm_string(item.value)
 
             # --- Parse YAML configs ---
             agents_yaml = {}
@@ -278,7 +328,7 @@ class CrewAIParser(BaseSourceParser):
                     continue
                 agent_key = method.name  # Method name = agent key
                 agent_info = self._extract_agent_from_method(
-                    method, agents_yaml, str(filepath)
+                    method, agents_yaml, str(filepath), class_llm=class_llm
                 )
                 if agent_info:
                     self.agents[agent_key] = agent_info
@@ -311,6 +361,7 @@ class CrewAIParser(BaseSourceParser):
         method: ast.FunctionDef,
         agents_yaml: dict,
         source_file: str,
+        class_llm: Optional[str] = None,
     ) -> Optional[ExtractedAgent]:
         """
         Extract agent definition from an @agent method.
@@ -345,8 +396,12 @@ class CrewAIParser(BaseSourceParser):
 
         # Extract Python-level keyword arguments that override or
         # supplement the YAML config
-        tools = self._extract_tool_references(agent_call)
+        local_vars = self._collect_local_assignments(method)
+        tools = self._extract_tool_references(agent_call, local_vars)
         llm = self._extract_keyword_string(agent_call, "llm")
+        # If llm=self.llm (attribute access), resolve from class-level assignment
+        if not llm:
+            llm = self._resolve_llm_from_call(agent_call, class_llm)
         verbose = self._extract_keyword_bool(agent_call, "verbose")
         allow_delegation = self._extract_keyword_bool(agent_call, "allow_delegation")
         reasoning = self._extract_keyword_bool(agent_call, "reasoning") or False
@@ -723,20 +778,35 @@ class CrewAIParser(BaseSourceParser):
                     return str(kw.value.slice.value)
         return None
 
-    @staticmethod
-    def _extract_tool_references(call: ast.Call) -> list[str]:
+    def _extract_tool_references(
+        self, call: ast.Call, local_vars: Optional[dict[str, str]] = None
+    ) -> list[str]:
         """
-        Extract tool class names from tools=[ToolA(), ToolB()].
-        Returns a list of class names.
+        Extract tool class/function names from tools=[ToolA(), ToolB()].
+
+        Handles:
+        - ToolClass()           → "ToolClass"
+        - tool_variable         → resolved via local_vars or kept as-is
+        - Cls.method            → "method" (e.g. CreateDraftTool.create_draft)
+        - ToolClass(kw=val)     → "ToolClass"
         """
+        local_vars = local_vars or {}
         tools = []
         for kw in call.keywords:
             if kw.arg == "tools" and isinstance(kw.value, ast.List):
                 for elt in kw.value.elts:
                     if isinstance(elt, ast.Call) and isinstance(elt.func, ast.Name):
                         tools.append(elt.func.id)
+                    elif isinstance(elt, ast.Call) and isinstance(elt.func, ast.Attribute):
+                        # e.g. GmailGetThread(api_resource=...) via chained call
+                        tools.append(elt.func.value.id if isinstance(elt.func.value, ast.Name) else elt.func.attr)
                     elif isinstance(elt, ast.Name):
-                        tools.append(elt.id)
+                        # Resolve local variable to class name if possible
+                        resolved = local_vars.get(elt.id, elt.id)
+                        tools.append(resolved)
+                    elif isinstance(elt, ast.Attribute):
+                        # e.g. CreateDraftTool.create_draft
+                        tools.append(elt.attr)
         return tools
 
     @staticmethod
@@ -808,6 +878,59 @@ class CrewAIParser(BaseSourceParser):
         if value is None:
             return ""
         return str(value).strip()
+
+    @staticmethod
+    def _collect_local_assignments(method: ast.FunctionDef) -> dict[str, str]:
+        """
+        Collect local variable assignments of the form ``x = ClassName(...)``
+        inside a method body. Returns {variable_name: class_name}.
+        """
+        assignments: dict[str, str] = {}
+        for stmt in method.body:
+            if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+                target = stmt.targets[0]
+                if isinstance(target, ast.Name) and isinstance(stmt.value, ast.Call):
+                    if isinstance(stmt.value.func, ast.Name):
+                        assignments[target.id] = stmt.value.func.id
+        return assignments
+
+    @staticmethod
+    def _extract_llm_string(node: ast.expr) -> Optional[str]:
+        """
+        Extract a human-readable LLM identifier from an AST expression.
+
+        Handles patterns like:
+        - ChatOpenAI(model="gpt-4o")  → "gpt-4o"
+        - LLM(model="claude-3")       → "claude-3"
+        - "gpt-4o"                     → "gpt-4o"
+        """
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.Call):
+            # Look for model= keyword
+            for kw in node.keywords:
+                if kw.arg == "model" and isinstance(kw.value, ast.Constant):
+                    return str(kw.value.value)
+            # Fallback: use the class name
+            if isinstance(node.func, ast.Name):
+                return node.func.id
+            if isinstance(node.func, ast.Attribute):
+                return node.func.attr
+        return None
+
+    @staticmethod
+    def _resolve_llm_from_call(
+        call: ast.Call, class_llm: Optional[str]
+    ) -> Optional[str]:
+        """
+        If the call has llm=self.llm or llm=self.<attr>, return
+        the class-level LLM value.
+        """
+        for kw in call.keywords:
+            if kw.arg == "llm" and isinstance(kw.value, ast.Attribute):
+                if isinstance(kw.value.value, ast.Name) and kw.value.value.id == "self":
+                    return class_llm
+        return None
 
     @staticmethod
     def _filepath_to_module(filepath: Path) -> str:
