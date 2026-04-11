@@ -11,6 +11,7 @@ complete CrewAI project structure including:
 - ``crews/<name>/config/agents.yaml`` — Agent configuration
 - ``crews/<name>/config/tasks.yaml`` — Task configuration
 - ``tools/<name>.py`` — ``BaseTool`` subclass skeleton per tool
+- ``models.py`` — Pydantic models for structured outputs
 
 Author:  Dani Lippmann
 Context: Master Thesis — Towards Interoperability between Agentic AI
@@ -40,6 +41,28 @@ from oscin.intermediate import (
 
 log = logging.getLogger("oscin")
 
+# Well-known external tool packages for import generation
+EXTERNAL_TOOL_IMPORTS = {
+    "SerperDevTool": "from crewai_tools import SerperDevTool",
+    "ScrapeWebsiteTool": "from crewai_tools import ScrapeWebsiteTool",
+    "FileReadTool": "from crewai_tools import FileReadTool",
+    "DirectoryReadTool": "from crewai_tools import DirectoryReadTool",
+    "CodeDocsSearchTool": "from crewai_tools import CodeDocsSearchTool",
+    "WebsiteSearchTool": "from crewai_tools import WebsiteSearchTool",
+    "TXTSearchTool": "from crewai_tools import TXTSearchTool",
+    "CSVSearchTool": "from crewai_tools import CSVSearchTool",
+    "DOCXSearchTool": "from crewai_tools import DOCXSearchTool",
+    "PDFSearchTool": "from crewai_tools import PDFSearchTool",
+    "MDXSearchTool": "from crewai_tools import MDXSearchTool",
+    "PGSearchTool": "from crewai_tools import PGSearchTool",
+    "GithubSearchTool": "from crewai_tools import GithubSearchTool",
+    "YoutubeVideoSearchTool": "from crewai_tools import YoutubeVideoSearchTool",
+    "BrowserbaseLoadTool": "from crewai_tools import BrowserbaseLoadTool",
+    "EXASearchTool": "from crewai_tools import EXASearchTool",
+    "GmailGetThread": "from langchain_community.tools.gmail.get_thread import GmailGetThread",
+    "TavilySearchResults": "from langchain_community.tools.tavily_search import TavilySearchResults",
+}
+
 
 class CrewAIGenerator(BaseCodeGenerator):
     """
@@ -60,6 +83,10 @@ class CrewAIGenerator(BaseCodeGenerator):
         # Generate tools first (crews may reference them)
         for key, tool in self.reader.tools.items():
             self._generate_tool(key, tool)
+
+        # Generate Pydantic model files for structured outputs
+        if self.reader.pydantic_models:
+            self._generate_models()
 
         # Generate each team as a crew package
         for key, team in self.reader.teams.items():
@@ -83,9 +110,24 @@ class CrewAIGenerator(BaseCodeGenerator):
     # Tool Generation
     # -----------------------------------------------------------
 
+    def _is_external_tool(self, tool: ExtractedTool) -> bool:
+        """Check if a tool is external (imported, not locally defined)."""
+        # Check for hasReference "external:..." pattern
+        if tool.implementation_ref.startswith("external:"):
+            return True
+        # Known external tools
+        if tool.class_name in EXTERNAL_TOOL_IMPORTS:
+            return True
+        return False
+
     def _generate_tool(self, key: str, tool: ExtractedTool) -> None:
-        """Generate a BaseTool subclass skeleton."""
-        class_name = self._to_class_name(key)
+        """Generate a BaseTool subclass skeleton for locally defined tools."""
+        # Skip external tools — they'll be imported directly
+        if self._is_external_tool(tool):
+            log.info("  [SKIP] External tool: %s (imported, not generated)", key)
+            return
+
+        class_name = tool.class_name
 
         # Parse input schema for args
         args_code = self._generate_args_schema(tool.args_schema_json, class_name)
@@ -105,7 +147,7 @@ from typing import Type
 
 class {class_name}(BaseTool):
     name: str = "{tool.name}"
-    description: str = "{tool.description}"
+    description: str = """{tool.description}"""
     args_schema: Type[BaseModel] = {class_name}Schema
 
     def _run(self, **kwargs) -> str:
@@ -146,6 +188,42 @@ class {class_name}(BaseTool):
         return "\n".join(lines)
 
     # -----------------------------------------------------------
+    # Pydantic Model Generation
+    # -----------------------------------------------------------
+
+    def _generate_models(self) -> None:
+        """Generate a models.py file with Pydantic classes for structured outputs."""
+        parts = [
+            '"""',
+            "Auto-generated Pydantic models for structured outputs.",
+            '"""',
+            "",
+            "from typing import Optional",
+            "from pydantic import BaseModel",
+            "",
+        ]
+
+        for name, model in self.reader.pydantic_models.items():
+            parts.append("")
+            parts.append(f"class {name}(BaseModel):")
+            if not model.fields:
+                parts.append("    pass")
+            else:
+                for fname, ftype in model.fields.items():
+                    py_type = self._json_type_to_python(ftype if isinstance(ftype, str) else ftype.get("type", "str"))
+                    # Check if field is nullable
+                    nullable = False
+                    if isinstance(ftype, dict) and ftype.get("nullable"):
+                        nullable = True
+                    if nullable:
+                        parts.append(f"    {fname}: Optional[{py_type}] = None")
+                    else:
+                        parts.append(f"    {fname}: {py_type}")
+            parts.append("")
+
+        self._write_file("models.py", "\n".join(parts))
+
+    # -----------------------------------------------------------
     # Crew Generation
     # -----------------------------------------------------------
 
@@ -160,12 +238,18 @@ class {class_name}(BaseTool):
             agent = self.reader.agents.get(agent_key)
             if not agent:
                 continue
-            agent_dict = {"role": agent.role, "goal": agent.goal}
+            agent_dict: dict = {
+                "role": agent.role if agent.role else agent_key,
+                "goal": agent.goal if agent.goal else "",
+            }
             if agent.backstory:
                 agent_dict["backstory"] = agent.backstory
             agents_yaml[agent_key] = agent_dict
 
-        agents_yaml_str = yaml.dump(agents_yaml, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        agents_yaml_str = yaml.dump(
+            agents_yaml, default_flow_style=False,
+            allow_unicode=True, sort_keys=False, width=1000,
+        )
         self._write_file(f"crews/{crew_snake}/config/agents.yaml", agents_yaml_str)
 
         # --- tasks.yaml ---
@@ -174,19 +258,33 @@ class {class_name}(BaseTool):
             task = self.reader.tasks.get(task_key)
             if not task:
                 continue
-            task_dict = {"description": task.description}
+            task_dict: dict = {
+                "description": task.description if task.description else "",
+            }
             if task.expected_output:
                 task_dict["expected_output"] = task.expected_output
             if task.agent_key:
                 task_dict["agent"] = task.agent_key
             tasks_yaml[task_key] = task_dict
 
-        tasks_yaml_str = yaml.dump(tasks_yaml, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        tasks_yaml_str = yaml.dump(
+            tasks_yaml, default_flow_style=False,
+            allow_unicode=True, sort_keys=False, width=1000,
+        )
         self._write_file(f"crews/{crew_snake}/config/tasks.yaml", tasks_yaml_str)
 
-        # --- crew.py ---
-        # Build imports
+        # --- Determine common LLM ---
+        common_llm = self._detect_common_llm(team)
+
+        # --- Build imports ---
         tool_imports = self._build_tool_imports(team)
+        llm_import = ""
+        if common_llm:
+            llm_import = "from langchain_openai import ChatOpenAI"
+
+        # Pydantic model imports
+        model_imports = self._build_model_imports(team)
+
         process_str = "Process.sequential" if team.process == "sequential" else "Process.hierarchical"
 
         # Build @agent methods
@@ -195,8 +293,7 @@ class {class_name}(BaseTool):
             agent = self.reader.agents.get(agent_key)
             if not agent:
                 continue
-            tool_list = self._build_tool_list(agent.tools)
-            agent_methods.append(self._render_agent_method(agent_key, tool_list))
+            agent_methods.append(self._render_agent_method(agent_key, agent, common_llm))
 
         # Build @task methods
         task_methods = []
@@ -206,14 +303,27 @@ class {class_name}(BaseTool):
                 continue
             task_methods.append(self._render_task_method(task_key, task))
 
-        # Compose the crew file
+        # Compose imports block
+        all_imports = ["from crewai import Agent, Crew, Process, Task",
+                       "from crewai.project import CrewBase, agent, crew, task"]
+        if llm_import:
+            all_imports.append(llm_import)
+        if tool_imports:
+            all_imports.extend(tool_imports)
+        if model_imports:
+            all_imports.extend(model_imports)
+        imports_block = "\n".join(all_imports)
+
+        # LLM class attribute
+        llm_attr = ""
+        if common_llm:
+            llm_attr = f'\n    llm = ChatOpenAI(model="{common_llm}")'
+
         code = f'''"""
 Auto-generated CrewAI crew: {crew_class}
 """
 
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-{tool_imports}
+{imports_block}
 
 
 @CrewBase
@@ -221,7 +331,7 @@ class {crew_class}:
     """{crew_class}"""
 
     agents_config = "config/agents.yaml"
-    tasks_config = "config/tasks.yaml"
+    tasks_config = "config/tasks.yaml"{llm_attr}
 
 {"".join(agent_methods)}
 {"".join(task_methods)}
@@ -237,14 +347,50 @@ class {crew_class}:
 '''
         self._write_file(f"crews/{crew_snake}/{crew_snake}.py", code)
 
-    def _render_agent_method(self, agent_key: str, tool_list: str) -> str:
+    def _detect_common_llm(self, team: ExtractedTeam) -> Optional[str]:
+        """Detect if all agents in a team share the same LLM."""
+        llms = set()
+        for agent_key in team.agent_keys:
+            agent = self.reader.agents.get(agent_key)
+            if agent and agent.llm:
+                llms.add(agent.llm)
+        if len(llms) == 1:
+            return llms.pop()
+        return None
+
+    def _render_agent_method(self, agent_key: str, agent: ExtractedAgent,
+                             common_llm: Optional[str]) -> str:
         """Render a single @agent method."""
-        tools_arg = f"\n            tools=[{tool_list}]," if tool_list else ""
+        extra_args = []
+
+        # Tools
+        tool_list = self._build_tool_list(agent.tools)
+        if tool_list:
+            extra_args.append(f"            tools=[{tool_list}],")
+
+        # LLM — use self.llm if common, or explicit model if different
+        if common_llm and agent.llm == common_llm:
+            extra_args.append("            llm=self.llm,")
+        elif agent.llm:
+            extra_args.append(f'            llm=ChatOpenAI(model="{agent.llm}"),')
+
+        # Verbose
+        if agent.verbose is not None:
+            extra_args.append(f"            verbose={agent.verbose},")
+
+        # Allow delegation
+        if agent.allow_delegation is not None:
+            extra_args.append(f"            allow_delegation={agent.allow_delegation},")
+
+        extra_str = ""
+        if extra_args:
+            extra_str = "\n" + "\n".join(extra_args)
+
         return f'''
     @agent
     def {agent_key}(self) -> Agent:
         return Agent(
-            config=self.agents_config["{agent_key}"],{tools_arg}
+            config=self.agents_config["{agent_key}"],{extra_str}
         )
 '''
 
@@ -267,7 +413,7 @@ class {crew_class}:
         )
 '''
 
-    def _build_tool_imports(self, team: ExtractedTeam) -> str:
+    def _build_tool_imports(self, team: ExtractedTeam) -> list[str]:
         """Build import statements for tools used by agents in this team."""
         imports = set()
         for agent_key in team.agent_keys:
@@ -275,17 +421,40 @@ class {crew_class}:
             if not agent:
                 continue
             for tool_key in agent.tools:
-                class_name = self._to_class_name(tool_key)
-                imports.add(f"from tools.{class_name} import {class_name}")
-        if imports:
-            return "\n".join(sorted(imports))
-        return ""
+                tool = self.reader.tools.get(tool_key)
+                if not tool:
+                    continue
+                class_name = tool.class_name
+
+                if class_name in EXTERNAL_TOOL_IMPORTS:
+                    imports.add(EXTERNAL_TOOL_IMPORTS[class_name])
+                else:
+                    imports.add(f"from tools.{class_name} import {class_name}")
+        return sorted(imports)
+
+    def _build_model_imports(self, team: ExtractedTeam) -> list[str]:
+        """Build import statements for Pydantic models referenced by tasks."""
+        model_names = set()
+        for task_key in team.task_keys:
+            task = self.reader.tasks.get(task_key)
+            if task and task.output_pydantic and task.output_pydantic in self.reader.pydantic_models:
+                model_names.add(task.output_pydantic)
+        if model_names:
+            names = ", ".join(sorted(model_names))
+            return [f"from models import {names}"]
+        return []
 
     def _build_tool_list(self, tool_keys: list[str]) -> str:
         """Build a comma-separated list of tool instantiations."""
         if not tool_keys:
             return ""
-        parts = [f"{self._to_class_name(k)}()" for k in tool_keys]
+        parts = []
+        for k in tool_keys:
+            tool = self.reader.tools.get(k)
+            if tool:
+                parts.append(f"{tool.class_name}()")
+            else:
+                parts.append(f"{self._to_class_name(k)}()")
         return ", ".join(parts)
 
     # -----------------------------------------------------------
@@ -299,6 +468,7 @@ class {crew_class}:
 
         # Build crew imports
         crew_imports = []
+        crew_class_names: dict[str, str] = {}  # team_key → class_name
         for crew_ref in flow.crew_references:
             team = self.reader.teams.get(crew_ref)
             if team:
@@ -306,13 +476,16 @@ class {crew_class}:
                 crew_imports.append(
                     f"from crews.{snake}.{snake} import {team.team_class_name}"
                 )
+                crew_class_names[crew_ref] = team.team_class_name
 
         imports_str = "\n".join(crew_imports)
 
         # Build flow methods
         methods = []
+        # Collect all method names for method-reference decorators
+        method_names = [s.method_name for s in flow.steps]
         for step in flow.steps:
-            methods.append(self._render_flow_step(step))
+            methods.append(self._render_flow_step(step, method_names))
 
         code = f'''"""
 Auto-generated CrewAI Flow: {flow_class}
@@ -346,7 +519,6 @@ if __name__ == "__main__":
 
     def _generate_main_no_flow(self) -> None:
         """Generate a simple main.py when there's no flow (just crews)."""
-        # Pick the first team
         if not self.reader.teams:
             return
 
@@ -371,10 +543,10 @@ if __name__ == "__main__":
 '''
         self._write_file("main.py", code)
 
-    def _render_flow_step(self, step: ExtractedFlowStep) -> str:
+    def _render_flow_step(self, step: ExtractedFlowStep,
+                          all_method_names: list[str]) -> str:
         """Render a single flow method with the appropriate decorator."""
         if step.decorator_type == "start":
-            # @start decorator — may have a label arg
             if step.decorator_args:
                 dec = f'@start("{step.decorator_args[0]}")'
             else:
@@ -387,10 +559,16 @@ if __name__ == "__main__":
 """
 
         elif step.decorator_type == "router":
-            # @router — references the previous method
-            # In CrewAI, @router takes a method reference, but since we
-            # don't know the exact wiring, we use a generic form
-            dec = f"@router({step.decorator_args[0]})" if step.decorator_args else "@router()"
+            # @router takes a method reference to the preceding step
+            if step.decorator_args:
+                arg = step.decorator_args[0]
+                # Use as method reference if it matches a known method
+                if arg in all_method_names:
+                    dec = f"@router({arg})"
+                else:
+                    dec = f'@router("{arg}")'
+            else:
+                dec = "@router()"
             body = self._render_router_body(step)
             return f"""
     {dec}
@@ -400,11 +578,15 @@ if __name__ == "__main__":
 
         else:  # listen
             if step.decorator_args:
-                # @listen can take a string label or method ref
-                arg = f'"{step.decorator_args[0]}"'
+                arg = step.decorator_args[0]
+                # Use as method reference if it matches a known method,
+                # otherwise use string (for router return values like "complete")
+                if arg in all_method_names:
+                    dec = f"@listen({arg})"
+                else:
+                    dec = f'@listen("{arg}")'
             else:
-                arg = ""
-            dec = f"@listen({arg})"
+                dec = "@listen()"
             body = self._render_step_body(step)
             return f"""
     {dec}
@@ -414,6 +596,10 @@ if __name__ == "__main__":
 
     def _render_step_body(self, step: ExtractedFlowStep) -> str:
         """Render the body of a flow step method."""
+        if step.function_body:
+            lines = step.function_body.strip().split("\n")
+            indented = "\n".join(f"        {line}" for line in lines)
+            return indented
         if step.calls_crew:
             team = self.reader.teams.get(step.calls_crew)
             if team:
@@ -426,12 +612,13 @@ if __name__ == "__main__":
     def _render_router_body(self, step: ExtractedFlowStep) -> str:
         """Render the body of a router step."""
         if step.function_body:
-            # Indent the saved function body
-            lines = step.function_body.strip().split("\n")
+            # Dedent the stored body to remove common leading whitespace,
+            # then re-indent to method body level (8 spaces)
+            dedented = textwrap.dedent(step.function_body).strip()
+            lines = dedented.split("\n")
             indented = "\n".join(f"        {line}" for line in lines)
             return indented
         elif step.return_values:
-            # Generate a simple routing skeleton
             conditions = []
             for rv in step.return_values:
                 conditions.append(f'        # return "{rv}"')

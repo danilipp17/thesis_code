@@ -89,7 +89,19 @@ class BaseCodeGenerator(ABC):
 
     @staticmethod
     def _to_class_name(name: str) -> str:
-        """Convert a snake_case or space-separated name to PascalCase."""
+        """Convert a snake_case or space-separated name to PascalCase.
+
+        If the name already contains mixed case (e.g. 'SerperDevTool'),
+        it is returned as-is to avoid mangling.
+        """
+        import re
+        # If name has no separators and already contains uppercase letters
+        # beyond the first character, it's likely already PascalCase
+        if "_" not in name and "-" not in name and " " not in name:
+            if any(c.isupper() for c in name[1:]):
+                return name
+            # Single lowercase word — capitalize it
+            return name[0].upper() + name[1:] if name else name
         return "".join(
             word.capitalize()
             for word in name.replace("-", "_").replace(" ", "_").split("_")

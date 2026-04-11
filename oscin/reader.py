@@ -449,9 +449,10 @@ class OntologyReader:
             info = step_info[uri_str]
             name = info["name"]
 
-            # For @listen steps, decorator_args = the method names they listen to
+            # For @listen and @router steps, decorator_args = the method
+            # names they listen to / are routed from
             dec_args = []
-            if info["dec_type"] == "listen":
+            if info["dec_type"] in ("listen", "router"):
                 dec_args = listened_by.get(name, [])
 
             # For @router steps, return_values = the next step names
