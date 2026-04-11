@@ -30,6 +30,12 @@ Usage examples::
         --target-framework autogen \\
         --output-dir generated/autogen/self_eval/
 
+    # LLM-based extraction baseline (requires ANTHROPIC_API_KEY)
+    python -m oscin.cli extract-llm examples/crewai/email-flow/source_files \\
+        --namespace "http://example.org/email_flow#" \\
+        --output output/llm_baseline/email_flow_ontology.ttl \\
+        --provider anthropic --model claude-sonnet-4-20250514
+
 Author:  Dani Lippmann
 Context: Master Thesis — Towards Interoperability between Agentic AI
          Frameworks through Semantic Representation
@@ -129,6 +135,45 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     # ---------------------------------------------------------------
+    # Subcommand: extract-llm
+    # ---------------------------------------------------------------
+    llm_p = subparsers.add_parser(
+        "extract-llm",
+        help="Extract source code → ontology TTL using an LLM (baseline)",
+        description=(
+            "LLM-based extraction baseline. Sends the ontology schema and\n"
+            "source code to an LLM and asks it to produce populated Turtle."
+        ),
+    )
+    llm_p.add_argument(
+        "source_dir",
+        type=Path,
+        help="Path to the source files directory to extract from.",
+    )
+    llm_p.add_argument(
+        "--namespace", "-n",
+        default="http://example.org/instance#",
+        help="Base URI for instance individuals.  Default: http://example.org/instance#",
+    )
+    llm_p.add_argument(
+        "--output", "-o",
+        type=Path,
+        default=Path("output_llm_ontology.ttl"),
+        help="Output file path for the Turtle-serialized ontology.",
+    )
+    llm_p.add_argument(
+        "--provider", "-p",
+        choices=["anthropic", "openai"],
+        default="anthropic",
+        help="LLM provider to use. Default: anthropic",
+    )
+    llm_p.add_argument(
+        "--model", "-m",
+        default=None,
+        help="Model name override (e.g. 'claude-sonnet-4-20250514', 'gpt-4o').",
+    )
+
+    # ---------------------------------------------------------------
     # Subcommand: generate
     # ---------------------------------------------------------------
     gen_p = subparsers.add_parser(
@@ -154,6 +199,38 @@ def main(argv: list[str] | None = None) -> None:
         help="Output directory for the generated source files.",
     )
 
+    # ---------------------------------------------------------------
+    # Subcommand: evaluate
+    # ---------------------------------------------------------------
+    eval_p = subparsers.add_parser(
+        "evaluate",
+        help="Evaluate extraction quality (single or pairwise)",
+        description=(
+            "Compute evaluation metrics for ontology extractions.\n"
+            "Pass one TTL file for intrinsic metrics, or two for\n"
+            "pairwise comparison (reference vs candidate)."
+        ),
+    )
+    eval_p.add_argument(
+        "reference",
+        type=Path,
+        help="Reference (gold standard) TTL file.",
+    )
+    eval_p.add_argument(
+        "candidate",
+        type=Path,
+        nargs="?",
+        default=None,
+        help="Candidate TTL file to compare against reference. "
+             "If omitted, only intrinsic metrics for the reference are shown.",
+    )
+    eval_p.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output metrics as JSON instead of human-readable text.",
+    )
+
     args = ap.parse_args(argv)
 
     if args.command is None:
@@ -162,8 +239,12 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.command == "extract":
         _run_extract(args)
+    elif args.command == "extract-llm":
+        _run_extract_llm(args)
     elif args.command == "generate":
         _run_generate(args)
+    elif args.command == "evaluate":
+        _run_evaluate(args)
 
 
 # -------------------------------------------------------------------
@@ -209,6 +290,44 @@ def _run_extract(args: argparse.Namespace) -> None:
 
 
 # -------------------------------------------------------------------
+# LLM Extract pipeline (baseline)
+# -------------------------------------------------------------------
+
+def _run_extract_llm(args: argparse.Namespace) -> None:
+    """Execute the extract-llm subcommand."""
+    from oscin.llm_extractor import run_llm_extraction
+
+    log = logging.getLogger("oscin")
+
+    source_dir: Path = args.source_dir.resolve()
+    if not source_dir.is_dir():
+        print(f"ERROR: Source directory does not exist: {source_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    log.info("")
+    log.info("=" * 60)
+    log.info("STARTING LLM-BASED EXTRACTION (BASELINE)")
+    log.info("Source directory: %s", source_dir)
+    log.info("Provider: %s", args.provider)
+    log.info("Model: %s", args.model or "(default)")
+    log.info("=" * 60)
+
+    output_path = run_llm_extraction(
+        source_dir=source_dir,
+        output_path=args.output.resolve(),
+        instance_namespace=args.namespace,
+        provider=args.provider,
+        model=args.model,
+    )
+
+    log.info("")
+    log.info("=" * 60)
+    log.info("LLM EXTRACTION COMPLETE")
+    log.info("Output: %s", output_path)
+    log.info("=" * 60)
+
+
+# -------------------------------------------------------------------
 # Generate pipeline
 # -------------------------------------------------------------------
 
@@ -234,6 +353,56 @@ def _run_generate(args: argparse.Namespace) -> None:
     log = logging.getLogger("oscin")
     log.info("")
     log.info("Generated %d files in: %s", len(created), output_dir)
+
+
+# -------------------------------------------------------------------
+# Evaluate pipeline
+# -------------------------------------------------------------------
+
+def _run_evaluate(args: argparse.Namespace) -> None:
+    """Execute the evaluate subcommand."""
+    from rdflib import Graph
+    from oscin.evaluator import (
+        compute_intrinsic,
+        compute_pairwise,
+        format_intrinsic_report,
+        format_pairwise_report,
+        format_json_report,
+    )
+
+    ref_path: Path = args.reference.resolve()
+    if not ref_path.is_file():
+        print(f"ERROR: Reference file does not exist: {ref_path}", file=sys.stderr)
+        sys.exit(1)
+
+    ref_graph = Graph()
+    ref_graph.parse(str(ref_path), format="turtle")
+    intrinsic_ref = compute_intrinsic(ref_graph)
+
+    intrinsic_cand = None
+    pairwise = None
+
+    if args.candidate:
+        cand_path: Path = args.candidate.resolve()
+        if not cand_path.is_file():
+            print(f"ERROR: Candidate file does not exist: {cand_path}", file=sys.stderr)
+            sys.exit(1)
+
+        cand_graph = Graph()
+        cand_graph.parse(str(cand_path), format="turtle")
+        intrinsic_cand = compute_intrinsic(cand_graph)
+        pairwise = compute_pairwise(ref_graph, cand_graph)
+
+    if args.json_output:
+        print(format_json_report(intrinsic_ref, intrinsic_cand, pairwise))
+    else:
+        print(format_intrinsic_report(intrinsic_ref, label=f"Reference ({ref_path.name})"))
+        if intrinsic_cand and args.candidate:
+            print()
+            print(format_intrinsic_report(intrinsic_cand, label=f"Candidate ({args.candidate.name})"))
+        if pairwise:
+            print()
+            print(format_pairwise_report(pairwise))
 
 
 if __name__ == "__main__":

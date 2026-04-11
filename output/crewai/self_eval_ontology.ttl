@@ -8,14 +8,14 @@
 <http://example.org/self_eval> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
-ex:SelfEvalSystem a agentoscin:AgenticSystem ;
+ex:SelfEvalLoopSystem a agentoscin:AgenticSystem ;
     agentoscin:containsAgent ex:Agent_shakespearean_bard,
         ex:Agent_x_post_verifier ;
     agentoscin:containsOrchestration ex:Orchestration_ShakespeareXPostFlow ;
     agentoscin:containsTeam ex:Team_ShakespeareanXPostCrew,
         ex:Team_XPostReviewCrew ;
     agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
-    agentoscin:hasTitle "SelfEvalSystem"^^xsd:string .
+    agentoscin:hasTitle "SelfEvalLoopSystem"^^xsd:string .
 
 agentoscin:ChainOfThought a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .

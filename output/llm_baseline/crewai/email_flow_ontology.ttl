@@ -1,0 +1,151 @@
+# Issues / Assumptions:
+# - No issues detected
+
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/email_flow#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/email_flow#>
+  rdf:type owl:Ontology ;
+  owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+
+ex:EmailFilterSystem rdf:type agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI" ;
+    agentoscin:containsOrchestration ex:EmailAutoResponderFlowOrchestration .
+
+ex:EmailAutoResponderFlowOrchestration rdf:type agentoscin:Orchestration ;
+    agentoscin:orchestratesTeam ex:EmailFilterCrewTeam ;
+    agentoscin:employsCoordinationPattern ex:SequentialCoordinationPattern ;
+    agentoscin:hasWorkflowPattern ex:EmailProcessingWorkflowPattern .
+
+ex:EmailProcessingWorkflowPattern rdf:type agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:StartStep ;
+    agentoscin:hasWorkflowStep ex:FilterEmailsStep ;
+    agentoscin:hasWorkflowStep ex:ActionRequiredEmailsStep ;
+    agentoscin:hasWorkflowStep ex:DraftResponsesStep ;
+    agentoscin:hasWorkflowStep ex:EndStep .
+
+ex:StartStep rdf:type agentoscin:StartStep ;
+    agentoscin:stepOrder 0 ;
+    agentoscin:nextStep ex:FilterEmailsStep .
+
+ex:FilterEmailsStep rdf:type agentoscin:WorkflowStep ;
+    agentoscin:stepOrder 1 ;
+    agentoscin:nextStep ex:ActionRequiredEmailsStep ;
+    agentoscin:hasAssociatedTask ex:FilterEmailsTask .
+
+ex:FilterEmailsTask rdf:type agentoscin:Task ;
+    agentoscin:taskPrompt ex:FilterEmailsPrompt ;
+    agentoscin:hasExpectedOutput "A categorized list of emails with their classification as either 'action_required' or 'no_action_needed', along with a brief reason for each classification." ;
+    agentoscin:performedByAgent ex:EmailFilterAgent .
+
+ex:FilterEmailsPrompt rdf:type agentoscin:Prompt ;
+    agentoscin:promptInstruction "Analyze the list of emails provided and categorize each email as either 'action_required' or 'no_action_needed'. Use your expertise to filter out newsletters, promotional content, and spam." ;
+    agentoscin:promptContext "The task is to use the expertise of the agent to classify emails." .
+
+ex:ActionRequiredEmailsStep rdf:type agentoscin:WorkflowStep ;
+    agentoscin:stepOrder 2 ;
+    agentoscin:nextStep ex:DraftResponsesStep ;
+    agentoscin:hasAssociatedTask ex:ActionRequiredEmailsTask .
+
+ex:ActionRequiredEmailsTask rdf:type agentoscin:Task ;
+    agentoscin:taskPrompt ex:ActionRequiredEmailsPrompt ;
+    agentoscin:hasExpectedOutput "A detailed action plan for each action-required email, including the specific steps to take, priority level, and any relevant deadlines." ;
+    agentoscin:performedByAgent ex:EmailActionAgent .
+
+ex:ActionRequiredEmailsPrompt rdf:type agentoscin:Prompt ;
+    agentoscin:promptInstruction "For each email classified as 'action_required', analyze the content and determine the specific actions that need to be taken." ;
+    agentoscin:promptContext "The task focuses on identifying necessary actions based on the content of the emails." .
+
+ex:DraftResponsesStep rdf:type agentoscin:WorkflowStep ;
+    agentoscin:stepOrder 3 ;
+    agentoscin:nextStep ex:EndStep ;
+    agentoscin:hasAssociatedTask ex:DraftResponsesTask .
+
+ex:DraftResponsesTask rdf:type agentoscin:Task ;
+    agentoscin:taskPrompt ex:DraftResponsesPrompt ;
+    agentoscin:hasExpectedOutput "A set of draft email responses ready to be reviewed and sent, each properly formatted with subject line, greeting, body, and closing." ;
+    agentoscin:performedByAgent ex:EmailResponseWriter .
+
+ex:DraftResponsesPrompt rdf:type agentoscin:Prompt ;
+    agentoscin:promptInstruction "Based on the action plans provided, draft professional email responses for each action-required email." ;
+    agentoscin:promptContext "The task is to write professional and context-appropriate email responses." .
+
+ex:EndStep rdf:type agentoscin:EndStep ;
+    agentoscin:stepOrder 4 .
+
+ex:EmailFilterCrewTeam rdf:type agentoscin:Team ;
+    agentoscin:hasAgentMember ex:EmailFilterAgent ,
+                              ex:EmailActionAgent ,
+                              ex:EmailResponseWriter ;
+    agentoscin:employsCoordinationPattern ex:SequentialCoordinationPattern ;
+    agentoscin:hasWorkflowPattern ex:EmailProcessingWorkflowPattern .
+
+ex:SequentialCoordinationPattern rdf:type agentoscin:CoordinationPattern .
+
+ex:EmailFilterAgent rdf:type agentoscin:LLMAgent ;
+    agentoscin:agentID "email_filter_agent" ;
+    agentoscin:agentRole "Senior Email Analyst" ;
+    agentoscin:agentType "LLMAgent" ;
+    agentoscin:agentPrompt ex:EmailFilterAgentPrompt ;
+    agentoscin:hasAgentGoal ex:EmailFilterAgentGoal ;
+    agentoscin:useLanguageModel ex:ChatOpenAILanguageModel .
+
+ex:EmailFilterAgentGoal rdf:type agentoscin:Goal ;
+    agentoscin:hasDescription "Filter out non-essential emails like newsletters and promotional content, and identify important action-required emails that need immediate attention." .
+
+ex:EmailFilterAgentPrompt rdf:type agentoscin:Prompt ;
+    agentoscin:promptInstruction "Analyze the list of emails provided and categorize each email as either 'action_required' or 'no_action_needed'. Use your expertise to filter out newsletters, promotional content, and spam." ;
+    agentoscin:promptContext "Senior Email Analyst expertise in filtering emails." .
+
+ex:EmailActionAgent rdf:type agentoscin:LLMAgent ;
+    agentoscin:agentID "email_action_agent" ;
+    agentoscin:agentRole "Email Action Specialist" ;
+    agentoscin:agentType "LLMAgent" ;
+    agentoscin:agentPrompt ex:EmailActionAgentPrompt ;
+    agentoscin:hasAgentGoal ex:EmailActionAgentGoal ;
+    agentoscin:useLanguageModel ex:ChatOpenAILanguageModel .
+
+ex:EmailActionAgentGoal rdf:type agentoscin:Goal ;
+    agentoscin:hasDescription "For each email identified as action-required, determine the necessary steps and provide a brief summary of the required actions." .
+
+ex:EmailActionAgentPrompt rdf:type agentoscin:Prompt ;
+    agentoscin:promptInstruction "For each email classified as 'action_required', analyze the content and determine the specific actions that need to be taken." ;
+    agentoscin:promptContext "Email Action Specialist expertise in handling 'action_required' emails." .
+
+ex:EmailResponseWriter rdf:type agentoscin:LLMAgent ;
+    agentoscin:agentID "email_response_writer" ;
+    agentoscin:agentRole "Email Response Writer" ;
+    agentoscin:agentType "LLMAgent" ;
+    agentoscin:agentPrompt ex:EmailResponseWriterPrompt ;
+    agentoscin:hasAgentGoal ex:EmailResponseWriterGoal ;
+    agentoscin:useLanguageModel ex:ChatOpenAILanguageModel .
+
+ex:EmailResponseWriterGoal rdf:type agentoscin:Goal ;
+    agentoscin:hasDescription "Draft professional and appropriate responses to action-required emails based on the determined actions and context." .
+
+ex:EmailResponseWriterPrompt rdf:type agentoscin:Prompt ;
+    agentoscin:promptInstruction "Based on the action plans provided, draft professional email responses for each action-required email." ;
+    agentoscin:promptContext "Skilled communicator with a talent for crafting clear responses." .
+
+ex:ChatOpenAILanguageModel rdf:type agentoscin:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o" .
+
+ex:SerperDevTool rdf:type agentoscin:Tool ;
+    agentoscin:hasTitle "SerperDev Tool" ;
+    agentoscin:hasDescription "A search tool for the email filter agent." .
+
+ex:GmailGetThreadTool rdf:type agentoscin:Tool ;
+    agentoscin:hasTitle "Gmail Get Thread" ;
+    agentoscin:hasDescription "Tool to get Gmail threads." .
+
+ex:TavilySearchResultsTool rdf:type agentoscin:Tool ;
+    agentoscin:hasTitle "Tavily Search Results" ;
+    agentoscin:hasDescription "Tool for obtaining search results for emails." .
+
+ex:CreateDraftTool rdf:type agentoscin:Tool ;
+    agentoscin:hasTitle "Create Draft Tool" ;
+    agentoscin:hasImplementationReference "tools/create_draft.py" .
