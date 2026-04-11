@@ -482,6 +482,12 @@
                    rdfs:range xsd:string .
 
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDescription
+:hasDescription rdf:type owl:DatatypeProperty ;
+                rdfs:subPropertyOf owl:topDataProperty ;
+                rdfs:range xsd:string .
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDirectiveFunction
 :hasDirectiveFunction rdf:type owl:DatatypeProperty ;
                       rdfs:subPropertyOf owl:topDataProperty ;
@@ -573,6 +579,12 @@
                     rdfs:range xsd:string .
 
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasReference
+:hasReference rdf:type owl:DatatypeProperty ;
+              rdfs:subPropertyOf owl:topDataProperty ;
+              rdfs:range xsd:string .
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasRoutingLogic
 :hasRoutingLogic rdf:type owl:DatatypeProperty ;
                  rdfs:subPropertyOf owl:topDataProperty ;
@@ -599,6 +611,12 @@
                     rdfs:subPropertyOf owl:topDataProperty ;
                     rdfs:domain :AgenticSystem ;
                     rdfs:range xsd:string .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTitle
+:hasTitle rdf:type owl:DatatypeProperty ;
+          rdfs:subPropertyOf owl:topDataProperty ;
+          rdfs:range xsd:string .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTriggerExpression
@@ -655,24 +673,6 @@
            rdfs:subPropertyOf owl:topDataProperty ;
            rdfs:domain :WorkflowStep ;
            rdfs:range xsd:integer .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDescription
-:hasDescription rdf:type owl:DatatypeProperty ;
-                rdfs:subPropertyOf owl:topDataProperty ;
-                rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasReference
-:hasReference rdf:type owl:DatatypeProperty ;
-              rdfs:subPropertyOf owl:topDataProperty ;
-              rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTitle
-:hasTitle rdf:type owl:DatatypeProperty ;
-          rdfs:subPropertyOf owl:topDataProperty ;
-          rdfs:range xsd:string .
 
 
 #################################################################
@@ -898,251 +898,6 @@
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WorkflowStep
 :WorkflowStep rdf:type owl:Class ;
               rdfs:subClassOf :Step .
-
-
-#################################################################
-#    Individuals
-#################################################################
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Sequential
-:Sequential rdf:type owl:NamedIndividual ,
-                     :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Custom
-:Custom rdf:type owl:NamedIndividual ,
-                 :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/HierarchicalPattern
-:HierarchicalPattern rdf:type owl:NamedIndividual ,
-                              :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStepReview
-:FlowStepReview rdf:type owl:NamedIndividual ,
-                         :WorkflowStep ;
-                :nextStep :FlowStep_CheckReview ;
-                :stepOrder 2 ;
-                :hasTitle "review_post" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_CheckReview
-:FlowStep_CheckReview rdf:type owl:NamedIndividual ,
-                               :ConditionalStep ;
-                      :nextStep :FlowStepReview ,
-                                :FlowStep_Publish ;
-                      :hasRoutingLogic "if review_valid: return publish; if retry_count >= max_retries: return publish; return retry" ;
-                      :stepOrder 3 ;
-                      :hasTitle "check review" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_Generate
-:FlowStep_Generate rdf:type owl:NamedIndividual ,
-                            :StartStep ;
-                   :nextStep :FlowStepReview ;
-                   :stepOrder 1 ;
-                   :hasTitle "generate_post" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_Publish
-:FlowStep_Publish rdf:type owl:NamedIndividual ,
-                           :EndStep ;
-                  :agentType "publishPost" ;
-                  :stepOrder 4 .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowStep_Retry
-:FlowStep_Retry rdf:type owl:NamedIndividual ,
-                         :WorkflowStep ;
-                :nextStep :FlowStep_CheckReview ;
-                :stepOrder 5 ;
-                :hasTitle "retry_generation" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/FlowWorkflowPattern
-:FlowWorkflowPattern rdf:type owl:NamedIndividual ,
-                              :WorkflowPattern ;
-                     :hasWorkflowStep :FlowStepReview ,
-                                      :FlowStep_CheckReview ,
-                                      :FlowStep_Generate ,
-                                      :FlowStep_Publish ,
-                                      :FlowStep_Retry ;
-                     :hasTitle "Self-Evaluation Loop Workflow" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GPT4o
-:GPT4o rdf:type owl:NamedIndividual ,
-                :LanguageModel ;
-       :hasTitle "gpt-4o" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GenCrewStep1
-:GenCrewStep1 rdf:type owl:NamedIndividual ,
-                       :StartStep ;
-              :hasAssociatedTask :WritePostTask ;
-              :stepOrder 1 .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GenCrewTermination
-:GenCrewTermination rdf:type owl:NamedIndividual ,
-                             :TaskCompletionTermination .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/GenCrewWorkflow
-:GenCrewWorkflow rdf:type owl:NamedIndividual ,
-                          :WorkflowPattern ;
-                 :hasWorkflowStep :GenCrewStep1 ;
-                 :hasTitle "X Post Generation Workflow" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewCrewStep1
-:ReviewCrewStep1 rdf:type owl:NamedIndividual ,
-                          :StartStep ;
-                 :hasAssociatedTask :ReviewTask ;
-                 :stepOrder 1 .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewCrewTermination
-:ReviewCrewTermination rdf:type owl:NamedIndividual ,
-                                :TaskCompletionTermination .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewCrewWorkflow
-:ReviewCrewWorkflow rdf:type owl:NamedIndividual ,
-                             :WorkflowPattern ;
-                    :hasWorkflowStep :ReviewCrewStep1 ;
-                    :hasTitle "X Post Review Workflow" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewTask
-:ReviewTask rdf:type owl:NamedIndividual ,
-                     :Task ;
-            :dependsOn :WritePostTask ;
-            :performedByAgent :ReviewerAgent ;
-            :taskPrompt :ReviewerTaskPrompt ;
-            :hasDelegationStrategy "ExplicitAssignment" ;
-            :hasDependencyType "ContextProviding" ;
-            :hasExpectedOutput "Either VALID or INVALID with specific feedback." .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerAgent
-:ReviewerAgent rdf:type owl:NamedIndividual ,
-                        :LLMAgent ;
-               :agentPrompt :ReviewerAgentPrompt ;
-               :hasAgentGoal :ReviewerGoal ;
-               :useLanguageModel :GPT4o ;
-               :agentID "X Post Quality Reviewer" ;
-               :agentRole "X Post Quality Reviewer" ;
-               :agentType "GeneralPurpose" ;
-               :hasReasoningEnabled "false"^^xsd:boolean .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerAgentPrompt
-:ReviewerAgentPrompt rdf:type owl:NamedIndividual ,
-                              :Prompt ;
-                     :hasDirectiveFunction "DualDirective" ;
-                     :hasSourceAttribute "backstory" ,
-                                         "goal" ,
-                                         "role" ;
-                     :promptContext "You are a meticulous social media editor who ensures every post meets strict quality standards before publishing." ;
-                     :promptInstruction "X Post Quality Reviewer: Review X posts for quality, character count, and style compliance" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerGoal
-:ReviewerGoal rdf:type owl:NamedIndividual ,
-                       :Goal ;
-              :hasDescription "Review X posts for quality, character count, and style compliance" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReviewerTaskPrompt
-:ReviewerTaskPrompt rdf:type owl:NamedIndividual ,
-                             :Prompt ;
-                    :hasSourceAttribute "description" ,
-                                        "expected_output" ;
-                    :promptInstruction "Review the following X post for compliance. Check: (1) Under 280 characters, (2) No emojis, (3) Written in Shakespearean style, (4) Humorous and engaging. If all criteria are met, respond with VALID. Otherwise, respond with INVALID and provide specific feedback." ;
-                    :promptOutputIndicator "Either VALID or INVALID with specific feedback." .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelfEvalOrchestration
-:SelfEvalOrchestration rdf:type owl:NamedIndividual ,
-                                :Orchestration ;
-                       :hasWorkflowPattern :FlowWorkflowPattern ;
-                       :orchestratesTeam :XPostGenerationCrew ,
-                                         :XPostReviewCrew .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelfEvalSystem
-:SelfEvalSystem rdf:type owl:NamedIndividual ,
-                         :AgenticSystem ;
-                :containsAgent :WriterAgent ;
-                :containsOrchestration :SelfEvalOrchestration ;
-                :containsTeam :XPostGenerationCrew ,
-                              :XPostReviewCrew ;
-                :hasSourceFramework "CrewAI" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WritePostTask
-:WritePostTask rdf:type owl:NamedIndividual ,
-                        :Task ;
-               :performedByAgent :WriterAgent ;
-               :taskPrompt :WriterPostTaskPrompt ;
-               :hasDelegationStrategy "ExplicitAssignment" ;
-               :hasDependencyType "sequential" ;
-               :hasExpectedOutput "A single X post in Shakespearean style, under 280 characters, no emojis." .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterAgent
-:WriterAgent rdf:type owl:NamedIndividual ,
-                      :LLMAgent ;
-             :agentPrompt :WriterAgentPrompt ;
-             :hasAgentGoal :WriterGoal ;
-             :useLanguageModel :GPT4o ;
-             :agentID "Shakespearean X Post Writer" ;
-             :agentRole "Shakespearean X Post Writer" ;
-             :agentType "GeneralPurpose" ;
-             :hasReasoningEnabled "false"^^xsd:boolean .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterAgentPrompt
-:WriterAgentPrompt rdf:type owl:NamedIndividual ,
-                            :Prompt ;
-                   :hasDirectiveFunction "DualDirective" ;
-                   :hasSourceAttribute "backstory" ,
-                                       "goal" ,
-                                       "role" ;
-                   :promptContext "You are a social media bard who crafts viral posts in the style of William Shakespeare. You blend Elizabethan English with modern internet culture." ;
-                   :promptInstruction "Write a witty, Shakespearean-style X post on the given topic" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterGoal
-:WriterGoal rdf:type owl:NamedIndividual ,
-                     :Goal ;
-            :hasDescription "Write a witty, Shakespearean-style X post on the given topic" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WriterPostTaskPrompt
-:WriterPostTaskPrompt rdf:type owl:NamedIndividual ,
-                               :Prompt ;
-                      :hasSourceAttribute "description" ,
-                                          "expected_output" ;
-                      :promptInstruction "Write a Shakespearean-style X post about the given topic. The post must be under 280 characters, contain no emojis, and be humorous and engaging." ;
-                      :promptOutputIndicator "A single X post in Shakespearean style, under 280 characters, no emojis." .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/XPostGenerationCrew
-:XPostGenerationCrew rdf:type owl:NamedIndividual ,
-                              :Team ;
-                     :hasTitle "x_post_crew" .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/XPostReviewCrew
-:XPostReviewCrew rdf:type owl:NamedIndividual ,
-                          :Team ;
-                 :hasAgentMember :ReviewerAgent ;
-                 :hasTerminationCondition :ReviewCrewTermination ;
-                 :hasWorkflowPattern :ReviewCrewWorkflow ;
-                 :hasTitle "review_crew" .
 
 
 #################################################################
