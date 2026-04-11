@@ -88,6 +88,16 @@ class OntologyPopulator:
         self.g.bind("owl", OWL)
         self.g.bind("rdfs", RDFS)
 
+        # Declare this output graph as an OWL ontology
+        onto_uri_str = str(self.EX).rstrip("#")
+        onto_uri = URIRef(onto_uri_str)
+        self.g.add((onto_uri, RDF.type, OWL.Ontology))
+
+        # Explicitly import the base AgentOSCIN schema so Protégé maps
+        # the predicates to ObjectProperties and DataProperties instead of Annotations
+        base_ontology_uri = URIRef(str(AGENTOSCIN).rstrip("/"))
+        self.g.add((onto_uri, OWL.imports, base_ontology_uri))
+
     # -----------------------------------------------------------
     # Public API
     # -----------------------------------------------------------
