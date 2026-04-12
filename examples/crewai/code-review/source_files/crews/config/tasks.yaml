@@ -1,0 +1,36 @@
+review_code:
+  description: >
+    Review the following code for correctness, readability, and best
+    practices. Identify bugs, code smells, naming issues, and suggest
+    improvements.
+
+    Code to review:
+    {code}
+  expected_output: >
+    A structured list of findings categorized as bug, code smell, style,
+    or improvement, each with severity (critical, major, minor) and a
+    suggested fix.
+  agent: code_reviewer
+
+audit_security:
+  description: >
+    Audit the following code for security vulnerabilities. Check for
+    injection attacks, hardcoded secrets, insecure data handling,
+    missing input validation, and OWASP Top 10 issues.
+
+    Code to audit:
+    {code}
+  expected_output: >
+    A security report listing each vulnerability found with its
+    CWE classification, severity, affected lines, and remediation steps.
+  agent: security_auditor
+
+compile_review:
+  description: >
+    Compile the code review findings and security audit results into a
+    final review report. Determine the overall verdict: approve if no
+    critical or major issues remain, otherwise request changes.
+  expected_output: >
+    A JSON object with fields: approved (boolean), summary (string),
+    critical_count (integer), and action_items (list of strings).
+  agent: review_summarizer

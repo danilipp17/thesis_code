@@ -1,0 +1,12 @@
+research_topic:
+  description: Research the topic '{topic}' thoroughly. Use web search to find at least 3 reliable sources. Compile key facts, statistics, and expert opinions. Structure your findings as bullet points grouped by subtopic.
+  expected_output: A structured research brief with key findings, statistics, and source URLs organized by subtopic.
+  agent: research_analyst
+write_article:
+  description: Using the research findings provided, write a comprehensive article on '{topic}'. The article should be 800-1200 words, include an engaging introduction, clear section headings, and a conclusion with key takeaways.
+  expected_output: A well-structured article of 800-1200 words in markdown format with introduction, body sections, and conclusion.
+  agent: content_writer
+review_content:
+  description: Review the article for factual accuracy, grammar, style, and completeness. Check that all claims are supported by the research findings. Provide a quality assessment.
+  expected_output: A quality assessment with a score (1-10), list of issues found, and specific suggestions for improvement.
+  agent: quality_reviewer

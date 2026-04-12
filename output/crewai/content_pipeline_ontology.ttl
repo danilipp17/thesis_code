@@ -1,0 +1,801 @@
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/content_pipeline#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/content_pipeline> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+ex:ContentPipelineSystem a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_content_writer,
+        ex:Agent_quality_reviewer,
+        ex:Agent_research_analyst ;
+    agentoscin:containsOrchestration ex:Orchestration_ContentPipelineFlow ;
+    agentoscin:containsTeam ex:Team_ContentPipelineCrew ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "ContentPipelineSystem"^^xsd:string .
+
+agentoscin:ChainOfThought a owl:Class ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:Constraint a owl:Class ;
+    rdfs:subClassOf agentoscin:KnowledgeBase .
+
+agentoscin:ReAct a owl:Class ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:ReflectionLoop a owl:Class ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:TreeOfThoughts a owl:Class ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:Unspecified a owl:Class ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:agentID a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:agentPrompt a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasPrompt .
+
+agentoscin:agentResourceUsage a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:Resource ;
+    rdfs:subPropertyOf agentoscin:resourceUsage .
+
+agentoscin:agentRole a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:agentToolUsage a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:Tool ;
+    rdfs:subPropertyOf agentoscin:toolUsage .
+
+agentoscin:agentType a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:bindsMemory a owl:ObjectProperty ;
+    rdfs:domain agentoscin:MemoryBinding ;
+    rdfs:range agentoscin:Memory ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:configKey a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Config ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:configValue a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Config ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:containsAgent a owl:ObjectProperty ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range agentoscin:LLMAgent ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:containsOrchestration a owl:ObjectProperty ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range agentoscin:Orchestration ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:containsResource a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Environment ;
+    rdfs:range agentoscin:Resource ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:containsTeam a owl:ObjectProperty ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range agentoscin:Team ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:contributesToGoal a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Objective ;
+    rdfs:range agentoscin:Goal ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:contributesToObjective a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Objective ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:dependsOn a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Task ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:employsCoordinationPattern a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Team ;
+    rdfs:range agentoscin:CoordinationPattern ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:employsReasoningPattern a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:ReasoningPattern ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:envType a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Environment ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasAgentCapability a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasCapability .
+
+agentoscin:hasAgentConfig a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasConfig .
+
+agentoscin:hasAgentGoal a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasGoal .
+
+agentoscin:hasAgentMember a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Team ;
+    rdfs:range agentoscin:LLMAgent ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasAssociatedTask a owl:ObjectProperty ;
+    rdfs:domain agentoscin:WorkflowStep ;
+    rdfs:range agentoscin:Task ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasCheckpointPosition a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasCheckpointType a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasDelegationStrategy a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasDependencyType a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasDescription a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasDirectiveFunction a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasEnvironmentConfig a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasConfig .
+
+agentoscin:hasExpectedOutput a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasGuardrail a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Guardrail ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasGuardrailType a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Guardrail ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasHumanCheckpoint a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:HumanCheckpoint ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasImplementationReference a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Tool ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasInputSchema a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Tool ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasKnowledge a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:KnowledgeBase ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasMaxReasoningAttempts a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range xsd:integer ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasMaxRetries a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Guardrail ;
+    rdfs:range xsd:language ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasMaxTurns a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:TurnLimitTermination ;
+    rdfs:range xsd:integer ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasMemoryBinding a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:MemoryBinding ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasMemoryScope a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:MemoryBinding ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasObjective a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent,
+        agentoscin:Team ;
+    rdfs:range agentoscin:Objective ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasOperator a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:CompositeTermination ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasOutputSchema a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Schema ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasPersistenceScope a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Memory ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasReasoningEnabled a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range xsd:boolean ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasReasoningOrigin a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasReference a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasRoutingLogic a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:ConditionalStep ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasSchemaDefinition a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Schema ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasSourceAttribute a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasSourceFramework a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasSubCondition a owl:ObjectProperty ;
+    rdfs:domain agentoscin:CompositeTermination ;
+    rdfs:range agentoscin:TerminationCondition ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasSubPattern a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasRelatedPattern .
+
+agentoscin:hasSystemConfig a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasConfig .
+
+agentoscin:hasTeamGoal a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasGoal .
+
+agentoscin:hasTeamMemoryBinding a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Team ;
+    rdfs:range agentoscin:MemoryBinding ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasTerminationCondition a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Team ;
+    rdfs:range agentoscin:TerminationCondition ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasTitle a owl:DatatypeProperty ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasToolConfig a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasConfig .
+
+agentoscin:hasTriggerExpression a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:EventBasedTermination ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasValidationLogic a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Guardrail ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasWorkflowPattern a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Orchestration ;
+    rdfs:range agentoscin:WorkflowPattern ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasWorkflowStep a owl:ObjectProperty ;
+    rdfs:domain agentoscin:WorkflowPattern ;
+    rdfs:range agentoscin:WorkflowStep ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:humanParticipatedIn a owl:ObjectProperty ;
+    rdfs:domain agentoscin:HumanAgent ;
+    rdfs:range agentoscin:Task ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:interactsWith a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:LLMAgent ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:isMandatory a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:boolean ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:memoryBoundTo a owl:ObjectProperty ;
+    rdfs:domain agentoscin:MemoryBinding ;
+    rdfs:range agentoscin:AgenticSystem,
+        agentoscin:LLMAgent,
+        agentoscin:Team ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:nextPattern a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasRelatedPattern .
+
+agentoscin:nextStep a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:relatedStep .
+
+agentoscin:operatesIn a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:Environment ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:orchestratesTeam a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Orchestration ;
+    rdfs:range agentoscin:Team ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:performedByAgent a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:LLMAgent ;
+    rdfs:subPropertyOf agentoscin:performedBy .
+
+agentoscin:producedResource a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Resource ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:promptContext a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:promptInputData a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:promptInstruction a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:promptOutputIndicator a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:requiresCapability a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Capability ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:requiresResource a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Resource ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:stepOrder a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:WorkflowStep ;
+    rdfs:range xsd:integer ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:taskPrompt a owl:ObjectProperty ;
+    rdfs:subPropertyOf agentoscin:hasPrompt .
+
+agentoscin:taskToolUsage a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:range agentoscin:Tool ;
+    rdfs:subPropertyOf agentoscin:toolUsage .
+
+agentoscin:useLanguageModel a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:LanguageModel ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+ex:AgentPrompt_content_writer a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are a seasoned content writer with a talent for making complex topics accessible. You follow best practices for online content including clear headings, concise paragraphs, and actionable insights."^^xsd:string ;
+    agentoscin:promptInstruction "Content Writer: Transform research findings into engaging, well-structured articles that are informative and accessible to a broad audience."^^xsd:string .
+
+ex:AgentPrompt_quality_reviewer a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are a meticulous editor with years of experience in publishing. You have a keen eye for detail, ensuring every piece meets high editorial standards before publication."^^xsd:string ;
+    agentoscin:promptInstruction "Quality Assurance Editor: Review content for factual accuracy, grammar, style consistency, and adherence to the content brief. Provide a quality score and actionable feedback."^^xsd:string .
+
+ex:AgentPrompt_research_analyst a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "You are an experienced research analyst with a background in investigative journalism. You excel at finding reliable sources, cross-referencing information, and presenting facts in a clear, structured manner."^^xsd:string ;
+    agentoscin:promptInstruction "Senior Research Analyst: Research and gather comprehensive, accurate information on a given topic using web search tools. Provide structured findings with sources."^^xsd:string .
+
+ex:Config_verbose_Agent_content_writer a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_quality_reviewer a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_research_analyst a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_ContentPipelineCrew a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:CrewStep_ContentPipelineCrew_research_topic a agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_research_topic ;
+    agentoscin:hasTitle "research_topic"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_ContentPipelineCrew_write_article ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowStep_run_content_pipeline a agentoscin:StartStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "run_content_pipeline"^^xsd:string ;
+    agentoscin:nextStep ex:FlowStep_save_article ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowWorkflowPattern_ContentPipelineFlow a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_run_content_pipeline,
+        ex:FlowStep_save_article .
+
+ex:Goal_content_writer a agentoscin:Goal ;
+    agentoscin:hasDescription "Transform research findings into engaging, well-structured articles that are informative and accessible to a broad audience."^^xsd:string .
+
+ex:Goal_quality_reviewer a agentoscin:Goal ;
+    agentoscin:hasDescription "Review content for factual accuracy, grammar, style consistency, and adherence to the content brief. Provide a quality score and actionable feedback."^^xsd:string .
+
+ex:Goal_research_analyst a agentoscin:Goal ;
+    agentoscin:hasDescription "Research and gather comprehensive, accurate information on a given topic using web search tools. Provide structured findings with sources."^^xsd:string .
+
+ex:Orchestration_ContentPipelineFlow a agentoscin:Orchestration ;
+    agentoscin:employsCoordinationPattern agentoscin:Custom ;
+    agentoscin:hasTitle "ContentPipelineFlow"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_ContentPipelineFlow ;
+    agentoscin:orchestratesTeam ex:Team_ContentPipelineCrew .
+
+ex:TaskPrompt_research_topic a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Research the topic '{topic}' thoroughly. Use web search to find at least 3 reliable sources. Compile key facts, statistics, and expert opinions. Structure your findings as bullet points grouped by subtopic."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A structured research brief with key findings, statistics, and source URLs organized by subtopic."^^xsd:string .
+
+ex:TaskPrompt_review_content a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Review the article for factual accuracy, grammar, style, and completeness. Check that all claims are supported by the research findings. Provide a quality assessment."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A quality assessment with a score (1-10), list of issues found, and specific suggestions for improvement."^^xsd:string .
+
+ex:TaskPrompt_write_article a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Using the research findings provided, write a comprehensive article on '{topic}'. The article should be 800-1200 words, include an engaging introduction, clear section headings, and a conclusion with key takeaways."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A well-structured article of 800-1200 words in markdown format with introduction, body sections, and conclusion."^^xsd:string .
+
+ex:Task_research_topic a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A structured research brief with key findings, statistics, and source URLs organized by subtopic."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_research_analyst ;
+    agentoscin:taskPrompt ex:TaskPrompt_research_topic .
+
+ex:Task_review_content a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A quality assessment with a score (1-10), list of issues found, and specific suggestions for improvement."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_quality_reviewer ;
+    agentoscin:taskPrompt ex:TaskPrompt_review_content .
+
+ex:Task_write_article a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A well-structured article of 800-1200 words in markdown format with introduction, body sections, and conclusion."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_content_writer ;
+    agentoscin:taskPrompt ex:TaskPrompt_write_article .
+
+ex:Termination_ContentPipelineCrew a agentoscin:TaskCompletionTermination .
+
+ex:Tool_WebSearchTool a agentoscin:Tool ;
+    agentoscin:hasDescription "Search the web for information on a given query. Returns titles, snippets, and URLs of relevant results."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.web_search.WebSearchTool._run"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The search query to execute.\"},\"num_results\":{\"type\":\"integer\",\"description\":\"Number of results to return.\"}},\"required\":[\"query\",\"num_results\"]}"^^xsd:string ;
+    agentoscin:hasTitle "Web Search"^^xsd:string .
+
+ex:WorkflowPattern_ContentPipelineCrew a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_ContentPipelineCrew_research_topic,
+        ex:CrewStep_ContentPipelineCrew_review_content,
+        ex:CrewStep_ContentPipelineCrew_write_article .
+
+<http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology .
+
+agentoscin:ConditionalStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
+
+agentoscin:Custom a agentoscin:CoordinationPattern .
+
+agentoscin:HumanAgent a owl:Class ;
+    rdfs:subClassOf agentoscin:Agent .
+
+agentoscin:Model a owl:Class ;
+    rdfs:subClassOf agentoscin:Instance .
+
+agentoscin:RoutingTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:Sequential a agentoscin:CoordinationPattern .
+
+agentoscin:StatisticalModel a owl:Class ;
+    rdfs:subClassOf agentoscin:Model .
+
+agentoscin:hasCapability a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Tool ;
+    rdfs:range agentoscin:Capability ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:performedBy a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Task ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:relatedStep a owl:ObjectProperty ;
+    rdfs:domain agentoscin:WorkflowStep ;
+    rdfs:range agentoscin:WorkflowStep ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:resourceUsage a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Tool ;
+    rdfs:range agentoscin:Resource ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+ex:CrewStep_ContentPipelineCrew_review_content a agentoscin:EndStep ;
+    agentoscin:hasAssociatedTask ex:Task_review_content ;
+    agentoscin:hasTitle "review_content"^^xsd:string ;
+    agentoscin:stepOrder 3 .
+
+ex:CrewStep_ContentPipelineCrew_write_article a agentoscin:WorkflowStep ;
+    agentoscin:hasAssociatedTask ex:Task_write_article ;
+    agentoscin:hasTitle "write_article"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_ContentPipelineCrew_review_content ;
+    agentoscin:stepOrder 2 .
+
+ex:FlowStep_save_article a agentoscin:EndStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "save_article"^^xsd:string ;
+    agentoscin:stepOrder 2 .
+
+ex:Team_ContentPipelineCrew a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasAgentMember ex:Agent_content_writer,
+        ex:Agent_quality_reviewer,
+        ex:Agent_research_analyst ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_ContentPipelineCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_ContentPipelineCrew ;
+    agentoscin:hasTitle "ContentPipelineCrew"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_ContentPipelineCrew .
+
+ex:Tool_WordCountTool a agentoscin:Tool ;
+    agentoscin:hasDescription "Counts the number of words in a given text."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.word_count.WordCountTool._run"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The text to count words in.\"}},\"required\":[\"text\"]}"^^xsd:string ;
+    agentoscin:hasTitle "Word Counter"^^xsd:string .
+
+agentoscin:EndStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
+
+agentoscin:EventBasedTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:Instance a owl:Class ;
+    rdfs:subClassOf agentoscin:Resource .
+
+agentoscin:LanguageModel a owl:Class ;
+    rdfs:subClassOf agentoscin:StatisticalModel .
+
+agentoscin:Memory a owl:Class ;
+    rdfs:subClassOf agentoscin:KnowledgeBase .
+
+agentoscin:Plan a owl:Class .
+
+agentoscin:StartStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
+
+agentoscin:Step a owl:Class .
+
+agentoscin:System a owl:Class .
+
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:TurnLimitTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:hasGoal a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent,
+        agentoscin:Team ;
+    rdfs:range agentoscin:Goal ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasPrompt a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent,
+        agentoscin:Task ;
+    rdfs:range agentoscin:Prompt ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasRelatedPattern a owl:ObjectProperty ;
+    rdfs:domain agentoscin:WorkflowPattern ;
+    rdfs:range agentoscin:WorkflowPattern ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:toolUsage a owl:ObjectProperty ;
+    rdfs:range agentoscin:Tool ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+ex:Agent_content_writer a agentoscin:LLMAgent ;
+    agentoscin:agentID "Content Writer"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_content_writer ;
+    agentoscin:agentRole "Content Writer"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_WordCountTool ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_content_writer ;
+    agentoscin:hasAgentGoal ex:Goal_content_writer ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:Agent_quality_reviewer a agentoscin:LLMAgent ;
+    agentoscin:agentID "Quality Assurance Editor"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_quality_reviewer ;
+    agentoscin:agentRole "Quality Assurance Editor"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_WordCountTool ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_quality_reviewer ;
+    agentoscin:hasAgentGoal ex:Goal_quality_reviewer ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:Agent_research_analyst a agentoscin:LLMAgent ;
+    agentoscin:agentID "Senior Research Analyst"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_research_analyst ;
+    agentoscin:agentRole "Senior Research Analyst"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_WebSearchTool ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_research_analyst ;
+    agentoscin:hasAgentGoal ex:Goal_research_analyst ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:LM_gpt_4o a agentoscin:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+agentoscin:Agent a owl:Class .
+
+agentoscin:Capability a owl:Class .
+
+agentoscin:CompositeTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:Environment a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
+agentoscin:KnowledgeBase a owl:Class ;
+    rdfs:subClassOf agentoscin:Instance .
+
+agentoscin:Objective a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
+agentoscin:Schema a owl:Class .
+
+agentoscin:Context a owl:Class .
+
+agentoscin:CoordinationPattern a owl:Class .
+
+agentoscin:hasConfig a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Agent,
+        agentoscin:AgenticSystem,
+        agentoscin:Capability,
+        agentoscin:Config,
+        agentoscin:Context,
+        agentoscin:CoordinationPattern,
+        agentoscin:Guardrail,
+        agentoscin:HumanCheckpoint,
+        agentoscin:MemoryBinding,
+        agentoscin:Orchestration,
+        agentoscin:Plan,
+        agentoscin:Prompt,
+        agentoscin:ReasoningPattern,
+        agentoscin:Resource,
+        agentoscin:Schema,
+        agentoscin:Step,
+        agentoscin:System,
+        agentoscin:Task,
+        agentoscin:TerminationCondition,
+        agentoscin:Tool ;
+    rdfs:range agentoscin:Config ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:Goal a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
+agentoscin:Guardrail a owl:Class .
+
+agentoscin:HumanCheckpoint a owl:Class .
+
+agentoscin:Orchestration a owl:Class ;
+    rdfs:subClassOf agentoscin:Team .
+
+agentoscin:MemoryBinding a owl:Class .
+
+agentoscin:WorkflowPattern a owl:Class ;
+    rdfs:subClassOf agentoscin:Plan .
+
+agentoscin:AgenticSystem a owl:Class .
+
+agentoscin:ReasoningPattern a owl:Class .
+
+agentoscin:Resource a owl:Class .
+
+agentoscin:Config a owl:Class .
+
+agentoscin:TerminationCondition a owl:Class .
+
+agentoscin:Tool a owl:Class .
+
+agentoscin:Team a owl:Class ;
+    rdfs:subClassOf agentoscin:System .
+
+agentoscin:WorkflowStep a owl:Class ;
+    rdfs:subClassOf agentoscin:Step .
+
+agentoscin:Prompt a owl:Class .
+
+agentoscin:Task a owl:Class .
+
+agentoscin:LLMAgent a owl:Class ;
+    rdfs:subClassOf agentoscin:Agent .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( agentoscin:CompositeTermination agentoscin:EventBasedTermination agentoscin:RoutingTermination agentoscin:TaskCompletionTermination agentoscin:TurnLimitTermination ) .
+
