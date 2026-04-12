@@ -1,10 +1,10 @@
 """
 autogen_generator.py
 ====================
-AutoGen code generator for the OSCIN reverse pipeline.
+AutoGen v0.4 code generator for the OSCIN reverse pipeline.
 
-Generates a single ``main.py`` with AutoGen agent instantiations,
-GroupChat setup, and conversation initiation.
+Generates a single ``main.py`` with AutoGen v0.4 agent instantiations,
+team setup (RoundRobinGroupChat), and async execution.
 
 Author:  Dani Lippmann
 Context: Master Thesis — Towards Interoperability between Agentic AI
@@ -14,6 +14,7 @@ Date:    April 2026
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -24,10 +25,10 @@ log = logging.getLogger("oscin")
 
 class AutoGenGenerator(BaseCodeGenerator):
     """
-    Generates an AutoGen project from the intermediate representations.
+    Generates an AutoGen v0.4 project from the intermediate representations.
 
     Output structure:
-    - ``main.py`` — agent instantiations, GroupChat, and conversation flow
+    - ``main.py`` — agent instantiations, team, and async execution
     - ``tools.py`` — tool function definitions (if any)
     """
 
@@ -70,10 +71,12 @@ class AutoGenGenerator(BaseCodeGenerator):
 
         for key, tool in self.reader.tools.items():
             func_name = self._to_snake(key)
+            # Generate typed parameters from args_schema
+            params = self._build_tool_params(tool)
             desc = tool.description.replace('"""', '\\"\\"\\"')
             lines.extend([
                 "",
-                f"def {func_name}(**kwargs) -> str:",
+                f"def {func_name}({params}) -> str:",
                 f'    """',
                 f"    {tool.name}",
             ])
@@ -91,82 +94,126 @@ class AutoGenGenerator(BaseCodeGenerator):
 
         self._write_file("tools.py", "\n".join(lines))
 
+    def _build_tool_params(self, tool) -> str:
+        """Build typed parameter string from tool's args_schema_json."""
+        try:
+            schema = json.loads(tool.args_schema_json)
+        except (json.JSONDecodeError, TypeError):
+            return "**kwargs"
+
+        if not schema or "properties" not in schema:
+            return "**kwargs"
+
+        _type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+            "array": "list",
+            "object": "dict",
+        }
+
+        params = []
+        for name, prop in schema["properties"].items():
+            py_type = _type_map.get(prop.get("type", "string"), "str")
+            params.append(f"{name}: {py_type}")
+
+        return ", ".join(params) if params else "**kwargs"
+
     # -----------------------------------------------------------
     # Main Generation
     # -----------------------------------------------------------
 
     def _generate_main(self) -> None:
-        """Generate the main.py with AutoGen agent setup."""
+        """Generate the main.py with AutoGen v0.4 agent setup."""
         lines = [
             '"""',
             f"Auto-generated AutoGen application: {self.reader.system_name}",
             '"""',
             "",
-            "from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager",
+            "import asyncio",
             "",
+            "from autogen_agentchat.agents import AssistantAgent",
+            "from autogen_agentchat.teams import RoundRobinGroupChat",
+            "from autogen_agentchat.ui import Console",
+            "from autogen_ext.models.openai import OpenAIChatCompletionClient",
         ]
 
         # Tool imports
         if self.reader.tools:
+            lines.extend([
+                "from autogen_core.tools import FunctionTool",
+                "",
+            ])
             tool_funcs = ", ".join(self._to_snake(k) for k in self.reader.tools)
             lines.append(f"from tools import {tool_funcs}")
-            lines.append("")
+        lines.append("")
 
-        # LLM config — collect unique models
+        # LLM client — collect unique models
         llm_models = set()
         for agent in self.reader.agents.values():
             if agent.llm:
                 llm_models.add(agent.llm)
 
-        if llm_models:
-            model = next(iter(llm_models))
-            lines.extend([
-                f'llm_config = {{"model": "{model}"}}',
-                "",
-            ])
-        else:
-            lines.extend([
-                'llm_config = {"model": "gpt-4o"}  # TODO: configure model',
-                "",
-            ])
+        model = next(iter(llm_models), "gpt-4o")
+        lines.extend([
+            f'model_client = OpenAIChatCompletionClient(model="{model}")',
+            "",
+        ])
+
+        # FunctionTool wrapping
+        if self.reader.tools:
+            lines.append("# -- Tools --")
+            for key, tool in self.reader.tools.items():
+                func_name = self._to_snake(key)
+                var_name = f"{func_name}_tool"
+                desc = tool.description.replace('"', '\\"').replace("\n", " ")
+                lines.extend([
+                    f"{var_name} = FunctionTool(",
+                    f"    {func_name},",
+                    f'    description="{desc}",',
+                    f")",
+                ])
+            lines.append("")
 
         # Agent instantiations
-        agent_vars = {}
+        lines.append("# -- Agents --")
+        agent_vars: dict[str, str] = {}
         for key, agent in self.reader.agents.items():
             var_name = self._to_snake(key)
             agent_vars[key] = var_name
 
-            # Build system message from role + goal + backstory
+            # Build system message from goal + backstory
             system_parts = []
-            if agent.role:
-                system_parts.append(f"Role: {agent.role}")
             if agent.goal:
-                system_parts.append(f"Goal: {agent.goal}")
+                system_parts.append(agent.goal)
             if agent.backstory:
                 system_parts.append(agent.backstory)
+            system_message = " ".join(system_parts) if system_parts else ""
 
-            system_message = "\n".join(system_parts) if system_parts else ""
+            # Build tools list for this agent
+            agent_tool_vars = []
+            for tool_key in agent.tools:
+                tool_var = f"{self._to_snake(tool_key)}_tool"
+                agent_tool_vars.append(tool_var)
 
             lines.extend([
                 f"{var_name} = AssistantAgent(",
                 f'    name="{agent.role}",',
-                f'    system_message="""{system_message}""",',
-                f"    llm_config=llm_config,",
+                f"    model_client=model_client,",
+            ])
+            if agent_tool_vars:
+                tools_str = ", ".join(agent_tool_vars)
+                lines.append(f"    tools=[{tools_str}],")
+            lines.extend([
+                f'    system_message=(',
+                f'        "{self._escape_string(system_message)}"',
+                f"    ),",
                 f")",
                 "",
             ])
 
-        # UserProxy for human interaction
-        lines.extend([
-            "user_proxy = UserProxyAgent(",
-            '    name="user_proxy",',
-            '    human_input_mode="NEVER",',
-            "    code_execution_config=False,",
-            ")",
-            "",
-        ])
-
-        # GroupChat per team
+        # Team setup
         for key, team in self.reader.teams.items():
             agent_list = ", ".join(
                 agent_vars.get(ak, self._to_snake(ak))
@@ -174,73 +221,39 @@ class AutoGenGenerator(BaseCodeGenerator):
             )
             var_name = self._to_snake(key)
 
+            lines.append("# -- Team --")
+            lines.append(f"team = RoundRobinGroupChat(")
+            lines.append(f"    participants=[{agent_list}],")
+            if team.max_turns is not None:
+                lines.append(f"    max_turns={team.max_turns},")
             lines.extend([
-                f"groupchat_{var_name} = GroupChat(",
-                f"    agents=[user_proxy, {agent_list}],",
-                f"    messages=[],",
-                f"    max_round=10,",
-                f")",
-                "",
-                f"manager_{var_name} = GroupChatManager(",
-                f"    groupchat=groupchat_{var_name},",
-                f"    llm_config=llm_config,",
                 f")",
                 "",
             ])
 
-        # Tool registration — register on the agents that actually use them
-        if self.reader.tools:
-            lines.append("# Register tools")
-            # Build a map of tool_key → set of agent variable names
-            tool_to_agents: dict[str, list[str]] = {}
-            for agent_key, agent in self.reader.agents.items():
-                for tool_key in agent.tools:
-                    tool_to_agents.setdefault(tool_key, []).append(
-                        agent_vars.get(agent_key, self._to_snake(agent_key))
-                    )
-
-            for key, tool in self.reader.tools.items():
-                func_name = self._to_snake(key)
-                desc = tool.description.replace("\n", " ").replace('"', '\\"')
-                # Register on agents that use this tool, or first agent as fallback
-                registering_agents = tool_to_agents.get(key, [])
-                if not registering_agents:
-                    registering_agents = [next(iter(agent_vars.values()), "user_proxy")]
-
-                for agent_var in registering_agents:
-                    lines.extend([
-                        f"{agent_var}.register_for_llm(",
-                        f'    name="{func_name}",',
-                        f'    description="{desc}",',
-                        f")({func_name})",
-                    ])
-                lines.append(f"user_proxy.register_for_execution()({func_name})")
-                lines.append("")
-
-        # Conversation initiation
+        # Async main function
         lines.extend([
             "",
+            "async def main():",
+            "    stream = team.run_stream(",
+            '        task="Start the task."  # TODO: provide initial message',
+            "    )",
+            "    await Console(stream)",
+            "    await model_client.close()",
+            "",
+            "",
             'if __name__ == "__main__":',
+            "    asyncio.run(main())",
+            "",
         ])
 
-        if self.reader.teams:
-            first_team_key = next(iter(self.reader.teams))
-            team_var = self._to_snake(first_team_key)
-            lines.extend([
-                f"    user_proxy.initiate_chat(",
-                f"        manager_{team_var},",
-                f'        message="Start the task.",  # TODO: provide initial message',
-                f"    )",
-            ])
-        else:
-            first_agent_var = next(iter(agent_vars.values()), "user_proxy")
-            lines.extend([
-                f"    user_proxy.initiate_chat(",
-                f"        {first_agent_var},",
-                f'        message="Start the task.",  # TODO: provide initial message',
-                f"    )",
-            ])
-
-        lines.append("")
-
         self._write_file("main.py", "\n".join(lines))
+
+    # -----------------------------------------------------------
+    # Helpers
+    # -----------------------------------------------------------
+
+    @staticmethod
+    def _escape_string(s: str) -> str:
+        """Escape a string for use in Python source code."""
+        return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")

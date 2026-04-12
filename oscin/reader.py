@@ -334,6 +334,14 @@ class OntologyReader:
             # Memory
             memory = bool(list(self.g.objects(team_uri, AGENTOSCIN.hasTeamMemoryBinding)))
 
+            # Max turns (TurnLimitTermination)
+            max_turns = None
+            for term_uri in self.g.objects(team_uri, AGENTOSCIN.hasTerminationCondition):
+                if (term_uri, RDF.type, AGENTOSCIN.TurnLimitTermination) in self.g:
+                    mt = self._int_value(term_uri, AGENTOSCIN.hasMaxTurns)
+                    if mt is not None:
+                        max_turns = mt
+
             key = self._local_name(team_uri).replace("Team_", "")
 
             team = ExtractedTeam(
@@ -343,6 +351,7 @@ class OntologyReader:
                 process=process,
                 verbose=verbose,
                 memory=memory,
+                max_turns=max_turns,
             )
             self.teams[key] = team
             self._team_uri_to_key[str(team_uri)] = key
@@ -365,6 +374,19 @@ class OntologyReader:
                 if tk:
                     crew_refs.append(tk)
 
+            # State schema (e.g. LangGraph TypedDict fields)
+            state_model = None
+            state_fields: dict[str, str] = {}
+            for schema_uri in self.g.objects(orch_uri, AGENTOSCIN.hasOutputSchema):
+                if (schema_uri, RDF.type, AGENTOSCIN.Schema) in self.g:
+                    state_model = self._str_value(schema_uri, HAS_TITLE)
+                    schema_def = self._str_value(schema_uri, AGENTOSCIN.hasSchemaDefinition)
+                    if schema_def:
+                        try:
+                            state_fields = json.loads(schema_def)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+
             # Workflow steps
             steps: list[ExtractedFlowStep] = []
             for wp_uri in self.g.objects(orch_uri, AGENTOSCIN.hasWorkflowPattern):
@@ -372,11 +394,14 @@ class OntologyReader:
 
             self.flow = ExtractedFlow(
                 class_name=class_name,
+                state_model=state_model,
                 steps=steps,
                 crew_references=crew_refs,
+                state_fields=state_fields,
             )
-            log.info("  [Flow] %s (%d steps, %d crew refs)",
-                     class_name, len(steps), len(crew_refs))
+            log.info("  [Flow] %s (%d steps, %d crew refs, state_fields: %s)",
+                     class_name, len(steps), len(crew_refs),
+                     list(state_fields.keys()) if state_fields else "none")
 
     def _read_flow_steps(self, wp_uri: URIRef) -> list[ExtractedFlowStep]:
         """
@@ -399,16 +424,28 @@ class OntologyReader:
             is_conditional = (step_uri, RDF.type, AGENTOSCIN.ConditionalStep) in self.g
             is_end = (step_uri, RDF.type, AGENTOSCIN.EndStep) in self.g
 
-            if is_conditional:
+            # A step can be both start and conditional (LangGraph pattern:
+            # entry node with conditional edges)
+            if is_conditional and not is_start:
                 dec_type = "router"
             elif is_start:
                 dec_type = "start"
             else:
                 dec_type = "listen"
 
+            # Read routing logic for any conditional step (including start+conditional)
             routing_logic = ""
             if is_conditional:
                 routing_logic = self._str_value(step_uri, AGENTOSCIN.hasRoutingLogic) or ""
+
+            # Read edge mapping (label → target node mapping)
+            edge_mapping_json = self._str_value(step_uri, AGENTOSCIN.hasEdgeMapping) or ""
+            edge_mapping: dict[str, str] = {}
+            if edge_mapping_json:
+                try:
+                    edge_mapping = json.loads(edge_mapping_json)
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
             # Collect nextStep targets
             next_names = []
@@ -421,6 +458,7 @@ class OntologyReader:
                 "name": name,
                 "dec_type": dec_type,
                 "routing_logic": routing_logic,
+                "edge_mapping": edge_mapping,
                 "next_uris": next_names,
             }
 
@@ -455,10 +493,15 @@ class OntologyReader:
             if info["dec_type"] in ("listen", "router"):
                 dec_args = listened_by.get(name, [])
 
-            # For @router steps, return_values = the next step names
+            # For router steps and start steps with routing logic,
+            # return_values = the next step names or edge_mapping keys
             return_values = []
-            if info["dec_type"] == "router":
+            if info["dec_type"] == "router" or info["routing_logic"]:
                 return_values = info.get("next_names", [])
+                # If no resolved next_names but we have edge_mapping,
+                # use the mapping keys as return values
+                if not return_values and info.get("edge_mapping"):
+                    return_values = list(info["edge_mapping"].keys())
 
             step = ExtractedFlowStep(
                 method_name=name,
@@ -466,6 +509,7 @@ class OntologyReader:
                 decorator_args=dec_args,
                 return_values=return_values,
                 function_body=info["routing_logic"],
+                edge_mapping=info.get("edge_mapping", {}),
             )
             steps.append(step)
 

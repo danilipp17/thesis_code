@@ -127,6 +127,7 @@ class ExtractedTeam:
     memory: bool = False        # → hasTeamMemoryBinding
     manager_llm: Optional[str] = None       # → Manager agent
     manager_agent: Optional[str] = None     # → Manager agent
+    max_turns: Optional[int] = None         # → hasTerminationCondition.hasMaxTurns
     source_file: str = ""
 
 
@@ -147,6 +148,8 @@ class ExtractedFlowStep:
     calls_crew: Optional[str] = None   # If step invokes a team
     return_values: list[str] = field(default_factory=list)  # Router returns
     function_body: str = ""     # Serialized body → hasRoutingLogic (routers)
+    associated_agent_key: Optional[str] = None  # Explicit link to agent (LangGraph nodes)
+    edge_mapping: dict[str, str] = field(default_factory=dict)  # Router label → target node
 
 
 @dataclass
@@ -161,6 +164,7 @@ class ExtractedFlow:
     steps: list[ExtractedFlowStep] = field(default_factory=list)
     crew_references: list[str] = field(default_factory=list)
     source_file: str = ""
+    state_fields: dict[str, str] = field(default_factory=dict)  # TypedDict/BaseModel fields
 
 
 # ===================================================================

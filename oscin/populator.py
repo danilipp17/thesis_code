@@ -311,6 +311,12 @@ class OntologyPopulator:
             term_uri = self._create_individual("Termination", key, AGENTOSCIN.TaskCompletionTermination)
             self.g.add((uri, AGENTOSCIN.hasTerminationCondition, term_uri))
 
+            # Turn-limit termination (e.g. AutoGen max_turns)
+            if team.max_turns is not None:
+                tl_uri = self._create_individual("TurnLimit", key, AGENTOSCIN.TurnLimitTermination)
+                self._add_int(tl_uri, AGENTOSCIN.hasMaxTurns, team.max_turns)
+                self.g.add((uri, AGENTOSCIN.hasTerminationCondition, tl_uri))
+
             # --- Workflow Pattern ---
             wp_uri = self._create_individual("WorkflowPattern", key, AGENTOSCIN.WorkflowPattern)
             self.g.add((uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
@@ -382,10 +388,21 @@ class OntologyPopulator:
     def _setup_orchestration_metadata(self, flow) -> URIRef:
         uri = self._create_individual("Orchestration", flow.class_name, AGENTOSCIN.Orchestration)
         self._add_str(uri, HAS_TITLE, flow.class_name)
-        
+
         # Default for CrewAI Flow
         self.g.add((COORD_CUSTOM, RDF.type, AGENTOSCIN.CoordinationPattern))
         self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, COORD_CUSTOM))
+
+        # Store state schema if present (e.g. LangGraph TypedDict fields)
+        if hasattr(flow, "state_fields") and flow.state_fields:
+            import json
+            schema_uri = self._create_individual("StateSchema", flow.class_name, AGENTOSCIN.Schema)
+            self._add_str(schema_uri, AGENTOSCIN.hasSchemaDefinition,
+                          json.dumps(flow.state_fields))
+            if flow.state_model:
+                self._add_str(schema_uri, HAS_TITLE, flow.state_model)
+            self.g.add((uri, AGENTOSCIN.hasOutputSchema, schema_uri))
+
         return uri
 
     def _create_flow_steps(self, flow, wp_uri: URIRef) -> tuple[dict[str, URIRef], dict[str, list[str]]]:
@@ -402,7 +419,21 @@ class OntologyPopulator:
                 self.g.add((uri, RDF.type, AGENTOSCIN.StartStep))
             elif step.decorator_type == "router":
                 self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
+
+            # Store routing logic if present (routers, or start nodes
+            # with conditional edges in LangGraph)
+            if step.function_body and not step.function_body.startswith("routing_function:"):
                 self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
+                # Mark as conditional even if also a start step
+                if step.decorator_type != "router":
+                    self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
+            elif step.decorator_type == "router" and step.function_body:
+                self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
+
+            # Store edge mapping if present (label → target node mapping)
+            if step.edge_mapping:
+                import json
+                self._add_str(uri, AGENTOSCIN.hasEdgeMapping, json.dumps(step.edge_mapping))
 
             self._add_str(uri, HAS_TITLE, step.method_name)
             self._add_int(uri, AGENTOSCIN.stepOrder, idx + 1)
@@ -412,18 +443,26 @@ class OntologyPopulator:
 
     def _resolve_flow_edges(self, flow, step_uris: dict[str, URIRef], outgoing_edges: dict[str, list[str]]) -> None:
         # Resolve target mapping: @listen("label") or method names
+        # First pass: map step names to their own URIs
         label_map: dict[str, URIRef] = {}
         for step in flow.steps:
             label_map[step.method_name] = step_uris[step.method_name]
+        # Second pass: add listener labels (only if not already mapped)
+        # This handles CrewAI @listen("label") patterns without
+        # overriding step_name → URI mappings needed by LangGraph.
+        for step in flow.steps:
             if step.decorator_type in ("listen", "start"):
                 for arg in step.decorator_args:
-                    label_map[arg] = step_uris[step.method_name]
+                    if arg not in label_map:
+                        label_map[arg] = step_uris[step.method_name]
 
         # Connect edges
         for step in flow.steps:
             src_uri = step_uris[step.method_name]
-            
-            if step.decorator_type == "router":
+
+            # Steps with return_values (routers, or start nodes with
+            # conditional edges in LangGraph)
+            if step.return_values:
                 for ret_val in step.return_values:
                     if ret_val in label_map:
                         self.g.add((src_uri, AGENTOSCIN.nextStep, label_map[ret_val]))

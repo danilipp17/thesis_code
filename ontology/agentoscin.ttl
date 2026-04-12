@@ -592,6 +592,14 @@
                  rdfs:range xsd:string .
 
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasEdgeMapping
+:hasEdgeMapping rdf:type owl:DatatypeProperty ;
+                rdfs:subPropertyOf owl:topDataProperty ;
+                rdfs:domain :ConditionalStep ;
+                rdfs:range xsd:string ;
+                rdfs:comment "JSON mapping of routing labels to target node names for conditional edges." .
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSchemaDefinition
 :hasSchemaDefinition rdf:type owl:DatatypeProperty ;
                      rdfs:subPropertyOf owl:topDataProperty ;

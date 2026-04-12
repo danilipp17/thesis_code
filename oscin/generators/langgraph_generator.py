@@ -16,6 +16,7 @@ Date:    April 2026
 from __future__ import annotations
 
 import logging
+import textwrap
 from pathlib import Path
 
 from oscin.generators.base_generator import BaseCodeGenerator
@@ -73,12 +74,13 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         for key, tool in self.reader.tools.items():
             func_name = self._to_snake(key)
+            # Generate typed parameters from args_schema if available
+            params = self._build_tool_params(tool)
             lines.extend([
                 "",
                 "@tool",
-                f'def {func_name}(**kwargs) -> str:',
-                f'    """',
-                f'    {tool.name}',
+                f'def {func_name}({params}) -> str:',
+                f'    """{tool.name}',
                 f'    {tool.description}',
                 f'    """',
                 f'    raise NotImplementedError("TODO: implement {tool.name}")',
@@ -87,12 +89,44 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         self._write_file("tools.py", "\n".join(lines))
 
+    def _build_tool_params(self, tool) -> str:
+        """Build parameter string from tool's args_schema_json."""
+        import json
+        try:
+            schema = json.loads(tool.args_schema_json)
+        except (json.JSONDecodeError, TypeError):
+            return "**kwargs"
+
+        if not schema or "properties" not in schema:
+            return "**kwargs"
+
+        _type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+            "array": "list",
+            "object": "dict",
+        }
+
+        params = []
+        for name, prop in schema["properties"].items():
+            py_type = _type_map.get(prop.get("type", "string"), "str")
+            params.append(f"{name}: {py_type}")
+
+        return ", ".join(params) if params else "**kwargs"
+
     # -----------------------------------------------------------
     # Main Generation
     # -----------------------------------------------------------
 
     def _generate_main(self) -> None:
         """Generate main.py with StateGraph construction."""
+        # Determine if any agent has a system prompt
+        has_system_prompts = any(
+            a.backstory for a in self.reader.agents.values()
+        )
+
         lines = [
             '"""',
             f"Auto-generated LangGraph application: {self.reader.system_name}",
@@ -103,8 +137,12 @@ class LangGraphGenerator(BaseCodeGenerator):
             "from langgraph.graph import END, START, StateGraph",
             "from langgraph.graph.message import add_messages",
             "from langchain_openai import ChatOpenAI",
-            "",
         ]
+
+        if has_system_prompts:
+            lines.append("from langchain_core.messages import SystemMessage")
+
+        lines.append("")
 
         # Tool imports
         if self.reader.tools:
@@ -115,14 +153,8 @@ class LangGraphGenerator(BaseCodeGenerator):
                 "",
             ])
 
-        # State definition
-        lines.extend([
-            "",
-            "class State(TypedDict):",
-            '    """Graph state."""',
-            '    messages: Annotated[list, add_messages]',
-            "",
-        ])
+        # State definition — use actual fields if available from semantic layer
+        lines.extend(self._generate_state_class())
 
         # LLM setup
         llm_models = set()
@@ -136,22 +168,49 @@ class LangGraphGenerator(BaseCodeGenerator):
             "",
         ])
 
-        # Tool binding
+        # Per-agent tool binding
+        # Build a mapping of which agents have tools
+        agents_with_tools = {
+            k: a for k, a in self.reader.agents.items() if a.tools
+        }
+        agents_without_tools = {
+            k: a for k, a in self.reader.agents.items() if not a.tools
+        }
+
         if self.reader.tools:
             tool_list = ", ".join(self._to_snake(k) for k in self.reader.tools)
             lines.extend([
                 f"tools = [{tool_list}]",
-                "model_with_tools = model.bind_tools(tools)",
                 "tool_node = ToolNode(tools)",
                 "",
             ])
 
+            if agents_with_tools and agents_without_tools:
+                # Some agents have tools, some don't — generate per-agent bindings
+                for key, agent in agents_with_tools.items():
+                    agent_tool_list = ", ".join(self._to_snake(t) for t in agent.tools)
+                    var_name = self._to_snake(key) + "_model"
+                    lines.append(f"{var_name} = model.bind_tools([{agent_tool_list}])")
+                lines.append("")
+            elif agents_with_tools:
+                # All agents have tools
+                lines.extend([
+                    "model_with_tools = model.bind_tools(tools)",
+                    "",
+                ])
+
         # Node functions
-        # If we have a flow with steps, use those
         if self.reader.flow:
             for step in self.reader.flow.steps:
                 func_name = self._to_snake(step.method_name)
-                if step.decorator_type == "router":
+                # Check if this step has routing logic (router or start+conditional)
+                has_routing = (step.return_values or step.edge_mapping) and step.function_body
+                if has_routing:
+                    # It's a node with conditional routing — generate node func + router
+                    lines.extend(self._render_node_function(func_name, step))
+                    router_name = f"route_{func_name}"
+                    lines.extend(self._render_router_function(router_name, step))
+                elif step.decorator_type == "router":
                     lines.extend(self._render_router_function(func_name, step))
                 else:
                     lines.extend(self._render_node_function(func_name, step))
@@ -159,23 +218,7 @@ class LangGraphGenerator(BaseCodeGenerator):
             # Fallback: create a node per agent
             for key, agent in self.reader.agents.items():
                 func_name = self._to_snake(key)
-                lines.extend([
-                    "",
-                    f"def {func_name}(state: State) -> State:",
-                    f'    """',
-                    f'    {agent.role}',
-                    f'    {agent.goal}',
-                    f'    """',
-                    f'    messages = state["messages"]',
-                ])
-                if self.reader.tools:
-                    lines.append(f"    response = model_with_tools.invoke(messages)")
-                else:
-                    lines.append(f"    response = model.invoke(messages)")
-                lines.extend([
-                    f'    return {{"messages": [response]}}',
-                    "",
-                ])
+                lines.extend(self._render_agent_node_function(func_name, agent))
 
         # Graph construction
         lines.extend([
@@ -186,77 +229,9 @@ class LangGraphGenerator(BaseCodeGenerator):
         ])
 
         if self.reader.flow:
-            # Add nodes
-            for step in self.reader.flow.steps:
-                if step.decorator_type != "router":
-                    func_name = self._to_snake(step.method_name)
-                    lines.append(f'graph.add_node("{step.method_name}", {func_name})')
-
-            # Add tool node if any
-            if self.reader.tools:
-                lines.append('graph.add_node("tools", tool_node)')
-
-            lines.append("")
-
-            # Add edges based on flow structure
-            for step in self.reader.flow.steps:
-                if step.decorator_type == "start":
-                    lines.append(f'graph.add_edge(START, "{step.method_name}")')
-
-                elif step.decorator_type == "router":
-                    # Conditional edges
-                    func_name = self._to_snake(step.method_name)
-                    mapping_entries = []
-                    for rv in step.return_values:
-                        # Check if return value is a step name or a label
-                        target = rv
-                        mapping_entries.append(f'        "{rv}": "{target}"')
-                    if mapping_entries:
-                        # Find the source node this router follows
-                        # Router in CrewAI is after a @start, so find that predecessor
-                        source = step.decorator_args[0] if step.decorator_args else step.method_name
-                        lines.append(
-                            f'graph.add_conditional_edges(\n'
-                            f'    "{source}",\n'
-                            f'    {func_name},\n'
-                            f'    {{\n'
-                            + ",\n".join(mapping_entries) + "\n"
-                            f'    }},\n'
-                            f')'
-                        )
-
-            # End edges: steps with no outgoing edges get → END
-            # Detect end steps from the flow
-            has_outgoing = set()
-            for step in self.reader.flow.steps:
-                if step.decorator_type == "start":
-                    has_outgoing.add(step.method_name)
-                elif step.decorator_type == "router":
-                    # Source of router has outgoing
-                    if step.decorator_args:
-                        has_outgoing.add(step.decorator_args[0])
-
-            for step in self.reader.flow.steps:
-                if step.decorator_type == "listen" and step.method_name not in has_outgoing:
-                    lines.append(f'graph.add_edge("{step.method_name}", END)')
-
+            self._generate_flow_graph(lines)
         else:
-            # No flow — chain agents sequentially
-            agent_keys = list(self.reader.agents.keys())
-            for i, key in enumerate(agent_keys):
-                func_name = self._to_snake(key)
-                lines.append(f'graph.add_node("{key}", {func_name})')
-
-            if self.reader.tools:
-                lines.append('graph.add_node("tools", tool_node)')
-
-            lines.append("")
-
-            if agent_keys:
-                lines.append(f'graph.add_edge(START, "{agent_keys[0]}")')
-                for i in range(len(agent_keys) - 1):
-                    lines.append(f'graph.add_edge("{agent_keys[i]}", "{agent_keys[i+1]}")')
-                lines.append(f'graph.add_edge("{agent_keys[-1]}", END)')
+            self._generate_sequential_graph(lines)
 
         # Compile and run
         lines.extend([
@@ -274,22 +249,86 @@ class LangGraphGenerator(BaseCodeGenerator):
         self._write_file("main.py", "\n".join(lines))
 
     # -----------------------------------------------------------
+    # State Class Generation
+    # -----------------------------------------------------------
+
+    def _generate_state_class(self) -> list[str]:
+        """Generate the State TypedDict from semantic layer state fields."""
+        lines = ["", "class State(TypedDict):", '    """Graph state."""']
+
+        state_fields = {}
+        if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
+            state_fields = self.reader.flow.state_fields or {}
+
+        if state_fields:
+            for field_name, field_type in state_fields.items():
+                # Handle Annotated types as-is
+                lines.append(f"    {field_name}: {field_type}")
+        else:
+            # Default fallback
+            lines.append("    messages: Annotated[list, add_messages]")
+
+        lines.append("")
+        return lines
+
+    # -----------------------------------------------------------
     # Node Function Renderers
     # -----------------------------------------------------------
 
     def _render_node_function(self, func_name: str, step) -> list[str]:
-        """Render a standard node function."""
+        """Render a standard node function with system prompt if available."""
+        # Find the corresponding agent for this step
+        agent = self._find_agent_for_step(step)
+
         lines = [
             "",
-            f"def {func_name}(state: State) -> State:",
+            f"def {func_name}(state: State) -> dict:",
             f'    """Node: {step.method_name}"""',
-            f'    messages = state["messages"]',
         ]
-        if self.reader.tools:
-            lines.append("    response = model_with_tools.invoke(messages)")
+
+        # Inject system prompt if agent has one
+        if agent and agent.backstory:
+            escaped = agent.backstory.replace('"""', '\\"\\"\\"')
+            lines.extend([
+                f'    system_prompt = SystemMessage(content=',
+                f'        """{escaped}"""',
+                f"    )",
+                f'    messages = [system_prompt] + state["messages"]',
+            ])
         else:
-            lines.append("    response = model.invoke(messages)")
+            lines.append(f'    messages = state["messages"]')
+
+        # Use appropriate model (with or without tools)
+        model_var = self._get_model_var_for_agent(agent)
         lines.extend([
+            f"    response = {model_var}.invoke(messages)",
+            '    return {"messages": [response]}',
+            "",
+        ])
+        return lines
+
+    def _render_agent_node_function(self, func_name: str, agent) -> list[str]:
+        """Render a node function for a fallback agent (no flow)."""
+        lines = [
+            "",
+            f"def {func_name}(state: State) -> dict:",
+            f'    """{agent.role}: {agent.goal}"""',
+        ]
+
+        if agent.backstory:
+            escaped = agent.backstory.replace('"""', '\\"\\"\\"')
+            lines.extend([
+                f'    system_prompt = SystemMessage(content=',
+                f'        """{escaped}"""',
+                f"    )",
+                f'    messages = [system_prompt] + state["messages"]',
+            ])
+        else:
+            lines.append(f'    messages = state["messages"]')
+
+        model_var = self._get_model_var_for_agent(agent)
+        lines.extend([
+            f"    response = {model_var}.invoke(messages)",
             '    return {"messages": [response]}',
             "",
         ])
@@ -302,7 +341,15 @@ class LangGraphGenerator(BaseCodeGenerator):
             f"def {func_name}(state: State) -> str:",
             f'    """Router: {step.method_name}"""',
         ]
-        if step.return_values:
+
+        # If we have actual routing logic from extraction, emit it
+        if step.function_body and not step.function_body.startswith("routing_function:"):
+            # Indent the extracted function body
+            for body_line in step.function_body.split("\n"):
+                lines.append(f"    {body_line}")
+            lines.append("")
+        elif step.return_values:
+            # Fallback: generate stub with return value hints
             for i, rv in enumerate(step.return_values):
                 if i == 0:
                     lines.append(f'    # if condition:')
@@ -310,7 +357,149 @@ class LangGraphGenerator(BaseCodeGenerator):
                 else:
                     lines.append(f'    # return "{rv}"')
             lines.append(f'    return "{step.return_values[0]}"  # TODO: implement routing logic')
+            lines.append("")
         else:
             lines.append('    return "end"  # TODO: implement routing logic')
-        lines.append("")
+            lines.append("")
+
         return lines
+
+    # -----------------------------------------------------------
+    # Graph Construction
+    # -----------------------------------------------------------
+
+    def _generate_flow_graph(self, lines: list[str]) -> None:
+        """Generate graph nodes and edges from flow structure."""
+        # Add nodes
+        for step in self.reader.flow.steps:
+            func_name = self._to_snake(step.method_name)
+            lines.append(f'graph.add_node("{step.method_name}", {func_name})')
+
+        # Add tool node if any tools exist
+        if self.reader.tools:
+            lines.append('graph.add_node("tools", tool_node)')
+
+        lines.append("")
+
+        # Add edges based on flow structure
+        for step in self.reader.flow.steps:
+            if step.decorator_type == "start":
+                lines.append(f'graph.add_edge(START, "{step.method_name}")')
+
+                # If start step has routing (conditional edges)
+                if (step.return_values or step.edge_mapping) and step.function_body:
+                    router_name = f"route_{self._to_snake(step.method_name)}"
+                    mapping_entries = self._build_mapping_entries(step)
+                    if mapping_entries:
+                        lines.append(
+                            f'graph.add_conditional_edges(\n'
+                            f'    "{step.method_name}",\n'
+                            f'    {router_name},\n'
+                            f'    {{\n'
+                            + ",\n".join(mapping_entries) + "\n"
+                            f'    }},\n'
+                            f')'
+                        )
+
+            elif step.decorator_type == "router":
+                func_name = self._to_snake(step.method_name)
+                source = step.decorator_args[0] if step.decorator_args else step.method_name
+                mapping_entries = self._build_mapping_entries(step)
+                if mapping_entries:
+                    lines.append(
+                        f'graph.add_conditional_edges(\n'
+                        f'    "{source}",\n'
+                        f'    {func_name},\n'
+                        f'    {{\n'
+                        + ",\n".join(mapping_entries) + "\n"
+                        f'    }},\n'
+                        f')'
+                    )
+
+        # End edges: listen steps with no outgoing edges
+        has_outgoing = set()
+        for step in self.reader.flow.steps:
+            if step.return_values or step.edge_mapping:
+                has_outgoing.add(step.method_name)
+            if step.decorator_type == "start" and not step.return_values and not step.edge_mapping:
+                has_outgoing.add(step.method_name)
+
+        for step in self.reader.flow.steps:
+            if step.decorator_type == "listen" and step.method_name not in has_outgoing:
+                lines.append(f'graph.add_edge("{step.method_name}", END)')
+
+        # Add tool-agent loop edges if tools exist
+        if self.reader.tools:
+            # Find agents with tools — add edges from tools back to those agents
+            agents_with_tools = [
+                k for k, a in self.reader.agents.items() if a.tools
+            ]
+            for ak in agents_with_tools:
+                lines.append(f'graph.add_edge("tools", "{ak}")')
+
+    def _generate_sequential_graph(self, lines: list[str]) -> None:
+        """Generate a sequential graph when no flow is defined."""
+        agent_keys = list(self.reader.agents.keys())
+        for key in agent_keys:
+            func_name = self._to_snake(key)
+            lines.append(f'graph.add_node("{key}", {func_name})')
+
+        if self.reader.tools:
+            lines.append('graph.add_node("tools", tool_node)')
+
+        lines.append("")
+
+        if agent_keys:
+            lines.append(f'graph.add_edge(START, "{agent_keys[0]}")')
+            for i in range(len(agent_keys) - 1):
+                lines.append(f'graph.add_edge("{agent_keys[i]}", "{agent_keys[i+1]}")')
+            lines.append(f'graph.add_edge("{agent_keys[-1]}", END)')
+
+    # -----------------------------------------------------------
+    # Helper Methods
+    # -----------------------------------------------------------
+
+    @staticmethod
+    def _build_mapping_entries(step) -> list[str]:
+        """Build conditional edge mapping entries from step's edge_mapping or return_values."""
+        entries = []
+        if step.edge_mapping:
+            # Use the actual mapping (label → target)
+            for label, target in step.edge_mapping.items():
+                # Handle END target
+                if target == "END":
+                    entries.append(f'        "{label}": END')
+                else:
+                    entries.append(f'        "{label}": "{target}"')
+        else:
+            # Fallback: identity mapping (return value = target node)
+            for rv in step.return_values:
+                entries.append(f'        "{rv}": "{rv}"')
+        return entries
+
+    def _find_agent_for_step(self, step) -> object | None:
+        """Find the agent associated with a flow step."""
+        step_key = self._to_snake(step.method_name).replace("-", "_")
+        # Try direct match
+        if step_key in self.reader.agents:
+            return self.reader.agents[step_key]
+        # Try step.method_name directly
+        if step.method_name in self.reader.agents:
+            return self.reader.agents[step.method_name]
+        return None
+
+    def _get_model_var_for_agent(self, agent) -> str:
+        """Get the appropriate model variable for an agent."""
+        if not agent or not agent.tools:
+            return "model"
+
+        # Check if all agents have tools (use model_with_tools)
+        agents_with_tools = {k for k, a in self.reader.agents.items() if a.tools}
+        agents_without_tools = {k for k, a in self.reader.agents.items() if not a.tools}
+
+        if agents_with_tools and agents_without_tools:
+            # Per-agent tool binding
+            return self._to_snake(agent.agent_key) + "_model"
+        elif agents_with_tools:
+            return "model_with_tools"
+        return "model"
