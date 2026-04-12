@@ -40,6 +40,8 @@ import logging
 from pathlib import Path
 from typing import Any, Optional
 
+import nbformat
+
 from oscin.base_parser import BaseSourceParser
 from oscin.intermediate import (
     ExtractedAgent,
@@ -52,6 +54,8 @@ from oscin.intermediate import (
 )
 
 log = logging.getLogger("oscin")
+
+_LLM_CLASSES = {"ChatOpenAI", "ChatAnthropic", "ChatOllama", "AzureChatOpenAI"}
 
 
 class LangGraphParser(BaseSourceParser):
@@ -99,14 +103,51 @@ class LangGraphParser(BaseSourceParser):
         log.info("Source directory: %s", self.source_dir)
         log.info("=" * 60)
 
-        # Collect all source files
+        # Collect all source files (.py and .ipynb)
         sources: list[tuple[Path, str, ast.Module]] = []
         for py_file in self.source_dir.rglob("*.py"):
             if py_file.name.startswith("__"):
                 continue
             source = py_file.read_text(encoding="utf-8")
-            tree = ast.parse(source, filename=str(py_file))
-            sources.append((py_file, source, tree))
+            try:
+                tree = ast.parse(source, filename=str(py_file))
+                sources.append((py_file, source, tree))
+            except SyntaxError:
+                log.warning("SyntaxError parsing %s — skipping", py_file.name)
+
+        for nb_file in self.source_dir.rglob("*.ipynb"):
+            if ".ipynb_checkpoints" in str(nb_file):
+                continue
+            try:
+                with open(nb_file, "r", encoding="utf-8") as f:
+                    nb = nbformat.read(f, as_version=4)
+                code_cells = []
+                for cell in nb.cells:
+                    if cell.cell_type != "code":
+                        continue
+                    # Filter out IPython magics and shell commands
+                    lines = []
+                    for line in cell["source"].splitlines():
+                        stripped = line.strip()
+                        if stripped.startswith(("%", "!")):
+                            continue
+                        lines.append(line)
+                    cell_source = "\n".join(lines).strip()
+                    if cell_source:
+                        code_cells.append(cell_source)
+                source = "\n\n".join(code_cells)
+                tree = ast.parse(source, filename=str(nb_file))
+                sources.append((nb_file, source, tree))
+                log.info("  [Notebook] Parsed %s (%d code cells)",
+                         nb_file.name, len(code_cells))
+            except Exception as e:
+                log.warning("Failed to parse notebook %s: %s", nb_file.name, e)
+
+        # --- Pre-pass: collect module-level LLM definitions ---
+        # Tracks variable_name → model string, e.g. {"llm": "gpt-4o"}
+        self._module_llms: dict[str, str] = {}
+        for filepath, source, tree in sources:
+            self._extract_module_level_llms(tree, filepath)
 
         # --- Graph structure extraction ---
         # We need to track:
@@ -188,10 +229,11 @@ class LangGraphParser(BaseSourceParser):
                             log.info("    [Edge] '%s' → '%s'", from_node, to_node)
 
                 # --- add_conditional_edges("node", func, {"val": "target", ...}) ---
+                # Also handles: add_conditional_edges("node", func, ["target1", END])
                 elif method_name == "add_conditional_edges":
                     source_node = self._extract_first_string_arg(node)
                     routing_func = self._extract_second_arg_name(node)
-                    mapping = self._extract_third_arg_dict(node)
+                    mapping = self._extract_mapping_arg(node)
                     if source_node:
                         ce = _ConditionalEdge(
                             source_node=source_node,
@@ -206,9 +248,47 @@ class LangGraphParser(BaseSourceParser):
         for filepath, source, tree in sources:
             self._extract_agents_from_functions(tree, filepath, nodes)
 
-        # --- Extract tools (ToolNode patterns) ---
+        # --- Create stub agents for nodes without a matched function ---
+        # In LangGraph, nodes can be bound to object methods, lambdas,
+        # or prebuilt components (e.g. ToolNode). Create agents for any
+        # node that wasn't matched to a function above.
+        for name, info in nodes.items():
+            agent_key = self._safe_key(name)
+            if agent_key not in self.agents:
+                # Use module-level LLM as fallback
+                llm_model = next(iter(self._module_llms.values()), None) if self._module_llms else None
+                agent = ExtractedAgent(
+                    agent_key=agent_key,
+                    role=name,
+                    goal="",
+                    backstory="",
+                    llm=llm_model,
+                    tools=[],
+                    source_file=info.source_file,
+                )
+                self.agents[agent_key] = agent
+                log.info("  [Agent] Stub for node '%s' (no matching function, llm: %s)",
+                         name, llm_model or "unknown")
+
+        # --- Extract tools (ToolNode patterns + StructuredTool) ---
         for filepath, source, tree in sources:
             self._extract_tools(tree, filepath)
+
+        # --- Extract Pydantic models (structured output schemas) ---
+        for filepath, source, tree in sources:
+            self._extract_pydantic_models(tree, filepath)
+
+        # --- Resolve empty conditional edge mappings from routing functions ---
+        # When add_conditional_edges("node", func) has no explicit mapping,
+        # the routing function returns node names directly. Try to infer
+        # the targets from the function's return type annotation or body.
+        for ce in conditional_edges:
+            if not ce.mapping and ce.routing_func:
+                inferred = self._infer_router_targets(sources, ce.routing_func)
+                if inferred:
+                    ce.mapping = {t: t for t in inferred}
+                    log.info("    [ConditionalEdge] Inferred targets for '%s': %s",
+                             ce.source_node, inferred)
 
         # --- Build the ExtractedFlow from graph structure ---
         if nodes:
@@ -225,6 +305,35 @@ class LangGraphParser(BaseSourceParser):
             log.info("  [Flow] Built flow with %d steps", len(steps))
 
         self.log_extraction_summary()
+
+    # -----------------------------------------------------------
+    # Module-Level LLM Detection
+    # -----------------------------------------------------------
+
+    def _extract_module_level_llms(self, tree: ast.Module, filepath: Path) -> None:
+        """
+        Detect LLM instantiations at module level.
+
+        Patterns:
+        - ``llm = ChatOpenAI(model="gpt-4o")``
+        - ``llm = ChatAnthropic(model="claude-3-5-sonnet-20240620")``
+        - ``model_client = ChatOpenAI(model="gpt-4-turbo-preview")``
+        """
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            target = node.targets[0]
+            if not isinstance(target, ast.Name):
+                continue
+            if not isinstance(node.value, ast.Call):
+                continue
+            call_name = self._get_call_name(node.value)
+            if call_name in _LLM_CLASSES:
+                model = self._extract_model_kwarg(node.value)
+                if model:
+                    self._module_llms[target.id] = model
+                    log.info("  [LLM] Module-level %s = %s(model='%s') in %s",
+                             target.id, call_name, model, filepath.name)
 
     # -----------------------------------------------------------
     # Agent Extraction from Node Functions
@@ -244,33 +353,46 @@ class LangGraphParser(BaseSourceParser):
           used as graph nodes
         - ``model.invoke(...)`` patterns
         - Functions that call ``chain.invoke(...)``
+        - Falls back to module-level LLM if none found inside the function
         """
-        # Build a set of function names used as graph nodes
-        node_func_names = {
-            info.func_ref for info in nodes.values() if info.func_ref
-        }
+        # Build mapping: function_name → node_name
+        # e.g. {"plan_step": "planner", "execute_step": "agent"}
+        func_to_node: dict[str, str] = {}
+        for name, info in nodes.items():
+            if info.func_ref:
+                # func_ref may be "plan_step" or "first_responder.respond"
+                func_to_node[info.func_ref] = name
 
         for item in ast.iter_child_nodes(tree):
-            if not isinstance(item, ast.FunctionDef):
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
-            if item.name not in node_func_names:
+            if item.name not in func_to_node:
                 continue
+
+            node_name = func_to_node[item.name]
 
             # This function is used as a graph node — check for LLM calls
             llm_model = self._find_llm_in_function(item)
 
+            # Fallback: use module-level LLM if none found in function body
+            if not llm_model and self._module_llms:
+                llm_model = next(iter(self._module_llms.values()))
+
+            # Use the node name (not the function name) as the agent key
+            # so it matches flow steps correctly
+            agent_key = self._safe_key(node_name)
             agent = ExtractedAgent(
-                agent_key=self._safe_key(item.name),
-                role=item.name,
+                agent_key=agent_key,
+                role=node_name,
                 goal=ast.get_docstring(item) or "",
                 backstory="",
                 llm=llm_model,
                 tools=[],
                 source_file=str(filepath),
             )
-            self.agents[agent.agent_key] = agent
-            log.info("  [Agent] Node function '%s' (llm: %s) from %s",
-                     item.name, llm_model or "unknown", filepath.name)
+            self.agents[agent_key] = agent
+            log.info("  [Agent] Node '%s' (func: %s, llm: %s) from %s",
+                     node_name, item.name, llm_model or "unknown", filepath.name)
 
     # -----------------------------------------------------------
     # Tool Extraction
@@ -298,25 +420,146 @@ class LangGraphParser(BaseSourceParser):
                 self.tools[node.name] = tool
                 log.info("  [Tool] @tool function '%s' from %s", node.name, filepath.name)
 
-        # ToolNode([...]) calls
+        # ToolNode([...]) calls — handles both Name refs and StructuredTool.from_function()
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 if self._get_call_name(node) == "ToolNode":
                     if node.args and isinstance(node.args[0], ast.List):
                         for elt in node.args[0].elts:
+                            tool_name = None
                             if isinstance(elt, ast.Name):
-                                if elt.id not in self.tools:
-                                    tool = ExtractedTool(
-                                        class_name=elt.id,
-                                        name=elt.id,
-                                        description="",
-                                        args_schema_json="{}",
-                                        implementation_ref=f"{filepath.stem}.{elt.id}",
-                                        source_file=str(filepath),
-                                    )
-                                    self.tools[elt.id] = tool
-                                    log.info("  [Tool] ToolNode reference '%s' from %s",
-                                             elt.id, filepath.name)
+                                tool_name = elt.id
+                            elif isinstance(elt, ast.Call):
+                                # StructuredTool.from_function(func, name="ToolName")
+                                tool_name = self._extract_structured_tool_name(elt)
+                            if tool_name and tool_name not in self.tools:
+                                tool = ExtractedTool(
+                                    class_name=tool_name,
+                                    name=tool_name,
+                                    description="",
+                                    args_schema_json="{}",
+                                    implementation_ref=f"{filepath.stem}.{tool_name}",
+                                    source_file=str(filepath),
+                                )
+                                self.tools[tool_name] = tool
+                                log.info("  [Tool] ToolNode reference '%s' from %s",
+                                         tool_name, filepath.name)
+
+    # -----------------------------------------------------------
+    # Pydantic Model Extraction
+    # -----------------------------------------------------------
+
+    def _extract_pydantic_models(self, tree: ast.Module, filepath: Path) -> None:
+        """
+        Scan for Pydantic BaseModel subclasses (including indirect inheritance).
+
+        These capture structured output schemas (e.g. Plan, Reflection,
+        AnswerQuestion) which are semantically important in LangGraph
+        examples even though they are not explicit "tasks" or "agents".
+
+        Uses two passes: first collects direct BaseModel children, then
+        finds classes inheriting from already-known models.
+        """
+        known_bases = {"BaseModel"}
+
+        # Two passes to handle inheritance chains (e.g. ReviseAnswer → AnswerQuestion → BaseModel)
+        classes = [n for n in ast.iter_child_nodes(tree) if isinstance(n, ast.ClassDef)]
+        changed = True
+        while changed:
+            changed = False
+            for node in classes:
+                if node.name in self.pydantic_models:
+                    continue
+                if self._inherits_from(node, "TypedDict"):
+                    continue
+                if not any(self._inherits_from(node, b) for b in known_bases):
+                    continue
+
+                fields = self._extract_pydantic_fields(node)
+                if not fields:
+                    continue
+
+                self.pydantic_models[node.name] = ExtractedPydanticModel(
+                    class_name=node.name,
+                    fields=fields,
+                    source_file=str(filepath),
+                )
+                known_bases.add(node.name)
+                changed = True
+                log.info("  [PydanticModel] %s (%d fields) from %s",
+                         node.name, len(fields), filepath.name)
+
+    @staticmethod
+    def _inherits_from(class_node: ast.ClassDef, base_name: str) -> bool:
+        """Check if a class inherits from a given base class name."""
+        for base in class_node.bases:
+            if isinstance(base, ast.Name) and base.id == base_name:
+                return True
+            if isinstance(base, ast.Attribute) and base.attr == base_name:
+                return True
+        return False
+
+    @staticmethod
+    def _extract_pydantic_fields(class_node: ast.ClassDef) -> dict[str, str]:
+        """Extract field names and type annotations from a Pydantic model."""
+        fields: dict[str, str] = {}
+        for item in class_node.body:
+            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                type_str = ast.dump(item.annotation) if item.annotation else "Any"
+                # Try to get a more readable type string
+                if isinstance(item.annotation, ast.Name):
+                    type_str = item.annotation.id
+                elif isinstance(item.annotation, ast.Subscript):
+                    if isinstance(item.annotation.value, ast.Name):
+                        type_str = f"{item.annotation.value.id}[...]"
+                fields[item.target.id] = type_str
+        return fields
+
+    # -----------------------------------------------------------
+    # Router Target Inference
+    # -----------------------------------------------------------
+
+    @staticmethod
+    def _infer_router_targets(
+        sources: list[tuple[Path, str, ast.Module]],
+        func_name: str,
+    ) -> list[str]:
+        """
+        Infer routing targets from a router function's return statements
+        and/or its ``Literal[...]`` return type annotation.
+
+        This handles the common LangGraph pattern where
+        ``add_conditional_edges("node", func)`` has no explicit mapping
+        and the routing function returns string literals directly.
+        """
+        targets: set[str] = set()
+
+        for _filepath, _source, tree in sources:
+            for node in ast.iter_child_nodes(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if node.name != func_name:
+                    continue
+
+                # 1. Try return type annotation: Literal["a", "b"]
+                if node.returns and isinstance(node.returns, ast.Subscript):
+                    if isinstance(node.returns.value, ast.Name) and node.returns.value.id == "Literal":
+                        slic = node.returns.slice
+                        if isinstance(slic, ast.Tuple):
+                            for elt in slic.elts:
+                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                    targets.add(elt.value)
+
+                # 2. Collect string returns from the function body
+                for child in ast.walk(node):
+                    if isinstance(child, ast.Return) and child.value:
+                        if isinstance(child.value, ast.Constant) and isinstance(child.value.str if hasattr(child.value, 'str') else child.value.value, str):
+                            targets.add(child.value.value)
+                        elif isinstance(child.value, ast.Name):
+                            # Handles "return END" → "END"
+                            targets.add(child.value.id)
+
+        return sorted(targets)
 
     # -----------------------------------------------------------
     # Flow Step Construction
@@ -370,15 +613,36 @@ class LangGraphParser(BaseSourceParser):
                         return_values = list(ce.mapping.keys())
                         function_body = f"routing_function: {ce.routing_func or 'unknown'}"
 
+            # decorator_args: for CrewAI-style populator compatibility,
+            # "listen" steps list what they listen TO (incoming edges).
+            # "start" steps list outgoing targets.
+            # "router" steps: targets are in return_values.
+            if dec_type == "listen":
+                dec_args = incoming
+            elif dec_type == "start":
+                # List targets so populator can find listeners
+                dec_args = outgoing.get(name, [])
+            else:
+                dec_args = []
+
             step = ExtractedFlowStep(
                 method_name=name,
                 decorator_type=dec_type,
-                decorator_args=incoming if dec_type == "listen" else [],
+                decorator_args=dec_args,
                 calls_crew=None,
                 return_values=return_values,
                 function_body=function_body,
             )
             steps.append(step)
+
+        # --- Post-process: mark finish points ---
+        # Steps that have no outgoing regular edges AND are not routers
+        # AND are in finish_points should be noted
+        step_names = {s.method_name for s in steps}
+        for step in steps:
+            if step.method_name in finish_points and step.decorator_type != "router":
+                # Already handled by populator's EndStep classification
+                pass
 
         return steps
 
@@ -404,9 +668,22 @@ class LangGraphParser(BaseSourceParser):
 
     @staticmethod
     def _extract_second_arg_name(node: ast.Call) -> Optional[str]:
-        """Extract the second positional argument if it's a Name."""
-        if len(node.args) >= 2 and isinstance(node.args[1], ast.Name):
-            return node.args[1].id
+        """Extract the second positional argument if it's a Name or Attribute."""
+        if len(node.args) < 2:
+            return None
+        arg = node.args[1]
+        if isinstance(arg, ast.Name):
+            return arg.id
+        # Handle attribute access: e.g., first_responder.respond → "first_responder.respond"
+        if isinstance(arg, ast.Attribute):
+            parts = []
+            current = arg
+            while isinstance(current, ast.Attribute):
+                parts.append(current.attr)
+                current = current.value
+            if isinstance(current, ast.Name):
+                parts.append(current.id)
+            return ".".join(reversed(parts)) if parts else None
         return None
 
     @staticmethod
@@ -422,20 +699,69 @@ class LangGraphParser(BaseSourceParser):
         return None
 
     @staticmethod
-    def _extract_third_arg_dict(node: ast.Call) -> dict[str, str]:
-        """Extract the third positional argument if it's a dict literal."""
+    def _extract_mapping_arg(node: ast.Call) -> dict[str, str]:
+        """
+        Extract the routing mapping from add_conditional_edges().
+
+        Handles three forms:
+        1. Dict literal:  {"val": "target", ...}  → {"val": "target"}
+        2. List literal:  ["target1", END]         → {"target1": "target1", "END": "END"}
+        3. Missing:       (only source + func)     → {}
+
+        The list form is common in LangGraph where the routing function
+        returns one of the list elements directly (identity mapping).
+        """
         if len(node.args) < 3:
             return {}
         arg = node.args[2]
-        if not isinstance(arg, ast.Dict):
-            return {}
-        result = {}
-        for key, val in zip(arg.keys, arg.values):
-            if isinstance(key, ast.Constant) and isinstance(val, ast.Constant):
-                result[str(key.value)] = str(val.value)
-            elif isinstance(key, ast.Constant) and isinstance(val, ast.Name):
-                result[str(key.value)] = val.id
-        return result
+
+        # Dict literal: {"key": "target", ...}
+        if isinstance(arg, ast.Dict):
+            result = {}
+            for key, val in zip(arg.keys, arg.values):
+                k = _ast_to_string(key)
+                v = _ast_to_string(val)
+                if k and v:
+                    result[k] = v
+            return result
+
+        # List literal: ["target1", "target2"] → identity mapping
+        if isinstance(arg, ast.List):
+            result = {}
+            for elt in arg.elts:
+                v = _ast_to_string(elt)
+                if v:
+                    result[v] = v
+            return result
+
+        return {}
+
+    @staticmethod
+    def _extract_structured_tool_name(call: ast.Call) -> Optional[str]:
+        """
+        Extract the tool name from StructuredTool.from_function(func, name="X").
+
+        Returns the ``name`` keyword if present, otherwise the first
+        positional argument's name (the function reference).
+        """
+        # Check it's a from_function call
+        if isinstance(call.func, ast.Attribute) and call.func.attr == "from_function":
+            # Try name= keyword first
+            for kw in call.keywords:
+                if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                    return str(kw.value.value)
+            # Fallback: first positional arg (the function)
+            if call.args and isinstance(call.args[0], ast.Name):
+                return call.args[0].id
+        return None
+
+    @staticmethod
+    def _extract_model_kwarg(call: ast.Call) -> Optional[str]:
+        """Extract the model= keyword argument from an LLM constructor call."""
+        for kw in call.keywords:
+            if kw.arg == "model" and isinstance(kw.value, ast.Constant):
+                return str(kw.value.value)
+        return None
 
     @staticmethod
     def _has_decorator(node: ast.FunctionDef, decorator_name: str) -> bool:
@@ -449,13 +775,12 @@ class LangGraphParser(BaseSourceParser):
         return False
 
     @staticmethod
-    def _find_llm_in_function(func_node: ast.FunctionDef) -> Optional[str]:
+    def _find_llm_in_function(func_node: ast.FunctionDef | ast.AsyncFunctionDef) -> Optional[str]:
         """
         Search a function body for LLM instantiation patterns like:
         - ChatOpenAI(model="gpt-4")
         - ChatAnthropic(model="claude-3")
         """
-        llm_classes = {"ChatOpenAI", "ChatAnthropic", "ChatOllama", "AzureChatOpenAI"}
         for node in ast.walk(func_node):
             if isinstance(node, ast.Call):
                 name = ""
@@ -463,7 +788,7 @@ class LangGraphParser(BaseSourceParser):
                     name = node.func.id
                 elif isinstance(node.func, ast.Attribute):
                     name = node.func.attr
-                if name in llm_classes:
+                if name in _LLM_CLASSES:
                     for kw in node.keywords:
                         if kw.arg == "model" and isinstance(kw.value, ast.Constant):
                             return str(kw.value.value)
@@ -473,6 +798,21 @@ class LangGraphParser(BaseSourceParser):
     def _safe_key(name: str) -> str:
         """Convert a name to a safe dict key."""
         return name.replace(" ", "_").replace("-", "_").replace(".", "_")
+
+
+# -----------------------------------------------------------
+# Module-level helpers
+# -----------------------------------------------------------
+
+def _ast_to_string(node: ast.expr | None) -> str | None:
+    """Convert an AST node to a plain string if possible."""
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name):
+        return node.id
+    return None
 
 
 # -----------------------------------------------------------

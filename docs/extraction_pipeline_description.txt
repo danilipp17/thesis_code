@@ -1,0 +1,609 @@
+OSCIN Extraction Pipeline: From Source Code to Semantic Representation
+======================================================================
+
+This document describes, step by step, how the OSCIN system transforms
+agentic AI framework source code into a populated OWL ontology. It covers
+the CrewAI and AutoGen parsers and the shared ontology population layer.
+It is intended to guide the thesis section on transformation method creation.
+
+
+========================================================================
+1. PIPELINE OVERVIEW
+========================================================================
+
+The forward (extraction) pipeline has three layers:
+
+  Layer 1 — Framework-Specific Parser
+      Reads source code (Python AST + YAML) and produces framework-agnostic
+      dataclass instances (the "intermediate representation", or IR).
+
+  Layer 2 — Intermediate Representation
+      A set of Python dataclasses (ExtractedAgent, ExtractedTask,
+      ExtractedTool, ExtractedTeam, ExtractedFlow, ExtractedPydanticModel)
+      that form the contract between parsers and the populator. Every
+      parser must produce instances of these same classes.
+
+  Layer 3 — Ontology Populator
+      Consumes the IR and creates OWL individuals with property assertions
+      in an RDFLib graph. This layer is entirely framework-agnostic — it
+      has no knowledge of CrewAI or AutoGen specifics.
+
+Invocation (CLI):
+
+  python -m oscin.cli extract <source_dir> \
+      --framework crewai \
+      --system-name EmailFlowSystem \
+      --namespace "http://example.org/email_flow#" \
+      --output output/email_flow_ontology.ttl
+
+The cli.py entry point instantiates the correct parser, calls parse_all(),
+passes the parser to OntologyPopulator, calls populate(), and serializes
+the resulting RDF graph to Turtle.
+
+
+========================================================================
+2. LAYER 1: FRAMEWORK-SPECIFIC PARSING
+========================================================================
+
+All parsers inherit from BaseSourceParser (base_parser.py), which defines:
+  - Storage dictionaries: agents, tasks, tools, teams, flow, pydantic_models
+  - Abstract methods: parse_all() and framework_name()
+
+The parser's job is to fill these dictionaries with IR objects. It must
+normalize framework-specific terminology into the shared IR vocabulary.
+For example, AutoGen's "system_message" becomes the IR field "backstory".
+
+
+------------------------------------------------------------------------
+2.1 CrewAI Parser (crewai_parser.py)
+------------------------------------------------------------------------
+
+CrewAI projects follow a specific directory layout:
+
+  project/
+    crews/<crew_name>/
+      <crew_name>.py         # @CrewBase-decorated class
+      config/
+        agents.yaml          # Agent role, goal, backstory
+        tasks.yaml           # Task description, expected_output, agent
+    tools/
+      <tool_name>.py         # BaseTool subclasses or @tool functions
+    main.py                  # Flow subclass with @start/@listen/@router
+    models.py                # Pydantic output models (optional)
+
+The parser extracts in a fixed dependency order:
+
+STEP 1 — Tool Extraction
+  Location: tools/*.py
+  Method: AST analysis of each Python file.
+
+  (a) BaseTool subclasses:
+      - Detects classes whose base class is "BaseTool".
+      - Reads class-level attribute assignments for "name" and "description".
+      - Finds the args_schema class attribute, locates the referenced Pydantic
+        model in the same file, and serializes its fields as JSON Schema.
+      - Records the module path + _run method as implementation_ref.
+
+  (b) @tool-decorated functions:
+      - Detects functions with a @tool("name") decorator.
+      - Extracts the tool name from the decorator argument.
+      - Uses the function docstring as the tool description.
+
+  Output: ExtractedTool instances in self.tools.
+
+STEP 2 — Pydantic Model Extraction
+  Location: all *.py files (recursive)
+  Method: AST scan for classes inheriting from BaseModel.
+
+  - Skips classes ending in "Input" (these are tool input schemas, already
+    handled in Step 1).
+  - Extracts field names and type annotations.
+
+  Output: ExtractedPydanticModel instances in self.pydantic_models.
+  These are needed later to resolve Task.output_pydantic references.
+
+STEP 3 — Crew Extraction (Agents + Tasks + Team)
+  Location: crews/**/*.py
+  Method: AST analysis of @CrewBase-decorated classes, combined with YAML parsing.
+
+  This is the most complex extraction step because CrewAI uses a dual-source
+  pattern: metadata lives in YAML, while behavioral configuration lives in
+  Python method bodies.
+
+  (a) Locate YAML config paths:
+      The parser reads class-level assignments like:
+        agents_config = "config/agents.yaml"
+        tasks_config = "config/tasks.yaml"
+      and resolves them relative to the Python file's directory.
+
+  (b) Parse YAML configs:
+      YAML files are loaded with yaml.safe_load(). Each top-level key
+      corresponds to an agent or task definition.
+
+  (c) Extract agents from @agent methods:
+      For each method decorated with @agent:
+      - Finds the Agent() constructor call in the method body.
+      - Resolves the YAML config key from the config= parameter
+        (pattern: Agent(config=self.agents_config["key"])).
+      - Reads role, goal, backstory from the matched YAML entry.
+      - Reads Python-level keyword arguments that supplement YAML:
+        tools, llm, verbose, allow_delegation, reasoning, memory.
+      - For the llm parameter: if it's self.llm, resolves from the
+        class-level llm assignment (e.g., llm = ChatOpenAI(model="gpt-4o")).
+      - For tools: resolves variable references in the method body to
+        identify which tool classes/functions are passed.
+
+      Output: ExtractedAgent instances in self.agents.
+
+  (d) Extract tasks from @task methods:
+      For each method decorated with @task:
+      - Finds the Task() constructor call in the method body.
+      - Resolves the YAML config key (same pattern as agents).
+      - Reads description, expected_output, agent from YAML.
+      - Reads Python-level keyword arguments:
+        output_pydantic, output_json, tools, context (task dependencies),
+        human_input, guardrail.
+      - For context=[task_a, task_b]: extracts method name references
+        to establish task dependency chains.
+
+      Output: ExtractedTask instances in self.tasks.
+
+  (e) Extract crew configuration from @crew method:
+      Finds the Crew() constructor call and reads:
+      - process ("sequential" or "hierarchical")
+      - verbose, memory (boolean flags)
+      - manager_llm or manager_agent (for hierarchical crews)
+
+      Output: ExtractedTeam instance in self.teams.
+
+STEP 4 — Flow Extraction
+  Location: main.py
+  Method: AST analysis of a class inheriting from Flow.
+
+  - Detects the Flow subclass and reads its generic type parameter
+    (the state model, e.g., Flow[EmailFlowState]).
+  - Iterates over methods, looking for decorators: @start, @listen, @router.
+  - For each decorated method:
+    - Records the decorator type and its arguments.
+    - For @listen("method_name"): the argument identifies which step this
+      step listens to (an edge in the flow graph).
+    - For @router: extracts the function body (serialized as a string) and
+      the return values (which are targets for conditional routing).
+    - Detects crew.kickoff() calls within the method body to link flow
+      steps to specific crews.
+
+  Output: ExtractedFlow with a list of ExtractedFlowStep in self.flow.
+
+
+------------------------------------------------------------------------
+2.2 AutoGen Parser (autogen_parser.py)
+------------------------------------------------------------------------
+
+AutoGen v0.4 projects are typically flat Python scripts or Jupyter notebooks.
+There is no YAML indirection — everything is defined inline in Python code.
+
+The parser supports both .py files and .ipynb notebooks. For notebooks, all
+code cells are concatenated into a single source string before AST parsing.
+
+STEP 1 — LLM Extraction
+  Method: AST walk looking for assignments of OpenAIChatCompletionClient().
+
+  - Pattern: `llm_var = OpenAIChatCompletionClient(model="gpt-4o")`
+  - Stores variable_name → model_name in self.llm_clients.
+  - This lookup table is used later to resolve agent model_client references.
+
+  Output: self.llm_clients dictionary (internal state, not IR).
+
+STEP 2 — Tool Extraction
+  Method: Collects all top-level function definitions (not starting with _,
+  not named "main").
+
+  - Function name → tool name
+  - Docstring → description
+  - No argument schema extraction (args_schema_json is always "{}")
+
+  NOTE: This is a simplification. AutoGen tools are plain Python functions,
+  and extracting their argument schemas would require type annotation parsing
+  that is not implemented. The empty schema is an information loss compared
+  to CrewAI where tools have explicit Pydantic input schemas.
+
+  Output: ExtractedTool instances in self.tools.
+
+STEP 3 — Agent Extraction
+  Method: AST walk looking for AssistantAgent() constructor calls.
+
+  - Extracts keyword arguments: name, system_message, model_client, tools.
+  - Maps to IR:
+      name           → role (also used as agent_key)
+      system_message → backstory
+      goal           → "" (empty — AutoGen has no explicit goal concept)
+      model_client   → resolved via self.llm_clients to get model name
+      tools=[...]    → list of variable names referencing tool functions
+
+  NOTE: The goal field is always empty for AutoGen agents. This is a genuine
+  semantic gap — AutoGen does not have an equivalent concept to CrewAI's goal
+  parameter. The backstory/system_message carries the agent's full behavioral
+  instruction in AutoGen, whereas in CrewAI the behavior is split across
+  role, goal, and backstory.
+
+  Output: ExtractedAgent instances in self.agents.
+
+STEP 4 — Team Extraction
+  Method: AST walk looking for RoundRobinGroupChat() or SelectorGroupChat().
+
+  - Extracts the participants=[...] keyword argument.
+  - Maps participant variable names to agent keys (with a heuristic Title_Case
+    guess, acknowledged as a limitation in thesis Ch. 7).
+  - Infers process type from class name:
+      RoundRobinGroupChat → "sequential"
+      SelectorGroupChat   → "hierarchical"
+  - No task_keys (AutoGen teams don't have explicit task sequences).
+
+  NOTE: The participant name mapping is fragile. The variable name used in
+  participants=[agent_a, agent_b] may not match the "name" keyword in the
+  AssistantAgent() constructor. This is a known limitation.
+
+  Output: ExtractedTeam instances in self.teams.
+
+STEP 5 — Flow Extraction
+  Method: AST walk looking for .run() calls on team/agent variables.
+
+  - Each team.run(...) call becomes a flow step.
+  - All steps are marked as "start" decorator_type (no listen/router concept).
+  - The calls_crew field references the variable name of the caller.
+
+  NOTE: This is a minimal flow representation. AutoGen v0.4 does not have
+  an explicit orchestration layer comparable to CrewAI's Flow class with
+  @start/@listen/@router decorators. The .run() detection captures the
+  execution entry point but not complex multi-step orchestration logic.
+
+  Output: ExtractedFlow instance in self.flow (if any .run() calls found).
+
+
+------------------------------------------------------------------------
+2.3 Key Differences Between Parsers
+------------------------------------------------------------------------
+
+  Aspect              CrewAI                      AutoGen
+  ─────────────────   ─────────────────────────   ─────────────────────
+  Config source       YAML + Python               Python only
+  Agent goal          Explicit (YAML field)        Not present (empty)
+  Agent backstory     backstory (YAML field)       system_message (kwarg)
+  Tool definition     BaseTool class / @tool       Plain functions
+  Tool arg schema     Pydantic → JSON Schema       Not extracted
+  Team definition     Crew() with process=         GroupChat class type
+  Task definition     Explicit Task() objects      No explicit tasks
+  Flow/orchestration  Flow class with decorators   .run() calls only
+  Notebook support    No                           Yes (.ipynb)
+
+
+========================================================================
+3. LAYER 2: INTERMEDIATE REPRESENTATION
+========================================================================
+
+The IR is defined in intermediate.py as Python dataclasses. Each field
+is annotated with the ontology property it maps to.
+
+Key design decisions:
+
+  1. Field names mirror ontology concepts, not framework terminology.
+     The parser is responsible for the vocabulary translation.
+
+  2. All fields that reference other IR objects use string keys (e.g.,
+     agent_key, tool_key, task_key). These are locally unique within
+     one extraction run but not globally unique URIs — the populator
+     creates URIs from them.
+
+  3. Optional fields use None as a sentinel. The populator skips triple
+     creation for None values, meaning information that a framework
+     does not provide simply results in fewer triples rather than
+     placeholder values.
+
+The IR dataclasses:
+
+  ExtractedAgent
+    agent_key, role, goal, backstory, llm, tools[], reasoning,
+    max_reasoning_attempts, memory, verbose, allow_delegation
+
+  ExtractedTask
+    task_key, description, expected_output, agent_key, output_pydantic,
+    output_json, tools[], context_tasks[], human_input, guardrails[]
+
+  ExtractedTool
+    class_name, name, description, args_schema_json, implementation_ref
+
+  ExtractedTeam
+    team_class_name, agent_keys[], task_keys[], process, verbose, memory,
+    manager_llm, manager_agent
+
+  ExtractedFlow
+    class_name, state_model, steps[], crew_references[]
+
+  ExtractedFlowStep
+    method_name, decorator_type, decorator_args[], calls_crew,
+    return_values[], function_body
+
+  ExtractedPydanticModel
+    class_name, fields{}
+
+
+========================================================================
+4. LAYER 3: ONTOLOGY POPULATION
+========================================================================
+
+The OntologyPopulator (populator.py) is entirely framework-agnostic. It
+reads from the parser's IR dictionaries and creates OWL individuals in
+an RDFLib graph.
+
+Setup:
+  - Loads the base ontology TBox (agentoscin.ttl) into the graph so that
+    class and property declarations are present in the output.
+  - Binds namespaces: agentoscin (vocabulary), ex (instance individuals),
+    owl, rdfs.
+  - Declares the output graph as an OWL ontology that imports the base
+    schema.
+
+Population follows a fixed dependency order:
+
+STEP 1 — Tools
+  For each ExtractedTool, creates:
+    ex:Tool_<name>  a  agentoscin:Tool ;
+        agentoscin:hasTitle          "<name>" ;
+        agentoscin:hasDescription    "<description>" ;
+        agentoscin:hasInputSchema    "<json_schema>" ;
+        agentoscin:hasImplementationReference  "<module.path>" .
+
+STEP 2 — Agents
+  For each ExtractedAgent, creates an LLMAgent individual and several
+  nested individuals:
+
+    ex:Agent_<key>  a  agentoscin:LLMAgent ;
+        agentoscin:agentID           "<role>" ;
+        agentoscin:agentRole         "<role>" ;
+        agentoscin:agentType         "GeneralPurpose" ;
+        agentoscin:hasReasoningEnabled  <bool> ;
+        agentoscin:agentPrompt       ex:AgentPrompt_<key> ;
+        agentoscin:hasAgentGoal      ex:Goal_<key> ;
+        agentoscin:agentToolUsage    ex:Tool_<tool_key> ;   # per tool
+        agentoscin:useLanguageModel  ex:LM_<llm_name> .
+
+    ex:Goal_<key>  a  agentoscin:Goal ;
+        dcterms:description  "<goal>" .
+
+    ex:AgentPrompt_<key>  a  agentoscin:Prompt ;
+        agentoscin:promptInstruction    "<role>: <goal>" ;
+        agentoscin:promptContext         "<backstory>" ;
+        agentoscin:hasDirectiveFunction  "DualDirective" ;
+        agentoscin:hasSourceAttribute    "role, goal, backstory" .
+
+  The prompt construction deserves attention: the promptInstruction is a
+  *composed* field — it concatenates role and goal into a single instruction
+  string ("<role>: <goal>"). The promptContext stores the backstory. The
+  hasSourceAttribute property records provenance (which source fields
+  contributed to this prompt). This is a deliberate modeling choice: the
+  ontology treats prompts as first-class objects that aggregate multiple
+  source attributes.
+
+  For agents with reasoning=True, a ReasoningPattern individual is created.
+  For agents with memory=True, a MemoryBinding individual is created.
+
+  NOTE: agentID and agentRole both store the role string. This seems
+  redundant — agentID should arguably be a unique identifier rather than
+  a human-readable role name. In the current implementation they are
+  always identical.
+
+STEP 3 — Tasks
+  For each ExtractedTask, creates:
+
+    ex:Task_<key>  a  agentoscin:Task ;
+        agentoscin:hasExpectedOutput   "<expected_output>" ;
+        agentoscin:performedByAgent    ex:Agent_<agent_key> ;
+        agentoscin:hasDelegationStrategy  "ExplicitAssignment" ;
+        agentoscin:taskPrompt          ex:TaskPrompt_<key> ;
+        agentoscin:taskToolUsage       ex:Tool_<tool_key> ;   # per tool
+        agentoscin:dependsOn           ex:Task_<dep_key> ;    # per context task
+        agentoscin:hasOutputSchema     ex:Schema_<model> .    # if output_pydantic
+
+    ex:TaskPrompt_<key>  a  agentoscin:Prompt ;
+        agentoscin:promptInstruction      "<description>" ;
+        agentoscin:promptOutputIndicator  "<expected_output>" ;
+        agentoscin:hasSourceAttribute     "description, expected_output" .
+
+  If the task has no agent_key (or the key doesn't match a known agent),
+  hasDelegationStrategy is set to "OrchestratorDelegated" instead.
+
+  If the task has human_input=True, a HumanCheckpoint individual is created
+  with type "Review" and position "AfterExecution".
+
+  If the task has output_pydantic, the referenced ExtractedPydanticModel's
+  fields are converted to JSON Schema and stored in a Schema individual.
+
+STEP 4 — Teams
+  For each ExtractedTeam, creates:
+
+    ex:Team_<key>  a  agentoscin:Team ;
+        agentoscin:hasTitle                  "<class_name>" ;
+        agentoscin:hasAgentMember            ex:Agent_<agent_key> ;  # per agent
+        agentoscin:employsCoordinationPattern  agentoscin:Sequential ;
+        agentoscin:hasTerminationCondition   ex:Termination_<key> ;
+        agentoscin:hasWorkflowPattern        ex:WorkflowPattern_<key> .
+
+  The coordination pattern is resolved from the process string:
+    "sequential"   → agentoscin:Sequential (pre-defined individual)
+    "hierarchical" → agentoscin:HierarchicalPattern
+    anything else  → agentoscin:Custom
+
+  The workflow pattern contains ordered workflow steps. For each task_key
+  in the team's task list:
+    - A WorkflowStep individual is created.
+    - First step is typed as StartStep, last as EndStep.
+    - Steps are connected via agentoscin:nextStep.
+    - Each step has agentoscin:stepOrder (1-indexed) and
+      agentoscin:hasAssociatedTask linking to the Task individual.
+
+STEP 5 — Flow (Orchestration)
+  If a flow exists, creates:
+
+    ex:Orchestration_<class_name>  a  agentoscin:Orchestration ;
+        agentoscin:hasTitle            "<class_name>" ;
+        agentoscin:employsCoordinationPattern  agentoscin:Custom ;
+        agentoscin:orchestratesTeam    ex:Team_<crew_ref> ;  # per crew
+        agentoscin:hasWorkflowPattern  ex:FlowWorkflowPattern_<class_name> .
+
+  Flow steps are created as WorkflowStep individuals with type refinement:
+    @start  → StartStep
+    @router → ConditionalStep (with hasRoutingLogic storing the function body)
+    @listen → WorkflowStep (default)
+
+  Edge resolution:
+    - For @router steps: return values are matched to step/label names and
+      connected via nextStep.
+    - For @start steps: scans other steps' decorator_args to find listeners
+      and connects via nextStep.
+    - Steps with no outgoing edges are reclassified as EndStep.
+
+STEP 6 — System
+  Creates a top-level AgenticSystem individual:
+
+    ex:<system_name>  a  agentoscin:AgenticSystem ;
+        agentoscin:hasTitle            "<system_name>" ;
+        agentoscin:hasSourceFramework  "<framework_name>" ;
+        agentoscin:containsAgent       ex:Agent_<key> ;     # per agent
+        agentoscin:containsTeam        ex:Team_<key> ;      # per team
+        agentoscin:containsOrchestration  ex:Orchestration_<name> .
+
+
+========================================================================
+5. HOW MAPPINGS ARE DEFINED
+========================================================================
+
+The mappings between source code constructs and ontology concepts are
+defined at three levels:
+
+(a) In the IR dataclass field annotations (intermediate.py):
+    Each field has a comment indicating the target ontology property.
+    Example:
+      role: str              # → agentID, agentRole
+      backstory: str         # → agentPrompt.promptContext
+
+    This serves as documentation and as a specification that the populator
+    must implement.
+
+(b) In the parser methods (crewai_parser.py, autogen_parser.py):
+    Each extraction method documents which mapping table section it
+    implements. The parser is responsible for:
+    - Knowing WHERE to find each piece of information in the source code
+      (AST node type, YAML key, keyword argument name).
+    - Normalizing the value into the IR's shared vocabulary.
+
+    Example from crewai_parser._extract_agent_from_method:
+      "Agent.role → agentID, agentRole"
+      "Agent.backstory → agentPrompt → Prompt.promptContext"
+
+(c) In the populator methods (populator.py):
+    Each population method documents which mapping table row it implements.
+    The populator is responsible for:
+    - Creating the correct OWL individual type (rdf:type).
+    - Asserting the correct ontology properties (data and object properties).
+    - Creating nested individuals where the ontology requires them
+      (e.g., a Prompt individual for each agent/task).
+
+The mapping tables (referenced by section number in the code comments)
+are defined in the thesis. Summarized:
+
+  Section 1 — Agent Mapping:
+    Source: role, goal, backstory, tools, llm, reasoning, memory
+    Target: LLMAgent, Goal, Prompt, Tool (via agentToolUsage),
+            LanguageModel (via useLanguageModel)
+
+  Section 2 — Task Mapping:
+    Source: description, expected_output, agent, output_pydantic, tools,
+            context, human_input
+    Target: Task, Prompt, Schema, Tool (via taskToolUsage),
+            HumanCheckpoint
+
+  Section 3 — Team/Crew Mapping:
+    Source: agents, tasks, process, verbose, memory, manager_llm
+    Target: Team, WorkflowPattern, WorkflowStep, CoordinationPattern,
+            MemoryBinding
+
+  Section 4 — Flow/Orchestration Mapping:
+    Source: @start/@listen/@router methods, crew references
+    Target: Orchestration, WorkflowPattern, WorkflowStep (StartStep,
+            ConditionalStep, EndStep), nextStep edges
+
+  Section 5 — Tool Mapping:
+    Source: class name, name attribute, description, args_schema, _run method
+    Target: Tool
+
+  Section 6 — System Mapping:
+    Source: framework name, all agents/teams/flows
+    Target: AgenticSystem
+
+
+========================================================================
+6. OUTPUT AND VALIDATION
+========================================================================
+
+The populated graph is serialized as Turtle RDF (.ttl). A validation
+report is printed at the end of extraction:
+
+  - Individual counts by OWL class (how many Agents, Tasks, Tools, etc.)
+  - Information loss analysis (e.g., agents without LLM assignments)
+  - Property usage statistics (which ontology properties were exercised
+    vs. which remain unused)
+
+The unexercised-property check lists all object properties defined in
+the agentoscin ontology that have no assertions in the output graph.
+This helps identify coverage gaps in the extraction.
+
+
+========================================================================
+7. OBSERVATIONS AND POTENTIAL ISSUES
+========================================================================
+
+Things that may be worth discussing or acknowledging in the thesis:
+
+(1) agentID vs agentRole redundancy:
+    Both are populated with the same value (the agent's role string).
+    agentID could serve as a machine-readable unique identifier, but
+    currently it duplicates the human-readable role.
+
+(2) AutoGen goal field is always empty:
+    AutoGen agents do not have an explicit "goal" concept. The system_message
+    carries all behavioral instruction. This means the ontology's Goal
+    individual is created but has an empty description for AutoGen agents,
+    or potentially no Goal is created at all (since the populator skips
+    empty strings). This is a genuine semantic gap between frameworks.
+
+(3) AutoGen tool argument schemas are not extracted:
+    args_schema_json is always "{}" for AutoGen tools. This loses
+    information compared to CrewAI tools with Pydantic input schemas.
+
+(4) AutoGen participant-to-agent key resolution is heuristic:
+    The parser applies a Title_Case transformation on variable names to
+    guess agent keys, which may not match the actual "name" parameter.
+    This is acknowledged as a limitation.
+
+(5) promptInstruction composition:
+    For agents, promptInstruction is composed as "<role>: <goal>". This
+    is a synthesis step — the populator creates information that did not
+    exist verbatim in the source code. This is a deliberate design choice
+    but worth noting as it means the ontology representation is not a
+    pure extraction but includes a transformation.
+
+(6) AutoGen flow representation is minimal:
+    The .run() detection captures execution entry points but cannot
+    represent multi-step orchestration, conditional routing, or state
+    management that CrewAI's Flow class supports.
+
+(7) agentType is hardcoded to "GeneralPurpose":
+    All agents are classified as "GeneralPurpose" regardless of their
+    actual role or capabilities. The ontology appears to support more
+    specific agent types, but these are not derived from the source code.
+
+(8) External tool handling:
+    Tools referenced by agents but not found in the parsed source files
+    get stub individuals with an "external:" implementation reference.
+    This is a pragmatic choice but means the ontology has incomplete
+    information for these tools.

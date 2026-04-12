@@ -534,7 +534,7 @@
 :hasMaxRetries rdf:type owl:DatatypeProperty ;
                rdfs:subPropertyOf owl:topDataProperty ;
                rdfs:domain :Guardrail ;
-               rdfs:range xsd:language .
+               rdfs:range xsd:integer .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMaxTurns
