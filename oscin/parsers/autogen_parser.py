@@ -52,7 +52,7 @@ class AutoGenParser(BaseSourceParser):
 
     def parse_all(self) -> None:
         log.info("=" * 60)
-        log.info("STARTING AUTOGEN V0.4 SOURCE CODE EXTRACTION")
+        log.info("STARTING AUTOGEN SOURCE CODE EXTRACTION")
         log.info("Source directory: %s", self.source_dir)
         log.info("=" * 60)
 
@@ -221,7 +221,7 @@ class AutoGenParser(BaseSourceParser):
         
         if steps and not self.flow:
             self.flow = ExtractedFlow(
-                class_name="AutoGenV04Flow",
+                class_name="AutoGenFlow",
                 state_model=None,
                 steps=steps,
                 crew_references=[],
