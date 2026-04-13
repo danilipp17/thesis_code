@@ -1,0 +1,9 @@
+primary_researcher:
+  role: "Primary Researcher"
+  goal: "Perform extensive web research."
+  backstory: "An expert web researcher."
+
+senior_analyst:
+  role: "Senior Data Analyst"
+  goal: "Analyze the data provided by the researcher."
+  backstory: "A senior analyst specializing in large dataset processing."

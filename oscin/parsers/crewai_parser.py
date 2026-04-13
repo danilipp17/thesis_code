@@ -138,7 +138,9 @@ class CrewAIParser(BaseSourceParser):
             for item in node.body:
                 # BaseTool class attributes are ast.AnnAssign nodes
                 # e.g. name: str = "Character Counter Tool"
-                if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
+                if isinstance(item, ast.AnnAssign) and isinstance(
+                    item.target, ast.Name
+                ):
                     attr_name = item.target.id
                     attr_value = self._extract_constant_value(item.value)
 
@@ -146,7 +148,9 @@ class CrewAIParser(BaseSourceParser):
                         tool_name = attr_value
                     elif attr_name == "description" and attr_value:
                         tool_desc = attr_value
-                    elif attr_name == "args_schema" and isinstance(item.value, ast.Name):
+                    elif attr_name == "args_schema" and isinstance(
+                        item.value, ast.Name
+                    ):
                         schema_class_name = item.value.id
 
             # Serialize the args_schema Pydantic model to JSON Schema
@@ -171,10 +175,13 @@ class CrewAIParser(BaseSourceParser):
             self.tools[node.name] = tool
             log.info(
                 "  [Tool] Extracted '%s' from %s",
-                tool.name, filepath.name,
+                tool.name,
+                filepath.name,
             )
 
-    def _extract_tool_decorated_functions(self, tree: ast.Module, filepath: Path) -> None:
+    def _extract_tool_decorated_functions(
+        self, tree: ast.Module, filepath: Path
+    ) -> None:
         """
         Detect @tool-decorated functions (langchain / crewai pattern).
 
@@ -217,7 +224,8 @@ class CrewAIParser(BaseSourceParser):
                 self.tools[tool_key] = tool
                 log.info(
                     "  [Tool] Extracted @tool '%s' from %s",
-                    tool.name, filepath.name,
+                    tool.name,
+                    filepath.name,
                 )
 
     # -----------------------------------------------------------
@@ -235,7 +243,9 @@ class CrewAIParser(BaseSourceParser):
                 continue
             tree = ast.parse(py_file.read_text(), filename=str(py_file))
             for node in ast.iter_child_nodes(tree):
-                if isinstance(node, ast.ClassDef) and self._inherits_from(node, "BaseModel"):
+                if isinstance(node, ast.ClassDef) and self._inherits_from(
+                    node, "BaseModel"
+                ):
                     # Skip tool input schemas (already handled)
                     if node.name.endswith("Input"):
                         continue
@@ -316,10 +326,18 @@ class CrewAIParser(BaseSourceParser):
             tasks_yaml = {}
             if agents_yaml_path and agents_yaml_path.exists():
                 agents_yaml = yaml.safe_load(agents_yaml_path.read_text()) or {}
-                log.info("    Loaded %d agent(s) from %s", len(agents_yaml), agents_yaml_path.name)
+                log.info(
+                    "    Loaded %d agent(s) from %s",
+                    len(agents_yaml),
+                    agents_yaml_path.name,
+                )
             if tasks_yaml_path and tasks_yaml_path.exists():
                 tasks_yaml = yaml.safe_load(tasks_yaml_path.read_text()) or {}
-                log.info("    Loaded %d task(s) from %s", len(tasks_yaml), tasks_yaml_path.name)
+                log.info(
+                    "    Loaded %d task(s) from %s",
+                    len(tasks_yaml),
+                    tasks_yaml_path.name,
+                )
 
             # --- Extract agents from @agent methods ---
             agent_keys_in_crew = []
@@ -347,12 +365,17 @@ class CrewAIParser(BaseSourceParser):
                 if task_info:
                     self.tasks[task_key] = task_info
                     task_keys_in_crew.append(task_key)
-                    log.info("    [Task] '%s' (agent: %s)", task_key, task_info.agent_key)
+                    log.info(
+                        "    [Task] '%s' (agent: %s)", task_key, task_info.agent_key
+                    )
 
             # --- Extract Crew() configuration from @crew method ---
             crew_info = self._extract_crew_config(
-                node, crew_class_name, agent_keys_in_crew,
-                task_keys_in_crew, str(filepath)
+                node,
+                crew_class_name,
+                agent_keys_in_crew,
+                task_keys_in_crew,
+                str(filepath),
             )
             self.teams[crew_class_name] = crew_info
 
@@ -407,6 +430,7 @@ class CrewAIParser(BaseSourceParser):
         reasoning = self._extract_keyword_bool(agent_call, "reasoning") or False
         max_reasoning = self._extract_keyword_int(agent_call, "max_reasoning_attempts")
         memory = self._extract_keyword_bool(agent_call, "memory") or False
+        knowledge_sources = self._extract_knowledge_sources(agent_call, local_vars)
 
         return ExtractedAgent(
             agent_key=method.name,
@@ -420,6 +444,7 @@ class CrewAIParser(BaseSourceParser):
             memory=memory,
             verbose=verbose,
             allow_delegation=allow_delegation,
+            knowledge_sources=knowledge_sources,
             source_file=source_file,
         )
 
@@ -465,7 +490,21 @@ class CrewAIParser(BaseSourceParser):
         human_input = self._extract_keyword_bool(task_call, "human_input") or False
 
         # Context (task dependencies): context=[task_a, task_b]
-        context_tasks = self._extract_keyword_name_list(task_call, "context")
+        # In CrewAI, context is often passed as context=[self.data_gathering()]
+        context_tasks = []
+        context_kw = self._find_keyword(task_call, "context")
+        if context_kw and isinstance(context_kw.value, ast.List):
+            for elt in context_kw.value.elts:
+                if isinstance(elt, ast.Call) and isinstance(elt.func, ast.Attribute):
+                    context_tasks.append(elt.func.attr)
+                elif isinstance(elt, ast.Name):
+                    context_tasks.append(elt.id)
+
+        guardrails = []
+        guardrail_kw = self._find_keyword(task_call, "guardrail")
+        if guardrail_kw and isinstance(guardrail_kw.value, ast.List):
+            for elt in guardrail_kw.value.elts:
+                guardrails.append("CustomGuardrailFunction")
 
         return ExtractedTask(
             task_key=method.name,
@@ -477,6 +516,7 @@ class CrewAIParser(BaseSourceParser):
             tools=tools,
             context_tasks=context_tasks,
             human_input=human_input,
+            guardrails=guardrails,
             source_file=source_file,
         )
 
@@ -502,6 +542,7 @@ class CrewAIParser(BaseSourceParser):
         memory = False
         manager_llm = None
         manager_agent = None
+        knowledge_sources = []
 
         for method in self._iter_methods(class_node):
             if not self._has_decorator(method, "crew"):
@@ -522,6 +563,9 @@ class CrewAIParser(BaseSourceParser):
             manager_llm = self._extract_keyword_string(crew_call, "manager_llm")
             manager_agent = self._extract_keyword_name(crew_call, "manager_agent")
 
+            # Use local_vars = {} here since crew definition typically doesn't use complex locals for knowledge
+            knowledge_sources = self._extract_knowledge_sources(crew_call, {})
+
         return ExtractedTeam(
             team_class_name=crew_class_name,
             agent_keys=agent_keys,
@@ -531,6 +575,7 @@ class CrewAIParser(BaseSourceParser):
             memory=memory,
             manager_llm=manager_llm,
             manager_agent=manager_agent,
+            knowledge_sources=knowledge_sources,
             source_file=source_file,
         )
 
@@ -578,7 +623,8 @@ class CrewAIParser(BaseSourceParser):
                         crew_references.add(step.calls_crew)
                     log.info(
                         "    [FlowStep] @%s: %s%s",
-                        step.decorator_type, step.method_name,
+                        step.decorator_type,
+                        step.method_name,
                         f" → calls {step.calls_crew}" if step.calls_crew else "",
                     )
 
@@ -651,9 +697,7 @@ class CrewAIParser(BaseSourceParser):
 
             if not function_body:
                 # Fallback: reconstruct from AST unparse
-                function_body = "\n".join(
-                    ast.unparse(stmt) for stmt in method.body
-                )
+                function_body = "\n".join(ast.unparse(stmt) for stmt in method.body)
 
         return ExtractedFlowStep(
             method_name=method.name,
@@ -744,7 +788,11 @@ class CrewAIParser(BaseSourceParser):
     def _extract_keyword_int(self, call: ast.Call, name: str) -> Optional[int]:
         """Extract an integer keyword argument value."""
         kw = self._find_keyword(call, name)
-        if kw and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, int):
+        if (
+            kw
+            and isinstance(kw.value, ast.Constant)
+            and isinstance(kw.value.value, int)
+        ):
             return kw.value.value
         return None
 
@@ -759,10 +807,7 @@ class CrewAIParser(BaseSourceParser):
         """Extract a list of Name references from a keyword argument."""
         kw = self._find_keyword(call, name)
         if kw and isinstance(kw.value, ast.List):
-            return [
-                elt.id for elt in kw.value.elts
-                if isinstance(elt, ast.Name)
-            ]
+            return [elt.id for elt in kw.value.elts if isinstance(elt, ast.Name)]
         return []
 
     @staticmethod
@@ -777,6 +822,29 @@ class CrewAIParser(BaseSourceParser):
                 if isinstance(kw.value.slice, ast.Constant):
                     return str(kw.value.slice.value)
         return None
+
+    def _extract_knowledge_sources(
+        self, call: ast.Call, local_vars: Optional[dict[str, str]] = None
+    ) -> list[str]:
+        """
+        Extract knowledge sources from knowledge=[source1, source2].
+        Handles instantiations, local variable references, and strings.
+        """
+        local_vars = local_vars or {}
+        sources = []
+        for kw in call.keywords:
+            if kw.arg == "knowledge" and isinstance(kw.value, ast.List):
+                for elt in kw.value.elts:
+                    if isinstance(elt, ast.Call) and isinstance(elt.func, ast.Name):
+                        sources.append(elt.func.id)
+                    elif isinstance(elt, ast.Name):
+                        resolved = local_vars.get(elt.id, elt.id)
+                        sources.append(resolved)
+                    elif isinstance(elt, ast.Attribute):
+                        sources.append(elt.attr)
+                    elif isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                        sources.append(elt.value)
+        return sources
 
     def _extract_tool_references(
         self, call: ast.Call, local_vars: Optional[dict[str, str]] = None
@@ -797,9 +865,15 @@ class CrewAIParser(BaseSourceParser):
                 for elt in kw.value.elts:
                     if isinstance(elt, ast.Call) and isinstance(elt.func, ast.Name):
                         tools.append(elt.func.id)
-                    elif isinstance(elt, ast.Call) and isinstance(elt.func, ast.Attribute):
+                    elif isinstance(elt, ast.Call) and isinstance(
+                        elt.func, ast.Attribute
+                    ):
                         # e.g. GmailGetThread(api_resource=...) via chained call
-                        tools.append(elt.func.value.id if isinstance(elt.func.value, ast.Name) else elt.func.attr)
+                        tools.append(
+                            elt.func.value.id
+                            if isinstance(elt.func.value, ast.Name)
+                            else elt.func.attr
+                        )
                     elif isinstance(elt, ast.Name):
                         # Resolve local variable to class name if possible
                         resolved = local_vars.get(elt.id, elt.id)
@@ -836,11 +910,15 @@ class CrewAIParser(BaseSourceParser):
                     # Walk up the chain: x.crew().kickoff()
                     # The x might be SomeCrewClass()
                     inner = node.func.value
-                    if isinstance(inner, ast.Call) and isinstance(inner.func, ast.Attribute):
+                    if isinstance(inner, ast.Call) and isinstance(
+                        inner.func, ast.Attribute
+                    ):
                         if inner.func.attr == "crew":
                             # Now find the class instantiation
                             obj = inner.func.value
-                            if isinstance(obj, ast.Call) and isinstance(obj.func, ast.Name):
+                            if isinstance(obj, ast.Call) and isinstance(
+                                obj.func, ast.Name
+                            ):
                                 return obj.func.id
         return None
 
@@ -858,7 +936,9 @@ class CrewAIParser(BaseSourceParser):
                 # Check for Field(..., description="...") in the default value
                 if isinstance(item.value, ast.Call):
                     for kw in item.value.keywords:
-                        if kw.arg == "description" and isinstance(kw.value, ast.Constant):
+                        if kw.arg == "description" and isinstance(
+                            kw.value, ast.Constant
+                        ):
                             desc = str(kw.value.value)
                 fields[item.target.id] = {"type": type_str, "description": desc}
         return fields
@@ -870,6 +950,7 @@ class CrewAIParser(BaseSourceParser):
         Delegates to :func:`oscin.utils.pydantic_fields_to_json_schema`.
         """
         from oscin.utils import pydantic_fields_to_json_schema
+
         return pydantic_fields_to_json_schema(fields)
 
     @staticmethod

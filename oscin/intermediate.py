@@ -32,6 +32,7 @@ from typing import Any, Optional
 # Agent
 # ===================================================================
 
+
 @dataclass
 class ExtractedAgent:
     """
@@ -39,20 +40,22 @@ class ExtractedAgent:
 
     Mapping table: Section 1 (Agent Mapping).
     """
+
     # Identity
-    agent_key: str              # Unique key within the extraction run
-    role: str                   # → agentID, agentRole
-    goal: str                   # → hasAgentGoal
-    backstory: str              # → agentPrompt.promptContext
+    agent_key: str  # Unique key within the extraction run
+    role: str  # → agentID, agentRole
+    goal: str  # → hasAgentGoal
+    backstory: str  # → agentPrompt.promptContext
 
     # Optional parameters
-    llm: Optional[str] = None               # → useLanguageModel
+    llm: Optional[str] = None  # → useLanguageModel
     tools: list[str] = field(default_factory=list)  # → agentToolUsage
-    reasoning: bool = False                  # → hasReasoningEnabled
+    reasoning: bool = False  # → hasReasoningEnabled
     max_reasoning_attempts: Optional[int] = None  # → hasMaxReasoningAttempts
-    memory: bool = False                     # → hasMemoryBinding
-    verbose: Optional[bool] = None           # → hasAgentConfig
+    memory: bool = False  # → hasMemoryBinding
+    verbose: Optional[bool] = None  # → hasAgentConfig
     allow_delegation: Optional[bool] = None  # → hasAgentConfig
+    knowledge_sources: list[str] = field(default_factory=list)  # → hasKnowledge
 
     # Provenance
     source_file: str = ""
@@ -62,6 +65,7 @@ class ExtractedAgent:
 # Task
 # ===================================================================
 
+
 @dataclass
 class ExtractedTask:
     """
@@ -69,17 +73,18 @@ class ExtractedTask:
 
     Mapping table: Section 2 (Task Mapping).
     """
-    task_key: str               # Unique key within the extraction run
-    description: str            # → taskPrompt.promptInstruction
-    expected_output: str        # → hasExpectedOutput
+
+    task_key: str  # Unique key within the extraction run
+    description: str  # → taskPrompt.promptInstruction
+    expected_output: str  # → hasExpectedOutput
     agent_key: Optional[str] = None  # → performedByAgent
 
     # Optional parameters
-    output_pydantic: Optional[str] = None    # Class name → hasOutputSchema
-    output_json: Optional[str] = None        # → hasOutputSchema
+    output_pydantic: Optional[str] = None  # Class name → hasOutputSchema
+    output_json: Optional[str] = None  # → hasOutputSchema
     tools: list[str] = field(default_factory=list)  # → taskToolUsage
     context_tasks: list[str] = field(default_factory=list)  # → dependsOn
-    human_input: bool = False                # → hasHumanCheckpoint
+    human_input: bool = False  # → hasHumanCheckpoint
     guardrails: list[str] = field(default_factory=list)  # → hasGuardrail
 
     # Provenance
@@ -90,6 +95,7 @@ class ExtractedTask:
 # Tool
 # ===================================================================
 
+
 @dataclass
 class ExtractedTool:
     """
@@ -97,17 +103,19 @@ class ExtractedTool:
 
     Mapping table: Section 5 (Tool Mapping).
     """
-    class_name: str             # Python class name
-    name: str                   # → hasTitle
-    description: str            # → hasDescription
-    args_schema_json: str       # Serialized JSON Schema → hasInputSchema
-    implementation_ref: str     # Module path → hasImplementationReference
+
+    class_name: str  # Python class name
+    name: str  # → hasTitle
+    description: str  # → hasDescription
+    args_schema_json: str  # Serialized JSON Schema → hasInputSchema
+    implementation_ref: str  # Module path → hasImplementationReference
     source_file: str = ""
 
 
 # ===================================================================
 # Team (was "Crew" in the CrewAI-only extractor)
 # ===================================================================
+
 
 @dataclass
 class ExtractedTeam:
@@ -119,21 +127,24 @@ class ExtractedTeam:
     This was previously named ``ExtractedCrew``; renamed to use the
     ontology term so that the intermediate layer is framework-neutral.
     """
-    team_class_name: str        # Python class name → dcterms:title
-    agent_keys: list[str]       # References to agents → hasAgentMember
-    task_keys: list[str]        # References to tasks → workflow steps
-    process: str = "sequential" # "sequential" or "hierarchical"
-    verbose: bool = False       # → hasSystemConfig
-    memory: bool = False        # → hasTeamMemoryBinding
-    manager_llm: Optional[str] = None       # → Manager agent
-    manager_agent: Optional[str] = None     # → Manager agent
-    max_turns: Optional[int] = None         # → hasTerminationCondition.hasMaxTurns
+
+    team_class_name: str  # Python class name → dcterms:title
+    agent_keys: list[str]  # References to agents → hasAgentMember
+    task_keys: list[str]  # References to tasks → workflow steps
+    process: str = "sequential"  # "sequential" or "hierarchical"
+    verbose: bool = False  # → hasSystemConfig
+    memory: bool = False  # → hasTeamMemoryBinding
+    manager_llm: Optional[str] = None  # → Manager agent
+    manager_agent: Optional[str] = None  # → Manager agent
+    max_turns: Optional[int] = None  # → hasTerminationCondition.hasMaxTurns
+    knowledge_sources: list[str] = field(default_factory=list)  # → hasKnowledge
     source_file: str = ""
 
 
 # ===================================================================
 # Flow / Orchestration
 # ===================================================================
+
 
 @dataclass
 class ExtractedFlowStep:
@@ -142,14 +153,19 @@ class ExtractedFlowStep:
 
     Mapping table: Section 4 (Flow Mapping).
     """
-    method_name: str            # Python method / node name → step title
-    decorator_type: str         # "start", "listen", or "router"
-    decorator_args: list[str]   # Arguments to the decorator / edge targets
-    calls_crew: Optional[str] = None   # If step invokes a team
+
+    method_name: str  # Python method / node name → step title
+    decorator_type: str  # "start", "listen", or "router"
+    decorator_args: list[str]  # Arguments to the decorator / edge targets
+    calls_crew: Optional[str] = None  # If step invokes a team
     return_values: list[str] = field(default_factory=list)  # Router returns
-    function_body: str = ""     # Serialized body → hasRoutingLogic (routers)
-    associated_agent_key: Optional[str] = None  # Explicit link to agent (LangGraph nodes)
-    edge_mapping: dict[str, str] = field(default_factory=dict)  # Router label → target node
+    function_body: str = ""  # Serialized body → hasRoutingLogic (routers)
+    associated_agent_key: Optional[str] = (
+        None  # Explicit link to agent (LangGraph nodes)
+    )
+    edge_mapping: dict[str, str] = field(
+        default_factory=dict
+    )  # Router label → target node
 
 
 @dataclass
@@ -159,17 +175,21 @@ class ExtractedFlow:
 
     Mapping table: Section 4 (Flow Mapping).
     """
-    class_name: str             # Python class / graph name → dcterms:title
+
+    class_name: str  # Python class / graph name → dcterms:title
     state_model: Optional[str] = None  # State schema name
     steps: list[ExtractedFlowStep] = field(default_factory=list)
     crew_references: list[str] = field(default_factory=list)
     source_file: str = ""
-    state_fields: dict[str, str] = field(default_factory=dict)  # TypedDict/BaseModel fields
+    state_fields: dict[str, str] = field(
+        default_factory=dict
+    )  # TypedDict/BaseModel fields
 
 
 # ===================================================================
 # Pydantic / Structured-Output Model
 # ===================================================================
+
 
 @dataclass
 class ExtractedPydanticModel:
@@ -177,6 +197,7 @@ class ExtractedPydanticModel:
     Intermediate representation of a Pydantic BaseModel used for
     structured output (e.g. Task.output_pydantic).
     """
+
     class_name: str
     fields: dict[str, dict[str, str] | str]  # field_name → type info
     source_file: str = ""

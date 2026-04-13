@@ -44,7 +44,7 @@ from oscin.intermediate import (
 
 log = logging.getLogger("oscin")
 
-_AGENT_CLASSES = {"AssistantAgent"}
+_AGENT_CLASSES = {"AssistantAgent", "UserProxyAgent"}
 
 
 class AutoGenParser(BaseSourceParser):
@@ -70,13 +70,16 @@ class AutoGenParser(BaseSourceParser):
                 log.warning(f"SyntaxError parsing Python file: {py_file.name}")
 
         import nbformat
+
         for nb_file in self.source_dir.rglob("*.ipynb"):
             if ".ipynb_checkpoints" in str(nb_file):
                 continue
             try:
                 with open(nb_file, "r", encoding="utf-8") as f:
                     nb = nbformat.read(f, as_version=4)
-                code_cells = [cell["source"] for cell in nb.cells if cell.cell_type == "code"]
+                code_cells = [
+                    cell["source"] for cell in nb.cells if cell.cell_type == "code"
+                ]
                 source = "\n\n".join(code_cells)
                 tree = ast.parse(source, filename=str(nb_file))
                 trees.append((nb_file, tree))
@@ -127,8 +130,12 @@ class AutoGenParser(BaseSourceParser):
                         model = self._extract_keyword_string(node.value, "model")
                         if model:
                             self.llm_clients[target.id] = model
-                            log.info("  [LLM] %s = OpenAIChatCompletionClient(model='%s') in %s",
-                                     target.id, model, filepath.name)
+                            log.info(
+                                "  [LLM] %s = OpenAIChatCompletionClient(model='%s') in %s",
+                                target.id,
+                                model,
+                                filepath.name,
+                            )
 
     # -----------------------------------------------------------
     # FunctionTool Detection
@@ -161,8 +168,13 @@ class AutoGenParser(BaseSourceParser):
 
             if func_name:
                 self._function_tools[target.id] = (func_name, description)
-                log.info("  [FunctionTool] %s = FunctionTool(%s, desc='%s') in %s",
-                         target.id, func_name, description[:60], filepath.name)
+                log.info(
+                    "  [FunctionTool] %s = FunctionTool(%s, desc='%s') in %s",
+                    target.id,
+                    func_name,
+                    description[:60],
+                    filepath.name,
+                )
 
     # -----------------------------------------------------------
     # Tool Extraction
@@ -193,17 +205,19 @@ class AutoGenParser(BaseSourceParser):
                     source_file=str(filepath),
                 )
                 self.tools[node.name] = tool
-                log.info("  [Tool] '%s' (desc from %s) from %s",
-                         node.name,
-                         "FunctionTool" if ft_description else "docstring",
-                         filepath.name)
+                log.info(
+                    "  [Tool] '%s' (desc from %s) from %s",
+                    node.name,
+                    "FunctionTool" if ft_description else "docstring",
+                    filepath.name,
+                )
 
     # -----------------------------------------------------------
     # Agent Extraction
     # -----------------------------------------------------------
 
     def _extract_agents(self, tree: ast.Module, filepath: Path) -> None:
-        """Extract AssistantAgent instantiations with variable-to-key mapping."""
+        """Extract AssistantAgent and UserProxyAgent instantiations with variable-to-key mapping."""
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.Assign) or len(node.targets) != 1:
                 continue
@@ -216,14 +230,41 @@ class AutoGenParser(BaseSourceParser):
                 continue
 
             name = self._extract_keyword_string(node.value, "name") or class_name
-            system_message = self._extract_keyword_string(node.value, "system_message") or ""
+            system_message = (
+                self._extract_keyword_string(node.value, "system_message") or ""
+            )
+
+            # Check for human input mode
+            human_input_mode = self._extract_keyword_string(
+                node.value, "human_input_mode"
+            )
+            has_human_checkpoint = False
+            if human_input_mode in ("ALWAYS", "TERMINATE"):
+                has_human_checkpoint = True
 
             llm = None
             for kw in node.value.keywords:
                 if kw.arg == "model_client" and isinstance(kw.value, ast.Name):
                     llm = self.llm_clients.get(kw.value.id)
+                elif kw.arg == "llm_config" and isinstance(kw.value, ast.Dict):
+                    # Autogen < 0.4 uses llm_config={"config_list": [{"model": "..."}]}
+                    for key, val in zip(kw.value.keys, kw.value.values):
+                        if (
+                            isinstance(key, ast.Constant)
+                            and key.value == "config_list"
+                            and isinstance(val, ast.List)
+                        ):
+                            if val.elts and isinstance(val.elts[0], ast.Dict):
+                                dict_node = val.elts[0]
+                                for k, v in zip(dict_node.keys, dict_node.values):
+                                    if (
+                                        isinstance(k, ast.Constant)
+                                        and k.value == "model"
+                                        and isinstance(v, ast.Constant)
+                                    ):
+                                        llm = v.value
 
-            # Resolve tool references through FunctionTool mapping
+            # Resolve tool references
             tools = []
             for kw in node.value.keywords:
                 if kw.arg == "tools" and isinstance(kw.value, ast.List):
@@ -240,6 +281,10 @@ class AutoGenParser(BaseSourceParser):
             goal, backstory = self._split_system_message(system_message)
 
             agent_key = self._safe_key(name)
+
+            # Since AutoGen doesn't have an explicit task construct, an agent with ALWAYS/TERMINATE
+            # is implicitly the human checkpoint owner. This is mapped via a dummy logic or
+            # we just extract it and later in populator map it. Let's add human_input attribute
             agent = ExtractedAgent(
                 agent_key=agent_key,
                 role=name,
@@ -252,12 +297,20 @@ class AutoGenParser(BaseSourceParser):
                 verbose=None,
                 source_file=str(filepath),
             )
+            # monkeypatch human checkpoint attribute so populator can read it
+            agent.human_input = has_human_checkpoint
             self.agents[agent_key] = agent
 
             # Store variable-to-key mapping for team participant resolution
             self._var_to_agent_key[target.id] = agent_key
-            log.info("  [Agent] '%s' (var=%s, llm=%s, tools=%s) from %s",
-                     name, target.id, llm or "unknown", tools or "none", filepath.name)
+            log.info(
+                "  [Agent] '%s' (var=%s, llm=%s, tools=%s) from %s",
+                name,
+                target.id,
+                llm or "unknown",
+                tools or "none",
+                filepath.name,
+            )
 
     # -----------------------------------------------------------
     # Team Extraction
@@ -269,33 +322,42 @@ class AutoGenParser(BaseSourceParser):
                 continue
 
             class_name = self._get_call_name(node)
-            if class_name not in ["RoundRobinGroupChat", "SelectorGroupChat"]:
+            if class_name not in [
+                "RoundRobinGroupChat",
+                "SelectorGroupChat",
+                "GroupChat",
+            ]:
                 continue
 
             agent_keys = []
-            for kw in node.keywords:
-                if kw.arg == "participants" and isinstance(kw.value, ast.List):
-                    for elt in kw.value.elts:
-                        if isinstance(elt, ast.Name):
-                            # Resolve through variable-to-agent mapping
-                            if elt.id in self._var_to_agent_key:
-                                agent_keys.append(self._var_to_agent_key[elt.id])
-                            else:
-                                # Fallback: use the variable name as-is
-                                agent_keys.append(self._safe_key(elt.id))
+            # 'participants' is used in v0.4, 'agents' is used in older autogen
+            for param_name in ["participants", "agents"]:
+                for kw in node.keywords:
+                    if kw.arg == param_name and isinstance(kw.value, ast.List):
+                        for elt in kw.value.elts:
+                            if isinstance(elt, ast.Name):
+                                # Resolve through variable-to-agent mapping
+                                if elt.id in self._var_to_agent_key:
+                                    agent_keys.append(self._var_to_agent_key[elt.id])
+                                else:
+                                    # Fallback: use the variable name as-is
+                                    agent_keys.append(self._safe_key(elt.id))
 
-            # Extract max_turns
+            # Extract max_turns (v0.4) or max_round (older)
             max_turns = None
-            for kw in node.keywords:
-                if kw.arg == "max_turns" and isinstance(kw.value, ast.Constant):
-                    if isinstance(kw.value.value, int):
-                        max_turns = kw.value.value
+            for param_name in ["max_turns", "max_round"]:
+                for kw in node.keywords:
+                    if kw.arg == param_name and isinstance(kw.value, ast.Constant):
+                        if isinstance(kw.value.value, int):
+                            max_turns = kw.value.value
 
             team = ExtractedTeam(
                 team_class_name=class_name,
                 agent_keys=agent_keys,
                 task_keys=[],
-                process="sequential" if class_name == "RoundRobinGroupChat" else "hierarchical",
+                process="sequential"
+                if class_name in ["RoundRobinGroupChat", "GroupChat"]
+                else "hierarchical",
                 verbose=False,
                 memory=False,
                 manager_llm=None,
@@ -304,8 +366,13 @@ class AutoGenParser(BaseSourceParser):
             )
             team_key = f"{class_name}_{len(self.teams)}"
             self.teams[team_key] = team
-            log.info("  [Team] %s with %d agents (max_turns=%s) from %s",
-                     class_name, len(agent_keys), max_turns, filepath.name)
+            log.info(
+                "  [Team] %s with %d agents (max_turns=%s) from %s",
+                class_name,
+                len(agent_keys),
+                max_turns,
+                filepath.name,
+            )
 
     # -----------------------------------------------------------
     # Flow Extraction
@@ -315,17 +382,28 @@ class AutoGenParser(BaseSourceParser):
         steps = []
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-                if node.func.attr in ("run", "run_stream"):
+                if node.func.attr in ("run", "run_stream", "initiate_chat"):
                     caller = self._get_attr_value_name(node.func)
+
+                    # For initiate_chat, try to extract who it interacts with
+                    target = None
+                    if node.args and isinstance(node.args[0], ast.Name):
+                        target = node.args[0].id
+
+                    method_title = f"run_{caller or 'unknown'}"
+                    if node.func.attr == "initiate_chat":
+                        method_title = f"initiate_chat_{caller or 'unknown'}_to_{target or 'unknown'}"
+
                     step = ExtractedFlowStep(
-                        method_name=f"run_{caller or 'unknown'}",
+                        method_name=method_title,
                         decorator_type="start",
                         decorator_args=[],
-                        calls_crew=caller,
+                        calls_crew=target if target else caller,
                     )
                     steps.append(step)
-                    log.info("  [Flow] %s: %s from %s",
-                             node.func.attr, caller, filepath.name)
+                    log.info(
+                        "  [Flow] %s: %s from %s", node.func.attr, caller, filepath.name
+                    )
 
         if steps and not self.flow:
             self.flow = ExtractedFlow(
