@@ -1,6 +1,5 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from langchain_openai import ChatOpenAI
 
 from tools.web_search import WebSearchTool
 from tools.word_count import WordCountTool
@@ -12,7 +11,7 @@ class ContentPipelineCrew:
 
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
-    llm = ChatOpenAI(model="gpt-4o")
+    llm = "gpt-4o"
 
     @agent
     def research_analyst(self) -> Agent:

@@ -1,12 +1,18 @@
 from typing import Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from crewai.flow.flow import Flow, listen, router, start
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import uuid
 
 from crews.code_review_crew import CodeReviewCrew
 
 
 class CodeReviewState(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     code: str = ""
     approved: bool = False
     feedback: Optional[str] = None
@@ -14,15 +20,10 @@ class CodeReviewState(BaseModel):
 
 
 class CodeReviewFlow(Flow[CodeReviewState]):
-
     @start()
     def run_review(self):
         print("Starting code review...")
-        result = (
-            CodeReviewCrew()
-            .crew()
-            .kickoff(inputs={"code": self.state.code})
-        )
+        result = CodeReviewCrew().crew().kickoff(inputs={"code": self.state.code})
         self.state.approved = result["approved"]
         self.state.feedback = result.get("summary", "")
 
@@ -56,11 +57,11 @@ class CodeReviewFlow(Flow[CodeReviewState]):
 
 def kickoff():
     flow = CodeReviewFlow()
-    flow.state.code = '''
+    flow.state.code = """
 def process_user_input(data):
     result = eval(data)
     return result
-'''
+"""
     flow.kickoff()
 
 

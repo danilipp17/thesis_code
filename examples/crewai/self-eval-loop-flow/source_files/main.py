@@ -1,17 +1,23 @@
 from typing import Optional
 
-from crewai.flow.flow import Flow, listen, router, start
-from pydantic import BaseModel
+from dotenv import load_dotenv
 
-from self_evaluation_loop_flow.crews.shakespeare_crew.shakespeare_crew import (
+load_dotenv()
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel, Field
+import uuid
+
+from crews.shakespeare_crew.shakespeare_crew import (
     ShakespeareanXPostCrew,
 )
-from self_evaluation_loop_flow.crews.x_post_review_crew.x_post_review_crew import (
+from crews.x_post_review_crew.x_post_review_crew import (
     XPostReviewCrew,
 )
 
 
 class ShakespeareXPostFlowState(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     x_post: str = ""
     feedback: Optional[str] = None
     valid: bool = False
@@ -19,7 +25,6 @@ class ShakespeareXPostFlowState(BaseModel):
 
 
 class ShakespeareXPostFlow(Flow[ShakespeareXPostFlowState]):
-
     @start("retry")
     def generate_shakespeare_x_post(self):
         print("Generating Shakespearean X post")

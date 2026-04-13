@@ -5,14 +5,14 @@ from langchain_openai import ChatOpenAI
 from tools.code_analyzer import CodeAnalyzerTool
 
 
+from pydantic import BaseModel
+
+
 class ReviewResult(BaseModel):
     approved: bool
     summary: str
     critical_count: int
     action_items: list[str]
-
-
-from pydantic import BaseModel
 
 
 @CrewBase

@@ -5,6 +5,10 @@ Three agents collaborate: a code reviewer, a security auditor,
 and a summarizer who compiles findings into a verdict.
 """
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
@@ -74,11 +78,11 @@ team = RoundRobinGroupChat(
 
 
 async def main():
-    code_to_review = '''
+    code_to_review = """
 def process_user_input(data):
     result = eval(data)
     return result
-'''
+"""
     stream = team.run_stream(
         task=f"Review the following code for quality and security:\n{code_to_review}"
     )
@@ -88,4 +92,5 @@ def process_user_input(data):
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

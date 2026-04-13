@@ -5,6 +5,10 @@ Three agents collaborate sequentially to research a topic, write an
 article, and review it for quality.
 """
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
@@ -82,4 +86,5 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

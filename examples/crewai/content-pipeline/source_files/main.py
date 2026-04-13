@@ -1,10 +1,16 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from crewai.flow.flow import Flow, listen, start
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import uuid
 
 from crews.content_pipeline_crew import ContentPipelineCrew
 
 
 class ContentPipelineState(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     topic: str = ""
     article: str = ""
 
@@ -16,9 +22,7 @@ class ContentPipelineFlow(Flow[ContentPipelineState]):
     def run_content_pipeline(self):
         print(f"Starting content pipeline for topic: {self.state.topic}")
         result = (
-            ContentPipelineCrew()
-            .crew()
-            .kickoff(inputs={"topic": self.state.topic})
+            ContentPipelineCrew().crew().kickoff(inputs={"topic": self.state.topic})
         )
         self.state.article = result.raw
         print("Content pipeline complete.")

@@ -3,7 +3,7 @@ from typing import Optional
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from pydantic import BaseModel
-from self_evaluation_loop_flow.tools.CharacterCounterTool import CharacterCounterTool
+from tools.CharacterCounterTool import CharacterCounterTool
 
 
 class XPostVerification(BaseModel):

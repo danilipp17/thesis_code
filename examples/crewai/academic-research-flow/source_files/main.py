@@ -1,25 +1,31 @@
 from dotenv import load_dotenv
+
 load_dotenv()
 from crewai.flow.flow import Flow, start, listen, router
 from crews.research_crew.research_crew import AcademicResearchCrew
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import uuid
+
 
 class AcademicState(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     topic: str = ""
     paper: str = ""
     status: str = ""
 
-class AcademicResearchFlow(Flow[AcademicState]):
 
+class AcademicResearchFlow(Flow[AcademicState]):
     @start()
     def initialize_research(self):
         print(f"Starting research for topic: {self.state.topic}")
         # Setup stuff
-        
+
     @listen(initialize_research)
     def conduct_research(self):
         print("Crew is taking over...")
-        result = AcademicResearchCrew().crew().kickoff(inputs={"topic": self.state.topic})
+        result = (
+            AcademicResearchCrew().crew().kickoff(inputs={"topic": self.state.topic})
+        )
         self.state.paper = str(result)
         self.state.status = "SUCCESS" if result else "FAILED"
         return self.state.status
@@ -39,6 +45,11 @@ class AcademicResearchFlow(Flow[AcademicState]):
     def abort_research(self):
         print("Research aborted.")
 
+
 if __name__ == "__main__":
     flow = AcademicResearchFlow()
-    flow.kickoff(inputs={"topic": "The economic impact of artificial intelligence in software engineering"})
+    flow.kickoff(
+        inputs={
+            "topic": "The economic impact of artificial intelligence in software engineering"
+        }
+    )
