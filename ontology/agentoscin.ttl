@@ -12,6 +12,13 @@
 #    Object Properties
 #################################################################
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#hasAgentMemoryBinding
+:hasAgentMemoryBinding rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf :hasMemoryBinding ;
+                       rdfs:domain :Agent ;
+                       rdfs:range :MemoryBinding .
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentPrompt
 :agentPrompt rdf:type owl:ObjectProperty ;
              rdfs:subPropertyOf :hasPrompt .
@@ -258,7 +265,7 @@
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTeamMemoryBinding
 :hasTeamMemoryBinding rdf:type owl:ObjectProperty ;
-                      rdfs:subPropertyOf owl:topObjectProperty ;
+                      rdfs:subPropertyOf :hasMemoryBinding ;
                       rdfs:domain :Team ;
                       rdfs:range :MemoryBinding .
 
@@ -590,14 +597,6 @@
                  rdfs:subPropertyOf owl:topDataProperty ;
                  rdfs:domain :ConditionalStep ;
                  rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasEdgeMapping
-:hasEdgeMapping rdf:type owl:DatatypeProperty ;
-                rdfs:subPropertyOf owl:topDataProperty ;
-                rdfs:domain :ConditionalStep ;
-                rdfs:range xsd:string ;
-                rdfs:comment "JSON mapping of routing labels to target node names for conditional edges." .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSchemaDefinition

@@ -1,151 +1,127 @@
 # Issues / Assumptions:
-# - No issues detected
+# - The current ontology does not accommodate specifying complex behaviors for agents or tasks.
+# - YAML configurations and semantic meanings of tasks and agents cannot be fully captured.
+# - Specific prompt configurations are not directly modeled as entities in the ontology.
+# - No mechanism to handle the 'backstory' aspect of agents in the current ontology.
+# - The toolbox, including the details of tools used, may not have a specific class.
 
-@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
-@prefix ex: <http://example.org/email_flow#> .
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://example.org/email_flow#>
-  rdf:type owl:Ontology ;
-  owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+#################################################################
+#    Individuals
+#################################################################
 
-ex:EmailFilterSystem rdf:type agentoscin:AgenticSystem ;
-    agentoscin:hasSourceFramework "CrewAI" ;
-    agentoscin:containsOrchestration ex:EmailAutoResponderFlowOrchestration .
+### Agents
+:EmailFilterAgent rdf:type :LLMAgent ;
+    :agentID "email_filter_agent" ;
+    :agentRole "Senior Email Analyst" ;
+    :agentType "Filter" ;
+    :hasAgentGoal [
+        rdf:type :Goal ;
+        :hasDescription "Filter out non-essential emails like newsletters and promotional content, and identify important action-required emails that need immediate attention."
+    ] ;
+    :hasPrompt [
+        rdf:type :Prompt ;
+        :promptInstruction "With years of experience in email management and communication triage, you are adept at quickly identifying important emails that require immediate action from those that can be archived or ignored."
+    ] ;
+    :employsReasoningPattern :ChainOfThought .
 
-ex:EmailAutoResponderFlowOrchestration rdf:type agentoscin:Orchestration ;
-    agentoscin:orchestratesTeam ex:EmailFilterCrewTeam ;
-    agentoscin:employsCoordinationPattern ex:SequentialCoordinationPattern ;
-    agentoscin:hasWorkflowPattern ex:EmailProcessingWorkflowPattern .
+:EmailActionAgent rdf:type :LLMAgent ;
+    :agentID "email_action_agent" ;
+    :agentRole "Email Action Specialist" ;
+    :agentType "Action" ;
+    :hasAgentGoal [
+        rdf:type :Goal ;
+        :hasDescription "For each email identified as action-required, determine the necessary steps and provide a brief summary of the required actions."
+    ] ;
+    :hasPrompt [
+        rdf:type :Prompt ;
+        :promptInstruction "As a seasoned executive assistant, you excel at understanding the context of business communications and determining the appropriate response and actions required for each email."
+    ] ;
+    :employsReasoningPattern :ReAct .
 
-ex:EmailProcessingWorkflowPattern rdf:type agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:StartStep ;
-    agentoscin:hasWorkflowStep ex:FilterEmailsStep ;
-    agentoscin:hasWorkflowStep ex:ActionRequiredEmailsStep ;
-    agentoscin:hasWorkflowStep ex:DraftResponsesStep ;
-    agentoscin:hasWorkflowStep ex:EndStep .
+:EmailResponseWriter rdf:type :LLMAgent ;
+    :agentID "email_response_writer" ;
+    :agentRole "Email Response Writer" ;
+    :agentType "Response" ;
+    :hasAgentGoal [
+        rdf:type :Goal ;
+        :hasDescription "Draft professional and appropriate responses to action-required emails based on the determined actions and context."
+    ] ;
+    :hasPrompt [
+        rdf:type :Prompt ;
+        :promptInstruction "You are a skilled communicator with a talent for crafting clear, professional, and context-appropriate email responses. You understand the nuances of business communication and can adapt your tone and style to match the situation."
+    ] ;
+    :employsReasoningPattern :TreeOfThoughts .
 
-ex:StartStep rdf:type agentoscin:StartStep ;
-    agentoscin:stepOrder 0 ;
-    agentoscin:nextStep ex:FilterEmailsStep .
+### Tasks
+:FilterEmailsTask rdf:type :Task ;
+    :hasDescription "Analyze the list of emails provided and categorize each email as either 'action_required' or 'no_action_needed'. Use your expertise to filter out newsletters, promotional content, and spam. Here are the emails: {emails}" ;
+    :hasExpectedOutput "A categorized list of emails with their classification as either 'action_required' or 'no_action_needed', along with a brief reason for each classification." ;
+    :performedBy :EmailFilterAgent .
 
-ex:FilterEmailsStep rdf:type agentoscin:WorkflowStep ;
-    agentoscin:stepOrder 1 ;
-    agentoscin:nextStep ex:ActionRequiredEmailsStep ;
-    agentoscin:hasAssociatedTask ex:FilterEmailsTask .
+:ActionRequiredEmailsTask rdf:type :Task ;
+    :hasDescription "For each email classified as 'action_required', analyze the content and determine the specific actions that need to be taken. Consider the urgency, context, and any deadlines mentioned in the emails." ;
+    :hasExpectedOutput "A detailed action plan for each action-required email, including the specific steps to take, priority level, and any relevant deadlines." ;
+    :performedBy :EmailActionAgent .
 
-ex:FilterEmailsTask rdf:type agentoscin:Task ;
-    agentoscin:taskPrompt ex:FilterEmailsPrompt ;
-    agentoscin:hasExpectedOutput "A categorized list of emails with their classification as either 'action_required' or 'no_action_needed', along with a brief reason for each classification." ;
-    agentoscin:performedByAgent ex:EmailFilterAgent .
+:DraftResponsesTask rdf:type :Task ;
+    :hasDescription "Based on the action plans provided, draft professional email responses for each action-required email. Ensure the responses are clear, concise, and appropriate for the context." ;
+    :hasExpectedOutput "A set of draft email responses ready to be reviewed and sent, each properly formatted with subject line, greeting, body, and closing." ;
+    :performedBy :EmailResponseWriter .
 
-ex:FilterEmailsPrompt rdf:type agentoscin:Prompt ;
-    agentoscin:promptInstruction "Analyze the list of emails provided and categorize each email as either 'action_required' or 'no_action_needed'. Use your expertise to filter out newsletters, promotional content, and spam." ;
-    agentoscin:promptContext "The task is to use the expertise of the agent to classify emails." .
+### Workflows and System
+:EmailFilterCrew rdf:type :AgenticSystem ;
+    :containsAgent :EmailFilterAgent , :EmailActionAgent , :EmailResponseWriter ;
+    :containsOrchestration [
+        rdf:type :Orchestration ;
+        :hasWorkflowPattern [
+            rdf:type :WorkflowPattern ;
+            :hasWorkflowStep :FilterEmailsTask , :ActionRequiredEmailsTask , :DraftResponsesTask ;
+            :hasSubPattern [
+                rdf:type :WorkflowPattern ;
+                :nextPattern :FilterEmailsTask ;
+                :nextPattern :ActionRequiredEmailsTask ;
+                :nextPattern :DraftResponsesTask
+            ]
+        ] ;
+        :orchestratesTeam :EmailResponseWriter
+    ] .
 
-ex:ActionRequiredEmailsStep rdf:type agentoscin:WorkflowStep ;
-    agentoscin:stepOrder 2 ;
-    agentoscin:nextStep ex:DraftResponsesStep ;
-    agentoscin:hasAssociatedTask ex:ActionRequiredEmailsTask .
+### Tools
+:SerperDevTool rdf:type :Tool ;
+    :hasCapability :SearchEmails ;
+    :hasDescription "Search tool for filtering emails."
 
-ex:ActionRequiredEmailsTask rdf:type agentoscin:Task ;
-    agentoscin:taskPrompt ex:ActionRequiredEmailsPrompt ;
-    agentoscin:hasExpectedOutput "A detailed action plan for each action-required email, including the specific steps to take, priority level, and any relevant deadlines." ;
-    agentoscin:performedByAgent ex:EmailActionAgent .
+:GmailGetThreadTool rdf:type :Tool ;
+    :hasCapability :RetrieveEmails ;
+    :hasDescription "Tool for retrieving Gmail threads."
 
-ex:ActionRequiredEmailsPrompt rdf:type agentoscin:Prompt ;
-    agentoscin:promptInstruction "For each email classified as 'action_required', analyze the content and determine the specific actions that need to be taken." ;
-    agentoscin:promptContext "The task focuses on identifying necessary actions based on the content of the emails." .
+:TavilySearchResultsTool rdf:type :Tool ;
+    :hasCapability :Search ;
+    :hasDescription "Search tool for Tavily results."
 
-ex:DraftResponsesStep rdf:type agentoscin:WorkflowStep ;
-    agentoscin:stepOrder 3 ;
-    agentoscin:nextStep ex:EndStep ;
-    agentoscin:hasAssociatedTask ex:DraftResponsesTask .
+:CreateDraftTool rdf:type :Tool ;
+    :hasCapability :CreateDraft ;
+    :hasDescription "Tool for creating email drafts using Gmail API." .
 
-ex:DraftResponsesTask rdf:type agentoscin:Task ;
-    agentoscin:taskPrompt ex:DraftResponsesPrompt ;
-    agentoscin:hasExpectedOutput "A set of draft email responses ready to be reviewed and sent, each properly formatted with subject line, greeting, body, and closing." ;
-    agentoscin:performedByAgent ex:EmailResponseWriter .
+### Connections between tasks and agents
+:FilterEmailsTask :performedByAgent :EmailFilterAgent ;
+    :taskPrompt :SerperDevTool .
 
-ex:DraftResponsesPrompt rdf:type agentoscin:Prompt ;
-    agentoscin:promptInstruction "Based on the action plans provided, draft professional email responses for each action-required email." ;
-    agentoscin:promptContext "The task is to write professional and context-appropriate email responses." .
+:ActionRequiredEmailsTask :performedByAgent :EmailActionAgent ;
+    :taskPrompt :GmailGetThreadTool .
 
-ex:EndStep rdf:type agentoscin:EndStep ;
-    agentoscin:stepOrder 4 .
+:DraftResponsesTask :performedByAgent :EmailResponseWriter ;
+    :taskPrompt :CreateDraftTool .
 
-ex:EmailFilterCrewTeam rdf:type agentoscin:Team ;
-    agentoscin:hasAgentMember ex:EmailFilterAgent ,
-                              ex:EmailActionAgent ,
-                              ex:EmailResponseWriter ;
-    agentoscin:employsCoordinationPattern ex:SequentialCoordinationPattern ;
-    agentoscin:hasWorkflowPattern ex:EmailProcessingWorkflowPattern .
+### Connections between agents and their tools
+:EmailFilterAgent :agentToolUsage :SerperDevTool .
 
-ex:SequentialCoordinationPattern rdf:type agentoscin:CoordinationPattern .
+:EmailActionAgent :agentToolUsage :GmailGetThreadTool , :TavilySearchResultsTool .
 
-ex:EmailFilterAgent rdf:type agentoscin:LLMAgent ;
-    agentoscin:agentID "email_filter_agent" ;
-    agentoscin:agentRole "Senior Email Analyst" ;
-    agentoscin:agentType "LLMAgent" ;
-    agentoscin:agentPrompt ex:EmailFilterAgentPrompt ;
-    agentoscin:hasAgentGoal ex:EmailFilterAgentGoal ;
-    agentoscin:useLanguageModel ex:ChatOpenAILanguageModel .
-
-ex:EmailFilterAgentGoal rdf:type agentoscin:Goal ;
-    agentoscin:hasDescription "Filter out non-essential emails like newsletters and promotional content, and identify important action-required emails that need immediate attention." .
-
-ex:EmailFilterAgentPrompt rdf:type agentoscin:Prompt ;
-    agentoscin:promptInstruction "Analyze the list of emails provided and categorize each email as either 'action_required' or 'no_action_needed'. Use your expertise to filter out newsletters, promotional content, and spam." ;
-    agentoscin:promptContext "Senior Email Analyst expertise in filtering emails." .
-
-ex:EmailActionAgent rdf:type agentoscin:LLMAgent ;
-    agentoscin:agentID "email_action_agent" ;
-    agentoscin:agentRole "Email Action Specialist" ;
-    agentoscin:agentType "LLMAgent" ;
-    agentoscin:agentPrompt ex:EmailActionAgentPrompt ;
-    agentoscin:hasAgentGoal ex:EmailActionAgentGoal ;
-    agentoscin:useLanguageModel ex:ChatOpenAILanguageModel .
-
-ex:EmailActionAgentGoal rdf:type agentoscin:Goal ;
-    agentoscin:hasDescription "For each email identified as action-required, determine the necessary steps and provide a brief summary of the required actions." .
-
-ex:EmailActionAgentPrompt rdf:type agentoscin:Prompt ;
-    agentoscin:promptInstruction "For each email classified as 'action_required', analyze the content and determine the specific actions that need to be taken." ;
-    agentoscin:promptContext "Email Action Specialist expertise in handling 'action_required' emails." .
-
-ex:EmailResponseWriter rdf:type agentoscin:LLMAgent ;
-    agentoscin:agentID "email_response_writer" ;
-    agentoscin:agentRole "Email Response Writer" ;
-    agentoscin:agentType "LLMAgent" ;
-    agentoscin:agentPrompt ex:EmailResponseWriterPrompt ;
-    agentoscin:hasAgentGoal ex:EmailResponseWriterGoal ;
-    agentoscin:useLanguageModel ex:ChatOpenAILanguageModel .
-
-ex:EmailResponseWriterGoal rdf:type agentoscin:Goal ;
-    agentoscin:hasDescription "Draft professional and appropriate responses to action-required emails based on the determined actions and context." .
-
-ex:EmailResponseWriterPrompt rdf:type agentoscin:Prompt ;
-    agentoscin:promptInstruction "Based on the action plans provided, draft professional email responses for each action-required email." ;
-    agentoscin:promptContext "Skilled communicator with a talent for crafting clear responses." .
-
-ex:ChatOpenAILanguageModel rdf:type agentoscin:LanguageModel ;
-    agentoscin:hasTitle "gpt-4o" .
-
-ex:SerperDevTool rdf:type agentoscin:Tool ;
-    agentoscin:hasTitle "SerperDev Tool" ;
-    agentoscin:hasDescription "A search tool for the email filter agent." .
-
-ex:GmailGetThreadTool rdf:type agentoscin:Tool ;
-    agentoscin:hasTitle "Gmail Get Thread" ;
-    agentoscin:hasDescription "Tool to get Gmail threads." .
-
-ex:TavilySearchResultsTool rdf:type agentoscin:Tool ;
-    agentoscin:hasTitle "Tavily Search Results" ;
-    agentoscin:hasDescription "Tool for obtaining search results for emails." .
-
-ex:CreateDraftTool rdf:type agentoscin:Tool ;
-    agentoscin:hasTitle "Create Draft Tool" ;
-    agentoscin:hasImplementationReference "tools/create_draft.py" .
+:EmailResponseWriter :agentToolUsage :GmailGetThreadTool , :TavilySearchResultsTool , :CreateDraftTool .
