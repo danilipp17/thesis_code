@@ -1,20 +1,21 @@
 @prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
-@prefix ex: <http://example.org/plan_execute#> .
+@prefix ex: <http://example.org/self_eval#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://example.org/plan_execute> a owl:Ontology ;
+<http://example.org/self_eval> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
-ex:PlanAndExecuteSystem a agentoscin:AgenticSystem ;
-    agentoscin:containsAgent ex:Agent_agent,
-        ex:Agent_planner,
-        ex:Agent_replan ;
-    agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
-    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
-    agentoscin:hasTitle "PlanAndExecuteSystem"^^xsd:string .
+ex:SelfEvalLoop a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_shakespearean_bard,
+        ex:Agent_x_post_verifier ;
+    agentoscin:containsOrchestration ex:Orchestration_ShakespeareXPostFlow ;
+    agentoscin:containsTeam ex:Team_ShakespeareanXPostCrew,
+        ex:Team_XPostReviewCrew ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "SelfEvalLoop"^^xsd:string .
 
 agentoscin:ChainOfThought a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
@@ -22,11 +23,29 @@ agentoscin:ChainOfThought a owl:Class ;
 agentoscin:Constraint a owl:Class ;
     rdfs:subClassOf agentoscin:KnowledgeBase .
 
+agentoscin:Hierarchical a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
+agentoscin:Network a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
 agentoscin:ReAct a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
 
+agentoscin:ReActLoop a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
 agentoscin:ReflectionLoop a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:RoundRobin a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
+agentoscin:SelectorBased a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
+agentoscin:Swarm a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
 
 agentoscin:TreeOfThoughts a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
@@ -140,6 +159,11 @@ agentoscin:hasAgentMember a owl:ObjectProperty ;
     rdfs:range agentoscin:LLMAgent ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+agentoscin:hasAgentMemoryBinding a owl:ObjectProperty ;
+    rdfs:domain agentoscin:Agent ;
+    rdfs:range agentoscin:MemoryBinding ;
+    rdfs:subPropertyOf agentoscin:hasMemoryBinding .
+
 agentoscin:hasAssociatedTask a owl:ObjectProperty ;
     rdfs:domain agentoscin:WorkflowStep ;
     rdfs:range agentoscin:Task ;
@@ -171,6 +195,11 @@ agentoscin:hasDescription a owl:DatatypeProperty ;
 
 agentoscin:hasDirectiveFunction a owl:DatatypeProperty ;
     rdfs:domain agentoscin:Prompt ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasEdgeMapping a owl:DatatypeProperty ;
+    rdfs:domain agentoscin:WorkflowStep ;
     rdfs:range xsd:string ;
     rdfs:subPropertyOf owl:topDataProperty .
 
@@ -226,11 +255,6 @@ agentoscin:hasMaxTurns a owl:DatatypeProperty ;
     rdfs:domain agentoscin:TurnLimitTermination ;
     rdfs:range xsd:integer ;
     rdfs:subPropertyOf owl:topDataProperty .
-
-agentoscin:hasMemoryBinding a owl:ObjectProperty ;
-    rdfs:domain agentoscin:LLMAgent ;
-    rdfs:range agentoscin:MemoryBinding ;
-    rdfs:subPropertyOf owl:topObjectProperty .
 
 agentoscin:hasMemoryScope a owl:DatatypeProperty ;
     rdfs:domain agentoscin:MemoryBinding ;
@@ -309,7 +333,7 @@ agentoscin:hasTeamGoal a owl:ObjectProperty ;
 agentoscin:hasTeamMemoryBinding a owl:ObjectProperty ;
     rdfs:domain agentoscin:Team ;
     rdfs:range agentoscin:MemoryBinding ;
-    rdfs:subPropertyOf owl:topObjectProperty .
+    rdfs:subPropertyOf agentoscin:hasMemoryBinding .
 
 agentoscin:hasTerminationCondition a owl:ObjectProperty ;
     rdfs:domain agentoscin:Team ;
@@ -439,77 +463,109 @@ agentoscin:useLanguageModel a owl:ObjectProperty ;
     rdfs:range agentoscin:LanguageModel ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:AgentPrompt_agent a agentoscin:Prompt ;
+ex:AgentPrompt_shakespearean_bard a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "agent"^^xsd:string .
+    agentoscin:promptContext "Thou art a witty bard, renowned for turning the mundane into the magnificent with thy playful jests and biting sarcasm. Armed with wit and wisdom, thou dost revel in the creation of humorous quips most pleasing to the ear."^^xsd:string ;
+    agentoscin:promptInstruction "Shakespearean Bard: Craft sarcastic and playful hot takes in the style of Shakespeare. Ensure that all responses fit within 280 characters and contain no emojis."^^xsd:string .
 
-ex:AgentPrompt_planner a agentoscin:Prompt ;
+ex:AgentPrompt_x_post_verifier a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "planner"^^xsd:string .
+    agentoscin:promptContext "You are a careful reviewer, skilled at understanding the core message of a post.  Your job is to maintain the clarity and brevity of the post by ensuring it contains no emojis,  unnecessary commentary, or excessive verbosity."^^xsd:string ;
+    agentoscin:promptInstruction "X Post Verifier: Ensure that any X post meets the strict guidelines: it must be under 280 characters, contain no emojis, and be free of additional commentary."^^xsd:string .
 
-ex:AgentPrompt_replan a agentoscin:Prompt ;
-    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
-    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "replan"^^xsd:string .
+ex:Config_verbose_Team_ShakespeareanXPostCrew a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
 
-ex:Agent_agent a agentoscin:LLMAgent ;
-    agentoscin:agentID "agent"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_agent ;
-    agentoscin:agentRole "agent"^^xsd:string ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4_turbo_preview .
+ex:Config_verbose_Team_XPostReviewCrew a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
 
-ex:Agent_planner a agentoscin:LLMAgent ;
-    agentoscin:agentID "planner"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_planner ;
-    agentoscin:agentRole "planner"^^xsd:string ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4_turbo_preview .
-
-ex:Agent_replan a agentoscin:LLMAgent ;
-    agentoscin:agentID "replan"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_replan ;
-    agentoscin:agentRole "replan"^^xsd:string ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4_turbo_preview .
-
-ex:FlowStep_planner a agentoscin:StartStep,
-        agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "planner"^^xsd:string ;
-    agentoscin:nextStep ex:FlowStep_agent ;
+ex:CrewStep_ShakespeareanXPostCrew_write_x_post a agentoscin:EndStep,
+        agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_write_x_post ;
+    agentoscin:hasTitle "write_x_post"^^xsd:string ;
     agentoscin:stepOrder 1 .
 
-ex:FlowStep_replan a agentoscin:ConditionalStep,
-        agentoscin:WorkflowStep ;
-    agentoscin:hasRoutingLogic "routing_function: should_end"^^xsd:string ;
-    agentoscin:hasTitle "replan"^^xsd:string ;
-    agentoscin:nextStep ex:FlowStep_agent ;
-    agentoscin:stepOrder 3 .
+ex:CrewStep_XPostReviewCrew_verify_x_post a agentoscin:EndStep,
+        agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_verify_x_post ;
+    agentoscin:hasTitle "verify_x_post"^^xsd:string ;
+    agentoscin:stepOrder 1 .
 
-ex:FlowWorkflowPattern_StateGraph a agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:FlowStep_agent,
-        ex:FlowStep_planner,
-        ex:FlowStep_replan .
+ex:FlowWorkflowPattern_ShakespeareXPostFlow a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_evaluate_x_post,
+        ex:FlowStep_generate_shakespeare_x_post,
+        ex:FlowStep_max_retry_exceeded_exit,
+        ex:FlowStep_save_result .
 
-ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+ex:Goal_shakespearean_bard a agentoscin:Goal ;
+    agentoscin:hasDescription "Craft sarcastic and playful hot takes in the style of Shakespeare. Ensure that all responses fit within 280 characters and contain no emojis."^^xsd:string .
+
+ex:Goal_x_post_verifier a agentoscin:Goal ;
+    agentoscin:hasDescription "Ensure that any X post meets the strict guidelines: it must be under 280 characters, contain no emojis, and be free of additional commentary."^^xsd:string .
+
+ex:Orchestration_ShakespeareXPostFlow a agentoscin:Orchestration ;
     agentoscin:employsCoordinationPattern agentoscin:Custom ;
-    agentoscin:hasTitle "StateGraph"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
+    agentoscin:hasTitle "ShakespeareXPostFlow"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_ShakespeareXPostFlow ;
+    agentoscin:orchestratesTeam ex:Team_ShakespeareanXPostCrew,
+        ex:Team_XPostReviewCrew .
+
+ex:Schema_XPostVerification a agentoscin:Schema ;
+    agentoscin:hasSchemaDefinition "{\"type\":\"object\",\"properties\":{\"valid\":{\"type\":\"boolean\"},\"feedback\":{\"type\":\"string\",\"nullable\":true}},\"required\":[\"valid\"]}"^^xsd:string .
+
+ex:TaskPrompt_verify_x_post a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction """Verify that the given X post meets the following criteria: - It is between 200 and 280 characters inclusive. - It contains no emojis. - It contains only the post itself, without additional commentary.
+The post should follow the 1-3-1 rule: - 1 bold statement to hook the reader - 3 lines of supporting information - 1 sentence to summarize the post
+Additionally, if you believe there are any issues with the post  or ways it could be improved, such as the structure of the post, rhythm, word choice, please provide feedback.
+If any of the criteria are not met, the post is considered invalid. Provide actionable changes about what is wrong and what actions need to be taken to fix the post.
+Your final response must include: - Valid: True/False - Feedback: Provide commentary if the post fails any of the criteria.
+X Post to Verify:  {x_post}"""^^xsd:string ;
+    agentoscin:promptOutputIndicator "Pass: True/False Feedback: Commentary here if failed."^^xsd:string .
+
+ex:TaskPrompt_write_x_post a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction """Given the topic '{topic}', compose a humorous hot take in the style of Shakespeare.  The tone should be sarcastic and playful. The final short form social media post  must be over 200 characters and not exceed 280 characters, and emojis are strictly forbidden.
+Please incorporate the following feedback if present:  {feedback}"""^^xsd:string ;
+    agentoscin:promptOutputIndicator "A witty, Shakespearean hot take between 200 and 280 characters [Inclusive]."^^xsd:string .
+
+ex:Task_verify_x_post a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "Pass: True/False Feedback: Commentary here if failed."^^xsd:string ;
+    agentoscin:hasOutputSchema ex:Schema_XPostVerification ;
+    agentoscin:performedByAgent ex:Agent_x_post_verifier ;
+    agentoscin:taskPrompt ex:TaskPrompt_verify_x_post .
+
+ex:Task_write_x_post a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A witty, Shakespearean hot take between 200 and 280 characters [Inclusive]."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_shakespearean_bard ;
+    agentoscin:taskPrompt ex:TaskPrompt_write_x_post .
+
+ex:Termination_ShakespeareanXPostCrew a agentoscin:TaskCompletionTermination .
+
+ex:Termination_XPostReviewCrew a agentoscin:TaskCompletionTermination .
+
+ex:WorkflowPattern_ShakespeareanXPostCrew a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_ShakespeareanXPostCrew_write_x_post .
+
+ex:WorkflowPattern_XPostReviewCrew a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_XPostReviewCrew_verify_x_post .
 
 <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology .
 
-agentoscin:Custom a agentoscin:CoordinationPattern .
-
-agentoscin:EndStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
+agentoscin:Custom a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
 
 agentoscin:HumanAgent a owl:Class ;
     rdfs:subClassOf agentoscin:Agent .
+
+agentoscin:LanguageModel a owl:Class ;
+    rdfs:subClassOf agentoscin:StatisticalModel .
 
 agentoscin:Model a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
@@ -517,14 +573,8 @@ agentoscin:Model a owl:Class ;
 agentoscin:RoutingTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
 
-agentoscin:StartStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
-
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
-
-agentoscin:TaskCompletionTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:hasCapability a owl:ObjectProperty ;
     rdfs:domain agentoscin:Tool ;
@@ -545,25 +595,83 @@ agentoscin:resourceUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Resource ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+ex:FlowStep_evaluate_x_post a agentoscin:ConditionalStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasRoutingLogic """        if self.state.retry_count > 3:
+            return "max_retry_exceeded"
+
+        result = XPostReviewCrew().crew().kickoff(inputs={"x_post": self.state.x_post})
+        self.state.valid = result["valid"]
+        self.state.feedback = result["feedback"]
+
+        print("valid", self.state.valid)
+        print("feedback", self.state.feedback)
+        self.state.retry_count += 1
+
+        if self.state.valid:
+            return "complete"
+
+        return "retry\""""^^xsd:string ;
+    agentoscin:hasTitle "evaluate_x_post"^^xsd:string ;
+    agentoscin:nextStep ex:FlowStep_generate_shakespeare_x_post,
+        ex:FlowStep_max_retry_exceeded_exit,
+        ex:FlowStep_save_result ;
+    agentoscin:stepOrder 2 .
+
+ex:FlowStep_generate_shakespeare_x_post a agentoscin:StartStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "generate_shakespeare_x_post"^^xsd:string ;
+    agentoscin:nextStep ex:FlowStep_evaluate_x_post ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowStep_max_retry_exceeded_exit a agentoscin:EndStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "max_retry_exceeded_exit"^^xsd:string ;
+    agentoscin:stepOrder 4 .
+
+ex:FlowStep_save_result a agentoscin:EndStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "save_result"^^xsd:string ;
+    agentoscin:stepOrder 3 .
+
+ex:Team_ShakespeareanXPostCrew a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasAgentMember ex:Agent_shakespearean_bard ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_ShakespeareanXPostCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_ShakespeareanXPostCrew ;
+    agentoscin:hasTitle "ShakespeareanXPostCrew"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_ShakespeareanXPostCrew .
+
+ex:Team_XPostReviewCrew a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasAgentMember ex:Agent_x_post_verifier ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_XPostReviewCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_XPostReviewCrew ;
+    agentoscin:hasTitle "XPostReviewCrew"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_XPostReviewCrew .
+
+ex:Tool_CharacterCounterTool a agentoscin:Tool ;
+    agentoscin:hasDescription "Counts the number of characters in a given string."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.CharacterCounterTool.CharacterCounterTool._run"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The string to count characters in.\"}},\"required\":[\"text\"]}"^^xsd:string ;
+    agentoscin:hasTitle "Character Counter Tool"^^xsd:string .
+
 agentoscin:ConditionalStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:EventBasedTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
 
-agentoscin:Goal a owl:Class ;
-    rdfs:subClassOf agentoscin:Context .
-
 agentoscin:Instance a owl:Class ;
     rdfs:subClassOf agentoscin:Resource .
-
-agentoscin:LanguageModel a owl:Class ;
-    rdfs:subClassOf agentoscin:StatisticalModel .
 
 agentoscin:Memory a owl:Class ;
     rdfs:subClassOf agentoscin:KnowledgeBase .
 
 agentoscin:Plan a owl:Class .
+
+agentoscin:Sequential a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
 
 agentoscin:Step a owl:Class .
 
@@ -576,6 +684,11 @@ agentoscin:hasGoal a owl:ObjectProperty ;
     rdfs:domain agentoscin:LLMAgent,
         agentoscin:Team ;
     rdfs:range agentoscin:Goal ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+agentoscin:hasMemoryBinding a owl:ObjectProperty ;
+    rdfs:domain agentoscin:LLMAgent ;
+    rdfs:range agentoscin:MemoryBinding ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
 agentoscin:hasPrompt a owl:ObjectProperty ;
@@ -593,22 +706,28 @@ agentoscin:toolUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Tool ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:FlowStep_agent a agentoscin:EndStep,
-        agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "agent"^^xsd:string ;
-    agentoscin:stepOrder 2 .
+ex:Agent_shakespearean_bard a agentoscin:LLMAgent ;
+    agentoscin:agentID "Shakespearean Bard"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_shakespearean_bard ;
+    agentoscin:agentRole "Shakespearean Bard"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_CharacterCounterTool ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_shakespearean_bard ;
+    agentoscin:hasReasoningEnabled false .
 
-ex:LM_gpt_4_turbo_preview a agentoscin:LanguageModel ;
-    agentoscin:hasTitle "gpt-4-turbo-preview"^^xsd:string .
-
-agentoscin:Agent a owl:Class .
+ex:Agent_x_post_verifier a agentoscin:LLMAgent ;
+    agentoscin:agentID "X Post Verifier"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_x_post_verifier ;
+    agentoscin:agentRole "X Post Verifier"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_CharacterCounterTool ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_x_post_verifier ;
+    agentoscin:hasReasoningEnabled false .
 
 agentoscin:Capability a owl:Class .
 
 agentoscin:CompositeTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
-
-agentoscin:CoordinationPattern a owl:Class .
 
 agentoscin:Environment a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
@@ -619,11 +738,23 @@ agentoscin:KnowledgeBase a owl:Class ;
 agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
-agentoscin:Schema a owl:Class .
+agentoscin:StartStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
 
-agentoscin:Config a owl:Class .
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:Agent a owl:Class .
 
 agentoscin:Context a owl:Class .
+
+agentoscin:EndStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
+
+agentoscin:Goal a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
+agentoscin:Schema a owl:Class .
 
 agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:domain agentoscin:Agent,
@@ -656,25 +787,29 @@ agentoscin:HumanCheckpoint a owl:Class .
 agentoscin:Orchestration a owl:Class ;
     rdfs:subClassOf agentoscin:Team .
 
-agentoscin:WorkflowPattern a owl:Class ;
-    rdfs:subClassOf agentoscin:Plan .
-
-agentoscin:MemoryBinding a owl:Class .
+agentoscin:Config a owl:Class .
 
 agentoscin:AgenticSystem a owl:Class .
+
+agentoscin:MemoryBinding a owl:Class .
 
 agentoscin:ReasoningPattern a owl:Class .
 
 agentoscin:Resource a owl:Class .
 
+agentoscin:WorkflowPattern a owl:Class ;
+    rdfs:subClassOf agentoscin:Plan .
+
 agentoscin:TerminationCondition a owl:Class .
 
 agentoscin:Tool a owl:Class .
 
-agentoscin:Team a owl:Class ;
-    rdfs:subClassOf agentoscin:System .
+agentoscin:CoordinationPattern a owl:Class .
 
 agentoscin:Prompt a owl:Class .
+
+agentoscin:Team a owl:Class ;
+    rdfs:subClassOf agentoscin:System .
 
 agentoscin:WorkflowStep a owl:Class ;
     rdfs:subClassOf agentoscin:Step .

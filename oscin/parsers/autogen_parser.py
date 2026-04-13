@@ -38,6 +38,7 @@ from oscin.intermediate import (
     ExtractedAgent,
     ExtractedFlow,
     ExtractedFlowStep,
+    ExtractedTask,
     ExtractedTeam,
     ExtractedTool,
 )
@@ -45,6 +46,16 @@ from oscin.intermediate import (
 log = logging.getLogger("oscin")
 
 _AGENT_CLASSES = {"AssistantAgent", "UserProxyAgent"}
+
+# Models known to have native reasoning capabilities
+_REASONING_MODELS = {"o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o3-pro"}
+
+# Known AutoGen memory classes and their persistence scope
+_MEMORY_PERSISTENCE = {
+    "ListMemory": "ExecutionScoped",
+    "ChromaDBVectorMemory": "Persistent",
+    "RedisMemory": "Persistent",
+}
 
 
 class AutoGenParser(BaseSourceParser):
@@ -148,7 +159,7 @@ class AutoGenParser(BaseSourceParser):
         Builds a mapping from variable name to (function_name, description)
         so that agent tool references can be resolved.
         """
-        for node in ast.iter_child_nodes(tree):
+        for node in ast.walk(tree):
             if not isinstance(node, ast.Assign) or len(node.targets) != 1:
                 continue
             target = node.targets[0]
@@ -182,7 +193,7 @@ class AutoGenParser(BaseSourceParser):
 
     def _extract_tools(self, tree: ast.Module, filepath: Path) -> None:
         """Extract tool functions. Enhances with FunctionTool descriptions."""
-        for node in ast.iter_child_nodes(tree):
+        for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
                 if node.name == "main":
                     continue
@@ -218,7 +229,7 @@ class AutoGenParser(BaseSourceParser):
 
     def _extract_agents(self, tree: ast.Module, filepath: Path) -> None:
         """Extract AssistantAgent and UserProxyAgent instantiations with variable-to-key mapping."""
-        for node in ast.iter_child_nodes(tree):
+        for node in ast.walk(tree):
             if not isinstance(node, ast.Assign) or len(node.targets) != 1:
                 continue
             target = node.targets[0]
@@ -229,9 +240,21 @@ class AutoGenParser(BaseSourceParser):
             if class_name not in _AGENT_CLASSES:
                 continue
 
-            name = self._extract_keyword_string(node.value, "name") or class_name
+            # Name can be passed as keyword (name="x") or first positional arg ("x")
+            name = self._extract_keyword_string(node.value, "name")
+            if not name and node.value.args:
+                first_arg = node.value.args[0]
+                if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                    name = first_arg.value
+            if not name:
+                name = target.id  # Fall back to variable name
             system_message = (
                 self._extract_keyword_string(node.value, "system_message") or ""
+            )
+
+            # A1: Extract description (orchestrator-facing prompt)
+            description = (
+                self._extract_keyword_string(node.value, "description") or ""
             )
 
             # Check for human input mode
@@ -240,6 +263,9 @@ class AutoGenParser(BaseSourceParser):
             )
             has_human_checkpoint = False
             if human_input_mode in ("ALWAYS", "TERMINATE"):
+                has_human_checkpoint = True
+            # A3: UserProxyAgent is always a human checkpoint
+            if class_name == "UserProxyAgent":
                 has_human_checkpoint = True
 
             llm = None
@@ -277,38 +303,74 @@ class AutoGenParser(BaseSourceParser):
                             else:
                                 tools.append(elt.id)
 
+            # A7: Detect memory instances on agents
+            has_memory = False
+            memory_type = ""
+            memory_persistence = ""
+            for kw in node.value.keywords:
+                if kw.arg == "memory" and isinstance(kw.value, ast.List):
+                    has_memory = True
+                    # Try to detect memory class types from list elements
+                    for elt in kw.value.elts:
+                        mem_class = None
+                        if isinstance(elt, ast.Call):
+                            mem_class = self._get_call_name(elt)
+                        elif isinstance(elt, ast.Name):
+                            mem_class = elt.id
+                        if mem_class and mem_class in _MEMORY_PERSISTENCE:
+                            memory_type = mem_class
+                            memory_persistence = _MEMORY_PERSISTENCE[mem_class]
+
             # Heuristic: split system_message into goal and backstory
             goal, backstory = self._split_system_message(system_message)
 
+            # A8: Detect reasoning from model name
+            reasoning = False
+            reasoning_origin = ""
+            if llm and any(llm.startswith(m) for m in _REASONING_MODELS):
+                reasoning = True
+                reasoning_origin = "ModelNative"
+
+            # A3: Set agent type
+            agent_type = "UserProxy" if class_name == "UserProxyAgent" else "GeneralPurpose"
+
             agent_key = self._safe_key(name)
 
-            # Since AutoGen doesn't have an explicit task construct, an agent with ALWAYS/TERMINATE
-            # is implicitly the human checkpoint owner. This is mapped via a dummy logic or
-            # we just extract it and later in populator map it. Let's add human_input attribute
+            # A2: AutoGen uses ModelDirective for system_message, or separate
+            # ModelDirective + OrchestratorDirective when description is also present
+            directive = "ModelDirective" if system_message else "DualDirective"
+
             agent = ExtractedAgent(
                 agent_key=agent_key,
                 role=name,
                 goal=goal,
                 backstory=backstory,
-                llm=llm,
+                llm=llm if class_name != "UserProxyAgent" else None,
                 tools=tools,
-                reasoning=False,
-                memory=False,
+                reasoning=reasoning,
+                memory=has_memory,
                 verbose=None,
                 source_file=str(filepath),
+                agent_type=agent_type,
+                description=description,
+                directive_function=directive,
+                reasoning_origin=reasoning_origin,
+                memory_type=memory_type,
+                memory_persistence=memory_persistence,
+                human_input=has_human_checkpoint,
             )
-            # monkeypatch human checkpoint attribute so populator can read it
-            agent.human_input = has_human_checkpoint
             self.agents[agent_key] = agent
 
             # Store variable-to-key mapping for team participant resolution
             self._var_to_agent_key[target.id] = agent_key
             log.info(
-                "  [Agent] '%s' (var=%s, llm=%s, tools=%s) from %s",
+                "  [Agent] '%s' (var=%s, type=%s, llm=%s, tools=%s, desc=%s) from %s",
                 name,
                 target.id,
+                agent_type,
                 llm or "unknown",
                 tools or "none",
+                "yes" if description else "no",
                 filepath.name,
             )
 
@@ -317,6 +379,44 @@ class AutoGenParser(BaseSourceParser):
     # -----------------------------------------------------------
 
     def _extract_teams(self, tree: ast.Module, filepath: Path) -> None:
+        # A5: Pre-pass to collect termination condition variable assignments
+        # e.g. text_term = TextMentionTermination("APPROVE")
+        term_vars: dict[str, dict] = {}
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            target = node.targets[0]
+            if not isinstance(target, ast.Name) or not isinstance(node.value, ast.Call):
+                continue
+            call_name = self._get_call_name(node.value)
+            if call_name == "TextMentionTermination":
+                trigger = ""
+                if node.value.args and isinstance(node.value.args[0], ast.Constant):
+                    trigger = str(node.value.args[0].value)
+                term_vars[target.id] = {"type": "EventBased", "trigger": trigger}
+            elif call_name == "MaxMessageTermination":
+                max_msgs = None
+                if node.value.args and isinstance(node.value.args[0], ast.Constant):
+                    max_msgs = node.value.args[0].value
+                for kw in node.value.keywords:
+                    if kw.arg == "max_messages" and isinstance(kw.value, ast.Constant):
+                        max_msgs = kw.value.value
+                term_vars[target.id] = {"type": "TurnLimit", "max_turns": max_msgs}
+            elif call_name in ("TextMessageTermination", "HandoffTermination", "ExternalTermination"):
+                term_vars[target.id] = {"type": "EventBased", "trigger": call_name}
+
+        # A5: Detect composite termination (var_a | var_b or var_a & var_b)
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            target = node.targets[0]
+            if not isinstance(target, ast.Name):
+                continue
+            if isinstance(node.value, ast.BinOp):
+                composite = self._extract_composite_termination(node.value, term_vars)
+                if composite:
+                    term_vars[target.id] = composite
+
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
@@ -325,6 +425,8 @@ class AutoGenParser(BaseSourceParser):
             if class_name not in [
                 "RoundRobinGroupChat",
                 "SelectorGroupChat",
+                "Swarm",
+                "MagenticOneGroupChat",
                 "GroupChat",
             ]:
                 continue
@@ -351,28 +453,106 @@ class AutoGenParser(BaseSourceParser):
                         if isinstance(kw.value.value, int):
                             max_turns = kw.value.value
 
+            # A5: Extract termination_condition kwarg
+            termination_conditions = []
+            for kw in node.keywords:
+                if kw.arg == "termination_condition":
+                    if isinstance(kw.value, ast.Name) and kw.value.id in term_vars:
+                        tc = term_vars[kw.value.id]
+                        if tc["type"] == "Composite":
+                            termination_conditions = tc.get("conditions", [])
+                            # Also store the composite itself
+                            termination_conditions.append(tc)
+                        else:
+                            termination_conditions.append(tc)
+                    elif isinstance(kw.value, ast.Call):
+                        tc = self._parse_termination_call(kw.value)
+                        if tc:
+                            termination_conditions.append(tc)
+
+            # A6: Map class to coordination pattern
+            pattern_map = {
+                "RoundRobinGroupChat": "RoundRobin",
+                "SelectorGroupChat": "SelectorBased",
+                "Swarm": "Swarm",
+                "MagenticOneGroupChat": "Custom",
+                "GroupChat": "RoundRobin",
+            }
+            coordination_pattern = pattern_map.get(class_name, "Custom")
+
             team = ExtractedTeam(
                 team_class_name=class_name,
                 agent_keys=agent_keys,
                 task_keys=[],
-                process="sequential"
-                if class_name in ["RoundRobinGroupChat", "GroupChat"]
-                else "hierarchical",
+                process="sequential",
                 verbose=False,
                 memory=False,
                 manager_llm=None,
                 max_turns=max_turns,
+                coordination_pattern=coordination_pattern,
+                termination_conditions=termination_conditions,
                 source_file=str(filepath),
             )
             team_key = f"{class_name}_{len(self.teams)}"
             self.teams[team_key] = team
             log.info(
-                "  [Team] %s with %d agents (max_turns=%s) from %s",
+                "  [Team] %s with %d agents (pattern=%s, max_turns=%s, terminations=%d) from %s",
                 class_name,
                 len(agent_keys),
+                coordination_pattern,
                 max_turns,
+                len(termination_conditions),
                 filepath.name,
             )
+
+    @staticmethod
+    def _parse_termination_call(call: ast.Call) -> dict | None:
+        """Parse a termination condition constructor call into a dict."""
+        call_name = ""
+        if isinstance(call.func, ast.Name):
+            call_name = call.func.id
+        elif isinstance(call.func, ast.Attribute):
+            call_name = call.func.attr
+
+        if call_name == "TextMentionTermination":
+            trigger = ""
+            if call.args and isinstance(call.args[0], ast.Constant):
+                trigger = str(call.args[0].value)
+            return {"type": "EventBased", "trigger": trigger}
+        elif call_name == "MaxMessageTermination":
+            max_msgs = None
+            if call.args and isinstance(call.args[0], ast.Constant):
+                max_msgs = call.args[0].value
+            for kw in call.keywords:
+                if kw.arg == "max_messages" and isinstance(kw.value, ast.Constant):
+                    max_msgs = kw.value.value
+            return {"type": "TurnLimit", "max_turns": max_msgs}
+        elif call_name in ("TextMessageTermination", "HandoffTermination", "ExternalTermination"):
+            return {"type": "EventBased", "trigger": call_name}
+        return None
+
+    @classmethod
+    def _extract_composite_termination(cls, bin_op: ast.BinOp, term_vars: dict) -> dict | None:
+        """Extract composite termination from binary operations (| or &)."""
+        if isinstance(bin_op.op, ast.BitOr):
+            operator = "OR"
+        elif isinstance(bin_op.op, ast.BitAnd):
+            operator = "AND"
+        else:
+            return None
+
+        conditions = []
+        for operand in (bin_op.left, bin_op.right):
+            if isinstance(operand, ast.Name) and operand.id in term_vars:
+                conditions.append(term_vars[operand.id])
+            elif isinstance(operand, ast.BinOp):
+                nested = cls._extract_composite_termination(operand, term_vars)
+                if nested:
+                    conditions.append(nested)
+
+        if conditions:
+            return {"type": "Composite", "operator": operator, "conditions": conditions}
+        return None
 
     # -----------------------------------------------------------
     # Flow Extraction
@@ -384,6 +564,13 @@ class AutoGenParser(BaseSourceParser):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 if node.func.attr in ("run", "run_stream", "initiate_chat"):
                     caller = self._get_attr_value_name(node.func)
+
+                    # A4: Extract task string from team.run(task="...")
+                    task_string = self._extract_keyword_string(node, "task") or ""
+                    # Also check first positional arg for initiate_chat
+                    if not task_string and node.func.attr == "initiate_chat":
+                        if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                            task_string = node.args[0].value
 
                     # For initiate_chat, try to extract who it interacts with
                     target = None
@@ -401,6 +588,26 @@ class AutoGenParser(BaseSourceParser):
                         calls_crew=target if target else caller,
                     )
                     steps.append(step)
+
+                    # A4: Create a Task from the task string
+                    if task_string:
+                        task_key = f"autogen_task_{len(self.tasks)}"
+                        task = ExtractedTask(
+                            task_key=task_key,
+                            description=task_string,
+                            expected_output="",
+                            agent_key=None,
+                            delegation_strategy="OrchestratorDelegated",
+                            source_file=str(filepath),
+                        )
+                        self.tasks[task_key] = task
+                        log.info(
+                            "  [Task] Extracted from %s(task=...) — '%s...' from %s",
+                            node.func.attr,
+                            task_string[:60],
+                            filepath.name,
+                        )
+
                     log.info(
                         "  [Flow] %s: %s from %s", node.func.attr, caller, filepath.name
                     )

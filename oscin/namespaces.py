@@ -29,6 +29,12 @@ HAS_REFERENCE = AGENTOSCIN.hasReference
 # Coordination pattern named individuals (pre-defined in the ontology)
 # ---------------------------------------------------------------------------
 COORD_SEQUENTIAL = AGENTOSCIN["Sequential"]
+COORD_HIERARCHICAL = AGENTOSCIN["Hierarchical"]
+COORD_ROUND_ROBIN = AGENTOSCIN["RoundRobin"]
+COORD_SELECTOR_BASED = AGENTOSCIN["SelectorBased"]
+COORD_SWARM = AGENTOSCIN["Swarm"]
+COORD_REACT_LOOP = AGENTOSCIN["ReActLoop"]
+COORD_NETWORK = AGENTOSCIN["Network"]
 COORD_CUSTOM = AGENTOSCIN["Custom"]
 
 

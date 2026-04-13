@@ -33,7 +33,13 @@ from oscin.base_parser import BaseSourceParser
 from oscin.namespaces import (
     AGENTOSCIN,
     COORD_CUSTOM,
+    COORD_HIERARCHICAL,
+    COORD_NETWORK,
+    COORD_REACT_LOOP,
+    COORD_ROUND_ROBIN,
+    COORD_SELECTOR_BASED,
     COORD_SEQUENTIAL,
+    COORD_SWARM,
     HAS_DESCRIPTION,
     HAS_REFERENCE,
     HAS_TITLE,
@@ -175,7 +181,7 @@ class OntologyPopulator:
             # Basic Agent props (Mapping table 1)
             self._add_str(uri, AGENTOSCIN.agentID, agent.role)
             self._add_str(uri, AGENTOSCIN.agentRole, agent.role)
-            self._add_str(uri, AGENTOSCIN.agentType, "GeneralPurpose")
+            self._add_str(uri, AGENTOSCIN.agentType, agent.agent_type)
             self._add_bool(uri, AGENTOSCIN.hasReasoningEnabled, agent.reasoning)
 
             # --- Goal ---
@@ -184,20 +190,71 @@ class OntologyPopulator:
                 self._add_str(goal_uri, HAS_DESCRIPTION, agent.goal)
                 self.g.add((uri, AGENTOSCIN.hasAgentGoal, goal_uri))
 
-            # --- Agent Prompt ---
-            prompt_uri = self._create_individual("AgentPrompt", key, AGENTOSCIN.Prompt)
-            self.prompt_uris[f"agent_{key}"] = prompt_uri
+            # --- Agent Prompt(s) ---
+            # D2: Use directive_function from intermediate to determine prompt type
+            directive = agent.directive_function
 
-            # Compose instruction: role + goal
-            instruction = f"{agent.role}: {agent.goal}" if agent.goal else agent.role
-            self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, instruction)
-            self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
-            self._add_str(prompt_uri, AGENTOSCIN.hasDirectiveFunction, "DualDirective")
-            self._add_str(
-                prompt_uri, AGENTOSCIN.hasSourceAttribute, "role, goal, backstory"
-            )
+            if directive == "ModelDirective":
+                # AutoGen pattern: system_message → ModelDirective prompt
+                # backstory holds the full system_message content
+                prompt_uri = self._create_individual(
+                    "AgentPrompt", key, AGENTOSCIN.Prompt
+                )
+                self.prompt_uris[f"agent_{key}"] = prompt_uri
+                # For AutoGen, instruction is goal (first sentence), context is backstory (rest)
+                self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, agent.goal)
+                self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+                self._add_str(
+                    prompt_uri, AGENTOSCIN.hasDirectiveFunction, "ModelDirective"
+                )
+                self._add_str(
+                    prompt_uri, AGENTOSCIN.hasSourceAttribute, "system_message"
+                )
+                self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
 
-            self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
+                # If description is also present, create a second OrchestratorDirective prompt
+                if agent.description:
+                    orch_prompt_uri = self._create_individual(
+                        "OrchestratorPrompt", key, AGENTOSCIN.Prompt
+                    )
+                    self._add_str(
+                        orch_prompt_uri,
+                        AGENTOSCIN.promptInstruction,
+                        agent.description,
+                    )
+                    self._add_str(
+                        orch_prompt_uri,
+                        AGENTOSCIN.hasDirectiveFunction,
+                        "OrchestratorDirective",
+                    )
+                    self._add_str(
+                        orch_prompt_uri,
+                        AGENTOSCIN.hasSourceAttribute,
+                        "description",
+                    )
+                    self.g.add((uri, AGENTOSCIN.agentPrompt, orch_prompt_uri))
+            else:
+                # CrewAI/default pattern: DualDirective
+                prompt_uri = self._create_individual(
+                    "AgentPrompt", key, AGENTOSCIN.Prompt
+                )
+                self.prompt_uris[f"agent_{key}"] = prompt_uri
+
+                # Compose instruction: role + goal
+                instruction = (
+                    f"{agent.role}: {agent.goal}" if agent.goal else agent.role
+                )
+                self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, instruction)
+                self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+                self._add_str(
+                    prompt_uri, AGENTOSCIN.hasDirectiveFunction, "DualDirective"
+                )
+                self._add_str(
+                    prompt_uri,
+                    AGENTOSCIN.hasSourceAttribute,
+                    "role, goal, backstory",
+                )
+                self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
 
             # --- Tool bindings ---
             for tool_key in agent.tools:
@@ -233,7 +290,9 @@ class OntologyPopulator:
                 rp_uri = self.EX["ReasoningPattern_Unspecified"]
                 self.g.add((rp_uri, RDF.type, AGENTOSCIN.Unspecified))
                 self.g.add((uri, AGENTOSCIN.employsReasoningPattern, rp_uri))
-                self._add_str(uri, AGENTOSCIN.hasReasoningOrigin, "FrameworkManaged")
+                # Use reasoning_origin from intermediate if set, else default
+                origin = agent.reasoning_origin or "FrameworkManaged"
+                self._add_str(uri, AGENTOSCIN.hasReasoningOrigin, origin)
                 if agent.max_reasoning_attempts is not None:
                     self._add_int(
                         uri,
@@ -243,7 +302,21 @@ class OntologyPopulator:
 
             # --- Memory ---
             if agent.memory:
-                self._bind_memory(uri, key, "AgentPrivate")
+                scope = "AgentPrivate"
+                persistence = agent.memory_persistence or "Persistent"
+                mb_uri = self._create_individual(
+                    f"MemoryBinding_{scope}", key, AGENTOSCIN.MemoryBinding
+                )
+                mem_uri = self._create_individual(
+                    f"Memory_{scope}", key, AGENTOSCIN.Memory
+                )
+                self._add_str(mb_uri, AGENTOSCIN.hasMemoryScope, scope)
+                self._add_str(mem_uri, AGENTOSCIN.hasPersistenceScope, persistence)
+                self.g.add((mb_uri, AGENTOSCIN.bindsMemory, mem_uri))
+                self.g.add((uri, AGENTOSCIN.hasMemoryBinding, mb_uri))
+                # Store memory type as title if available
+                if agent.memory_type:
+                    self._add_str(mem_uri, HAS_TITLE, agent.memory_type)
 
             # --- Knowledge Base ---
             for kb_source in getattr(agent, "knowledge_sources", []):
@@ -254,12 +327,16 @@ class OntologyPopulator:
                 self.g.add((uri, AGENTOSCIN.hasKnowledge, kb_uri))
 
             # --- Human Checkpoint (from Agent in AutoGen/LangGraph) ---
-            if getattr(agent, "human_input", False):
+            if agent.human_input:
                 hc_uri = self._create_individual(
                     "HumanCheckpoint", key, AGENTOSCIN.HumanCheckpoint
                 )
                 self.g.add((hc_uri, RDF.type, AGENTOSCIN.HumanCheckpoint))
-                self._add_str(hc_uri, AGENTOSCIN.hasCheckpointType, "Interaction")
+                # Determine checkpoint type based on agent type
+                if agent.agent_type == "UserProxy":
+                    self._add_str(hc_uri, AGENTOSCIN.hasCheckpointType, "InputRequest")
+                else:
+                    self._add_str(hc_uri, AGENTOSCIN.hasCheckpointType, "Approval")
                 self._add_bool(hc_uri, AGENTOSCIN.isMandatory, True)
                 self.g.add((uri, AGENTOSCIN.hasHumanCheckpoint, hc_uri))
 
@@ -283,6 +360,12 @@ class OntologyPopulator:
                 self.g.add(
                     (uri, AGENTOSCIN.performedByAgent, self.agent_uris[task.agent_key])
                 )
+            # Use delegation_strategy from intermediate if set, else infer
+            if task.delegation_strategy:
+                self._add_str(
+                    uri, AGENTOSCIN.hasDelegationStrategy, task.delegation_strategy
+                )
+            elif task.agent_key:
                 self._add_str(
                     uri, AGENTOSCIN.hasDelegationStrategy, "ExplicitAssignment"
                 )
@@ -346,8 +429,24 @@ class OntologyPopulator:
                 gr_uri = self._create_individual(
                     "Guardrail", f"{key}_{i}", AGENTOSCIN.Guardrail
                 )
-                self.g.add((gr_uri, RDF.type, AGENTOSCIN.Guardrail))  # ensure type
-                self._add_str(gr_uri, HAS_DESCRIPTION, guardrail_str)
+                self.g.add((gr_uri, RDF.type, AGENTOSCIN.Guardrail))
+
+                # C1: Parse structured guardrail type
+                if guardrail_str.startswith("FunctionBased:"):
+                    self._add_str(
+                        gr_uri, AGENTOSCIN.hasGuardrailType, "FunctionBased"
+                    )
+                    detail = guardrail_str[len("FunctionBased:"):]
+                    self._add_str(gr_uri, AGENTOSCIN.hasValidationLogic, detail)
+                elif guardrail_str.startswith("LLMBased:"):
+                    self._add_str(
+                        gr_uri, AGENTOSCIN.hasGuardrailType, "LLMBased"
+                    )
+                    detail = guardrail_str[len("LLMBased:"):]
+                    self._add_str(gr_uri, HAS_DESCRIPTION, detail)
+                else:
+                    self._add_str(gr_uri, HAS_DESCRIPTION, guardrail_str)
+
                 self.g.add((uri, AGENTOSCIN.hasGuardrail, gr_uri))
 
             # --- Human Checkpoint ---
@@ -364,8 +463,6 @@ class OntologyPopulator:
                 )
                 self._add_bool(hc_uri, AGENTOSCIN.isMandatory, True)
                 self.g.add((uri, AGENTOSCIN.hasHumanCheckpoint, hc_uri))
-                # Add humanParticipatedIn rule
-                self.g.add((uri, AGENTOSCIN.humanParticipatedIn, hc_uri))
 
             log.info("  [Task] %s \u2192 %s", key, uri)
 
@@ -388,20 +485,38 @@ class OntologyPopulator:
                     )
 
             # --- Coordination Pattern ---
-            pattern_map = {
-                "sequential": COORD_SEQUENTIAL,
-                "hierarchical": AGENTOSCIN["HierarchicalPattern"],
+            # Use explicit coordination_pattern if set, else infer from process
+            coord_pattern_map = {
+                "Sequential": COORD_SEQUENTIAL,
+                "Hierarchical": COORD_HIERARCHICAL,
+                "RoundRobin": COORD_ROUND_ROBIN,
+                "SelectorBased": COORD_SELECTOR_BASED,
+                "Swarm": COORD_SWARM,
+                "ReActLoop": COORD_REACT_LOOP,
+                "Network": COORD_NETWORK,
+                "Custom": COORD_CUSTOM,
             }
-            pattern_uri = pattern_map.get(team.process, COORD_CUSTOM)
-            # Ensure type is set even if using predefined individual
+            process_map = {
+                "sequential": COORD_SEQUENTIAL,
+                "hierarchical": COORD_HIERARCHICAL,
+            }
+            if team.coordination_pattern and team.coordination_pattern in coord_pattern_map:
+                pattern_uri = coord_pattern_map[team.coordination_pattern]
+            else:
+                pattern_uri = process_map.get(team.process, COORD_CUSTOM)
             self.g.add((pattern_uri, RDF.type, AGENTOSCIN.CoordinationPattern))
             self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, pattern_uri))
 
             # --- Termination ---
-            term_uri = self._create_individual(
-                "Termination", key, AGENTOSCIN.TaskCompletionTermination
-            )
-            self.g.add((uri, AGENTOSCIN.hasTerminationCondition, term_uri))
+            # Default: TaskCompletionTermination (CrewAI always terminates when tasks done)
+            if not team.termination_conditions:
+                term_uri = self._create_individual(
+                    "Termination", key, AGENTOSCIN.TaskCompletionTermination
+                )
+                self.g.add((uri, AGENTOSCIN.hasTerminationCondition, term_uri))
+            else:
+                # Structured termination conditions from parser
+                self._populate_termination_conditions(uri, key, team.termination_conditions)
 
             # Turn-limit termination (e.g. AutoGen max_turns)
             if team.max_turns is not None:
@@ -452,7 +567,54 @@ class OntologyPopulator:
                     self.g.add((prev_step_uri, AGENTOSCIN.nextStep, step_uri))
 
                 self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, step_uri))
+
+                # C3: For sequential teams, add implicit Sequential dependency
+                # between consecutive tasks that don't have explicit context
+                if (
+                    team.process == "sequential"
+                    and prev_step_uri is not None
+                    and task_key in self.task_uris
+                    and idx > 0
+                ):
+                    prev_task_key = team.task_keys[idx - 1]
+                    task_obj = self.parser.tasks.get(task_key)
+                    if task_obj and not task_obj.context_tasks:
+                        # No explicit context → add sequential dependency
+                        if prev_task_key in self.task_uris:
+                            self.g.add(
+                                (
+                                    self.task_uris[task_key],
+                                    AGENTOSCIN.dependsOn,
+                                    self.task_uris[prev_task_key],
+                                )
+                            )
+                            self._add_str(
+                                self.task_uris[task_key],
+                                AGENTOSCIN.hasDependencyType,
+                                "Sequential",
+                            )
+
                 prev_step_uri = step_uri
+
+            # --- Manager Agent (hierarchical process) ---
+            if team.manager_llm or team.manager_agent:
+                manager_key = team.manager_agent or f"manager_{key}"
+                if manager_key not in self.agent_uris:
+                    manager_uri = self._create_individual(
+                        "Agent", manager_key, AGENTOSCIN.LLMAgent
+                    )
+                    self.agent_uris[manager_key] = manager_uri
+                    self._add_str(manager_uri, AGENTOSCIN.agentID, "Manager")
+                    self._add_str(manager_uri, AGENTOSCIN.agentRole, "Manager")
+                    self._add_str(manager_uri, AGENTOSCIN.agentType, "Manager")
+                    if team.manager_llm:
+                        lm_uri = self._create_individual(
+                            "LM", team.manager_llm, AGENTOSCIN.LanguageModel
+                        )
+                        self._add_str(lm_uri, HAS_TITLE, team.manager_llm)
+                        self.g.add((manager_uri, AGENTOSCIN.useLanguageModel, lm_uri))
+                    self.g.add((uri, AGENTOSCIN.hasAgentMember, manager_uri))
+                    log.info("  [Agent] Manager created for team '%s'", key)
 
             # --- Config & Memory ---
             if team.verbose:
@@ -469,6 +631,71 @@ class OntologyPopulator:
                 self.g.add((uri, AGENTOSCIN.hasKnowledge, kb_uri))
 
             log.info("  [Team] %s \u2192 %s (process: %s)", key, uri, team.process)
+
+    # -----------------------------------------------------------
+    # Termination Condition Population
+    # -----------------------------------------------------------
+
+    def _populate_termination_conditions(
+        self, team_uri: URIRef, team_key: str, conditions: list[dict]
+    ) -> None:
+        """Populate structured termination conditions from parser data."""
+        for i, tc in enumerate(conditions):
+            tc_type = tc.get("type", "")
+            suffix = f"{team_key}_{i}"
+
+            if tc_type == "EventBased":
+                tc_uri = self._create_individual(
+                    "EventTermination", suffix, AGENTOSCIN.EventBasedTermination
+                )
+                trigger = tc.get("trigger", "")
+                if trigger:
+                    self._add_str(tc_uri, AGENTOSCIN.hasTriggerExpression, trigger)
+                self.g.add((team_uri, AGENTOSCIN.hasTerminationCondition, tc_uri))
+
+            elif tc_type == "TurnLimit":
+                tc_uri = self._create_individual(
+                    "TurnLimit", suffix, AGENTOSCIN.TurnLimitTermination
+                )
+                max_turns = tc.get("max_turns")
+                if max_turns is not None:
+                    self._add_int(tc_uri, AGENTOSCIN.hasMaxTurns, int(max_turns))
+                self.g.add((team_uri, AGENTOSCIN.hasTerminationCondition, tc_uri))
+
+            elif tc_type == "Routing":
+                tc_uri = self._create_individual(
+                    "RoutingTermination", suffix, AGENTOSCIN.RoutingTermination
+                )
+                self.g.add((team_uri, AGENTOSCIN.hasTerminationCondition, tc_uri))
+
+            elif tc_type == "Composite":
+                comp_uri = self._create_individual(
+                    "CompositeTermination", suffix, AGENTOSCIN.CompositeTermination
+                )
+                operator = tc.get("operator", "OR")
+                self._add_str(comp_uri, AGENTOSCIN.hasOperator, operator)
+                # Recurse for sub-conditions
+                sub_conditions = tc.get("conditions", [])
+                for j, sub_tc in enumerate(sub_conditions):
+                    sub_suffix = f"{suffix}_sub{j}"
+                    sub_type = sub_tc.get("type", "")
+                    if sub_type == "EventBased":
+                        sub_uri = self._create_individual(
+                            "EventTermination", sub_suffix, AGENTOSCIN.EventBasedTermination
+                        )
+                        trigger = sub_tc.get("trigger", "")
+                        if trigger:
+                            self._add_str(sub_uri, AGENTOSCIN.hasTriggerExpression, trigger)
+                        self.g.add((comp_uri, AGENTOSCIN.hasSubCondition, sub_uri))
+                    elif sub_type == "TurnLimit":
+                        sub_uri = self._create_individual(
+                            "TurnLimit", sub_suffix, AGENTOSCIN.TurnLimitTermination
+                        )
+                        max_turns = sub_tc.get("max_turns")
+                        if max_turns is not None:
+                            self._add_int(sub_uri, AGENTOSCIN.hasMaxTurns, int(max_turns))
+                        self.g.add((comp_uri, AGENTOSCIN.hasSubCondition, sub_uri))
+                self.g.add((team_uri, AGENTOSCIN.hasTerminationCondition, comp_uri))
 
     # -----------------------------------------------------------
     # Flow Population

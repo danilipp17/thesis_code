@@ -57,6 +57,15 @@ class ExtractedAgent:
     allow_delegation: Optional[bool] = None  # → hasAgentConfig
     knowledge_sources: list[str] = field(default_factory=list)  # → hasKnowledge
 
+    # Framework-specific agent metadata
+    agent_type: str = "GeneralPurpose"  # → agentType ("GeneralPurpose", "UserProxy", "Manager")
+    description: str = ""  # → OrchestratorDirective Prompt (AutoGen description param)
+    directive_function: str = "DualDirective"  # → Prompt.hasDirectiveFunction
+    reasoning_origin: str = ""  # → hasReasoningOrigin ("FrameworkManaged", "ModelNative")
+    memory_type: str = ""  # Specific memory class (e.g. "ListMemory", "ChromaDBVectorMemory")
+    memory_persistence: str = ""  # → Memory.hasPersistenceScope ("ExecutionScoped", "Persistent")
+    human_input: bool = False  # → hasHumanCheckpoint (for AutoGen UserProxy / LangGraph interrupt)
+
     # Provenance
     source_file: str = ""
 
@@ -86,6 +95,7 @@ class ExtractedTask:
     context_tasks: list[str] = field(default_factory=list)  # → dependsOn
     human_input: bool = False  # → hasHumanCheckpoint
     guardrails: list[str] = field(default_factory=list)  # → hasGuardrail
+    delegation_strategy: str = ""  # → hasDelegationStrategy ("ExplicitAssignment", "OrchestratorDelegated", "TopologyDetermined")
 
     # Provenance
     source_file: str = ""
@@ -138,6 +148,8 @@ class ExtractedTeam:
     manager_agent: Optional[str] = None  # → Manager agent
     max_turns: Optional[int] = None  # → hasTerminationCondition.hasMaxTurns
     knowledge_sources: list[str] = field(default_factory=list)  # → hasKnowledge
+    coordination_pattern: str = ""  # Explicit pattern name (overrides process-based inference)
+    termination_conditions: list[dict] = field(default_factory=list)  # Structured termination [{type, ...}]
     source_file: str = ""
 
 

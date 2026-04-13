@@ -592,6 +592,13 @@
               rdfs:range xsd:string .
 
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasEdgeMapping
+:hasEdgeMapping rdf:type owl:DatatypeProperty ;
+                rdfs:subPropertyOf owl:topDataProperty ;
+                rdfs:domain :WorkflowStep ;
+                rdfs:range xsd:string .
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasRoutingLogic
 :hasRoutingLogic rdf:type owl:DatatypeProperty ;
                  rdfs:subPropertyOf owl:topDataProperty ;
@@ -905,6 +912,50 @@
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WorkflowStep
 :WorkflowStep rdf:type owl:Class ;
               rdfs:subClassOf :Step .
+
+
+#################################################################
+#    Named Individuals — Coordination Patterns
+#################################################################
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Sequential
+:Sequential rdf:type owl:NamedIndividual ,
+                     :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Hierarchical
+:Hierarchical rdf:type owl:NamedIndividual ,
+                       :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoundRobin
+:RoundRobin rdf:type owl:NamedIndividual ,
+                     :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelectorBased
+:SelectorBased rdf:type owl:NamedIndividual ,
+                        :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Swarm
+:Swarm rdf:type owl:NamedIndividual ,
+                :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReActLoop
+:ReActLoop rdf:type owl:NamedIndividual ,
+                    :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Network
+:Network rdf:type owl:NamedIndividual ,
+                  :CoordinationPattern .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Custom
+:Custom rdf:type owl:NamedIndividual ,
+                 :CoordinationPattern .
 
 
 #################################################################

@@ -326,6 +326,73 @@ class LangGraphParser(BaseSourceParser):
                              len(state_fields), state_model, list(state_fields.keys()))
                     break
 
+        # --- B1: Create tasks for each agent node ---
+        for agent_key, agent in self.agents.items():
+            task_desc = ""
+            # Try to extract HumanMessage content from node function
+            node_name = agent.role
+            for filepath, source, tree in sources:
+                task_desc = self._extract_human_message_from_function(
+                    tree, nodes.get(node_name)
+                )
+                if task_desc:
+                    break
+            if not task_desc:
+                task_desc = f"Perform {agent.role} responsibilities"
+
+            task = ExtractedTask(
+                task_key=f"task_{agent_key}",
+                description=task_desc,
+                expected_output="",
+                agent_key=agent_key,
+                delegation_strategy="TopologyDetermined",  # B2
+                source_file=agent.source_file,
+            )
+            self.tasks[task.task_key] = task
+            log.info("  [Task] Created for agent '%s': '%s...'",
+                     agent_key, task_desc[:60])
+
+        # --- B5: Detect memory from graph.compile() ---
+        memory_type = ""
+        memory_persistence = ""
+        for filepath, source, tree in sources:
+            mem_info = self._extract_compile_memory(tree)
+            if mem_info:
+                memory_type = mem_info.get("type", "")
+                memory_persistence = mem_info.get("persistence", "")
+                log.info("  [Memory] Detected %s (persistence: %s)",
+                         memory_type, memory_persistence)
+                break
+
+        # --- B6: Detect interrupt() calls in node functions ---
+        for filepath, source, tree in sources:
+            self._detect_interrupts(tree, filepath, nodes)
+
+        # --- B3: Create Team from StateGraph ---
+        if nodes:
+            agent_keys = [k for k in self.agents.keys()]
+            task_keys = [k for k in self.tasks.keys()]
+
+            # B4: Classify coordination pattern from topology
+            coord_pattern = self._classify_coordination_pattern(
+                nodes, edges, conditional_edges, entry_points
+            )
+
+            team = ExtractedTeam(
+                team_class_name=graph_class_name or "StateGraph",
+                agent_keys=agent_keys,
+                task_keys=task_keys,
+                process="sequential",
+                coordination_pattern=coord_pattern,
+                termination_conditions=[{"type": "Routing"}],  # B7: RoutingTermination
+                source_file=graph_source_file,
+                memory=bool(memory_type),
+            )
+            team_key = f"langgraph_team_{len(self.teams)}"
+            self.teams[team_key] = team
+            log.info("  [Team] Created with %d agents, pattern=%s",
+                     len(agent_keys), coord_pattern)
+
         # --- Build the ExtractedFlow from graph structure ---
         if nodes:
             steps = self._build_flow_steps(
@@ -343,6 +410,206 @@ class LangGraphParser(BaseSourceParser):
             log.info("  [Flow] Built flow with %d steps", len(steps))
 
         self.log_extraction_summary()
+
+    # -----------------------------------------------------------
+    # B1: HumanMessage Extraction from Node Functions
+    # -----------------------------------------------------------
+
+    def _extract_human_message_from_function(
+        self, tree: ast.Module, node_info: Optional[_NodeInfo]
+    ) -> str:
+        """
+        Extract HumanMessage content from a node function body.
+
+        For literal strings, returns the exact content.
+        For f-strings or variable references, tries to resolve the
+        variable to its assigned value (often an f-string template).
+        Returns empty string if only a simple variable name is found
+        (runtime-only content), so caller can use the fallback.
+        """
+        if not node_info or not node_info.func_ref:
+            return ""
+        for item in ast.iter_child_nodes(tree):
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if item.name != node_info.func_ref:
+                continue
+
+            # First, try to find the HumanMessage content
+            hm_content_node = None
+            for node in ast.walk(item):
+                if isinstance(node, ast.Call):
+                    name = self._get_call_name(node)
+                    if name == "HumanMessage":
+                        for kw in node.keywords:
+                            if kw.arg == "content":
+                                hm_content_node = kw.value
+                                break
+                        if hm_content_node is None and node.args:
+                            hm_content_node = node.args[0]
+                        break
+
+            if hm_content_node is None:
+                continue
+
+            # If it's a literal string, return directly
+            if isinstance(hm_content_node, ast.Constant) and isinstance(hm_content_node.value, str):
+                return hm_content_node.value
+
+            # If it's an f-string (JoinedStr), unparse it
+            if isinstance(hm_content_node, ast.JoinedStr):
+                return ast.unparse(hm_content_node)
+
+            # If it's a variable reference, try to resolve to its assignment
+            if isinstance(hm_content_node, ast.Name):
+                var_name = hm_content_node.id
+                for stmt in item.body:
+                    if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+                        target = stmt.targets[0]
+                        if isinstance(target, ast.Name) and target.id == var_name:
+                            # Found the assignment — extract the value
+                            if isinstance(stmt.value, ast.JoinedStr):
+                                return ast.unparse(stmt.value)
+                            if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                                return stmt.value.value
+                            # For complex expressions (f-strings with state refs),
+                            # return the unparsed template
+                            return ast.unparse(stmt.value)
+                # Variable not found locally → it's runtime input, skip
+                return ""
+
+        return ""
+
+    # -----------------------------------------------------------
+    # B4: Coordination Pattern Classification
+    # -----------------------------------------------------------
+
+    def _classify_coordination_pattern(
+        self,
+        nodes: dict[str, _NodeInfo],
+        edges: list[tuple[str, str]],
+        conditional_edges: list[_ConditionalEdge],
+        entry_points: list[str],
+    ) -> str:
+        """
+        Classify the graph topology into a coordination pattern.
+
+        Sequential: linear chain A→B→C→END, no conditional edges
+        ReActLoop: agent→tools_condition→ToolNode→agent loop detected
+        Hierarchical: one node has conditional edges to ALL other agent nodes
+        Custom: default fallback
+        """
+        agent_node_names = {n for n in nodes if n not in self._tool_node_names}
+
+        # Check for Sequential: no conditional edges, linear chain
+        if not conditional_edges and len(agent_node_names) > 1:
+            return "Sequential"
+
+        # Check for ReAct loop: a conditional edge from an agent node that
+        # targets a ToolNode and loops back
+        for ce in conditional_edges:
+            targets = set(ce.mapping.values())
+            has_tool_target = bool(targets & self._tool_node_names)
+            has_end = "END" in targets or "__end__" in targets
+            if has_tool_target and (has_end or targets & agent_node_names):
+                return "ReActLoop"
+
+        # Check for Hierarchical: one node routes to multiple agent nodes
+        for ce in conditional_edges:
+            targets = set(ce.mapping.values()) - {"END", "__end__"}
+            agent_targets = targets & agent_node_names
+            if len(agent_targets) >= 2:
+                return "Hierarchical"
+
+        # Default
+        if conditional_edges:
+            return "Custom"
+        return "Sequential"
+
+    # -----------------------------------------------------------
+    # B5: Memory Detection from graph.compile()
+    # -----------------------------------------------------------
+
+    @staticmethod
+    def _extract_compile_memory(tree: ast.Module) -> dict | None:
+        """
+        Detect checkpointer= and store= in graph.compile() calls.
+
+        Returns dict with type and persistence info, or None.
+        """
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if not isinstance(node.func, ast.Attribute):
+                continue
+            if node.func.attr != "compile":
+                continue
+
+            result = {}
+            for kw in node.keywords:
+                if kw.arg == "checkpointer":
+                    # MemorySaver, SqliteSaver, etc.
+                    if isinstance(kw.value, ast.Call):
+                        cls_name = ""
+                        if isinstance(kw.value.func, ast.Name):
+                            cls_name = kw.value.func.id
+                        result["type"] = cls_name or "Checkpointer"
+                        result["persistence"] = "ThreadScoped"
+                        result["scope"] = "GroupShared"
+                    elif isinstance(kw.value, ast.Name):
+                        result["type"] = kw.value.id
+                        result["persistence"] = "ThreadScoped"
+                        result["scope"] = "GroupShared"
+                elif kw.arg == "store":
+                    if isinstance(kw.value, ast.Call):
+                        cls_name = ""
+                        if isinstance(kw.value.func, ast.Name):
+                            cls_name = kw.value.func.id
+                        result["type"] = cls_name or "Store"
+                        result["persistence"] = "Persistent"
+                        result["scope"] = "SystemGlobal"
+                    elif isinstance(kw.value, ast.Name):
+                        result["type"] = kw.value.id
+                        result["persistence"] = "Persistent"
+                        result["scope"] = "SystemGlobal"
+            if result:
+                return result
+        return None
+
+    # -----------------------------------------------------------
+    # B6: interrupt() Detection
+    # -----------------------------------------------------------
+
+    def _detect_interrupts(
+        self,
+        tree: ast.Module,
+        filepath: Path,
+        nodes: dict[str, _NodeInfo],
+    ) -> None:
+        """Detect interrupt() calls in node functions and mark agents."""
+        # Build func_name → node_name mapping
+        func_to_node: dict[str, str] = {}
+        for name, info in nodes.items():
+            if info.func_ref:
+                func_to_node[info.func_ref] = name
+
+        for item in ast.iter_child_nodes(tree):
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if item.name not in func_to_node:
+                continue
+
+            # Check if function body contains interrupt()
+            for child in ast.walk(item):
+                if isinstance(child, ast.Call):
+                    call_name = self._get_call_name(child)
+                    if call_name == "interrupt":
+                        node_name = func_to_node[item.name]
+                        agent_key = self._safe_key(node_name)
+                        if agent_key in self.agents:
+                            self.agents[agent_key].human_input = True
+                            log.info("  [HITL] interrupt() detected in node '%s'",
+                                     node_name)
 
     # -----------------------------------------------------------
     # Module-Level LLM Detection

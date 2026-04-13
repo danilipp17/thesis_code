@@ -500,11 +500,21 @@ class CrewAIParser(BaseSourceParser):
                 elif isinstance(elt, ast.Name):
                     context_tasks.append(elt.id)
 
+        # C1: Detect guardrail type (FunctionBased vs LLMBased) and extract details
         guardrails = []
         guardrail_kw = self._find_keyword(task_call, "guardrail")
-        if guardrail_kw and isinstance(guardrail_kw.value, ast.List):
-            for elt in guardrail_kw.value.elts:
-                guardrails.append("CustomGuardrailFunction")
+        if guardrail_kw:
+            guardrails = self._extract_guardrails(guardrail_kw, method)
+        # Also check plural 'guardrails' kwarg
+        guardrails_kw = self._find_keyword(task_call, "guardrails")
+        if guardrails_kw:
+            guardrails.extend(self._extract_guardrails(guardrails_kw, method))
+
+        # C2: Extract guardrail_max_retries
+        guardrail_max_retries = self._extract_keyword_int(task_call, "guardrail_max_retries")
+
+        # Delegation strategy based on agent assignment
+        delegation = "ExplicitAssignment" if agent_key else ""
 
         return ExtractedTask(
             task_key=method.name,
@@ -517,6 +527,7 @@ class CrewAIParser(BaseSourceParser):
             context_tasks=context_tasks,
             human_input=human_input,
             guardrails=guardrails,
+            delegation_strategy=delegation,
             source_file=source_file,
         )
 
@@ -882,6 +893,43 @@ class CrewAIParser(BaseSourceParser):
                         # e.g. CreateDraftTool.create_draft
                         tools.append(elt.attr)
         return tools
+
+    def _extract_guardrails(
+        self, kw: ast.keyword, method: ast.FunctionDef
+    ) -> list[str]:
+        """
+        C1: Extract guardrail info with type detection.
+
+        Returns list of strings encoding guardrail type and details:
+        - "FunctionBased:<function_body>" for callable guardrails
+        - "LLMBased:<description>" for string-based guardrails
+        """
+        guardrails = []
+        elements = []
+        if isinstance(kw.value, ast.List):
+            elements = kw.value.elts
+        else:
+            elements = [kw.value]
+
+        for elt in elements:
+            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                # String literal → LLMBased
+                guardrails.append(f"LLMBased:{elt.value}")
+            elif isinstance(elt, ast.Name):
+                # Function reference → FunctionBased
+                # Try to find the function body in the method's scope or module
+                guardrails.append(f"FunctionBased:{elt.id}")
+            elif isinstance(elt, ast.Call):
+                # Function call → FunctionBased
+                call_name = ""
+                if isinstance(elt.func, ast.Name):
+                    call_name = elt.func.id
+                elif isinstance(elt.func, ast.Attribute):
+                    call_name = elt.func.attr
+                guardrails.append(f"FunctionBased:{call_name}")
+            else:
+                guardrails.append("FunctionBased:unknown")
+        return guardrails
 
     @staticmethod
     def _extract_return_values(method: ast.FunctionDef) -> list[str]:
