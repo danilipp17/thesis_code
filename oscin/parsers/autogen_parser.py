@@ -244,7 +244,9 @@ class AutoGenParser(BaseSourceParser):
             name = self._extract_keyword_string(node.value, "name")
             if not name and node.value.args:
                 first_arg = node.value.args[0]
-                if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                if isinstance(first_arg, ast.Constant) and isinstance(
+                    first_arg.value, str
+                ):
                     name = first_arg.value
             if not name:
                 name = target.id  # Fall back to variable name
@@ -253,9 +255,7 @@ class AutoGenParser(BaseSourceParser):
             )
 
             # A1: Extract description (orchestrator-facing prompt)
-            description = (
-                self._extract_keyword_string(node.value, "description") or ""
-            )
+            description = self._extract_keyword_string(node.value, "description") or ""
 
             # Check for human input mode
             human_input_mode = self._extract_keyword_string(
@@ -332,7 +332,9 @@ class AutoGenParser(BaseSourceParser):
                 reasoning_origin = "ModelNative"
 
             # A3: Set agent type
-            agent_type = "UserProxy" if class_name == "UserProxyAgent" else "GeneralPurpose"
+            agent_type = (
+                "UserProxy" if class_name == "UserProxyAgent" else "GeneralPurpose"
+            )
 
             agent_key = self._safe_key(name)
 
@@ -402,7 +404,11 @@ class AutoGenParser(BaseSourceParser):
                     if kw.arg == "max_messages" and isinstance(kw.value, ast.Constant):
                         max_msgs = kw.value.value
                 term_vars[target.id] = {"type": "TurnLimit", "max_turns": max_msgs}
-            elif call_name in ("TextMessageTermination", "HandoffTermination", "ExternalTermination"):
+            elif call_name in (
+                "TextMessageTermination",
+                "HandoffTermination",
+                "ExternalTermination",
+            ):
                 term_vars[target.id] = {"type": "EventBased", "trigger": call_name}
 
         # A5: Detect composite termination (var_a | var_b or var_a & var_b)
@@ -527,12 +533,18 @@ class AutoGenParser(BaseSourceParser):
                 if kw.arg == "max_messages" and isinstance(kw.value, ast.Constant):
                     max_msgs = kw.value.value
             return {"type": "TurnLimit", "max_turns": max_msgs}
-        elif call_name in ("TextMessageTermination", "HandoffTermination", "ExternalTermination"):
+        elif call_name in (
+            "TextMessageTermination",
+            "HandoffTermination",
+            "ExternalTermination",
+        ):
             return {"type": "EventBased", "trigger": call_name}
         return None
 
     @classmethod
-    def _extract_composite_termination(cls, bin_op: ast.BinOp, term_vars: dict) -> dict | None:
+    def _extract_composite_termination(
+        cls, bin_op: ast.BinOp, term_vars: dict
+    ) -> dict | None:
         """Extract composite termination from binary operations (| or &)."""
         if isinstance(bin_op.op, ast.BitOr):
             operator = "OR"
@@ -569,7 +581,11 @@ class AutoGenParser(BaseSourceParser):
                     task_string = self._extract_keyword_string(node, "task") or ""
                     # Also check first positional arg for initiate_chat
                     if not task_string and node.func.attr == "initiate_chat":
-                        if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                        if (
+                            node.args
+                            and isinstance(node.args[0], ast.Constant)
+                            and isinstance(node.args[0].value, str)
+                        ):
                             task_string = node.args[0].value
 
                     # For initiate_chat, try to extract who it interacts with
@@ -583,8 +599,8 @@ class AutoGenParser(BaseSourceParser):
 
                     step = ExtractedFlowStep(
                         method_name=method_title,
-                        decorator_type="start",
-                        decorator_args=[],
+                        step_type="start",
+                        dependencies=[],
                         calls_crew=target if target else caller,
                     )
                     steps.append(step)

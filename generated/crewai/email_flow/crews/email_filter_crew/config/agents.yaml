@@ -1,9 +1,0 @@
-email_action_agent:
-  role: email_action_agent
-  goal: ''
-email_filter_agent:
-  role: email_filter_agent
-  goal: ''
-email_response_writer:
-  role: email_response_writer
-  goal: ''

@@ -51,8 +51,9 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         log.info("")
         log.info("=" * 60)
-        log.info("LANGGRAPH GENERATION COMPLETE — %d files written",
-                 len(self._created_files))
+        log.info(
+            "LANGGRAPH GENERATION COMPLETE — %d files written", len(self._created_files)
+        )
         log.info("=" * 60)
 
         return self._created_files
@@ -62,36 +63,29 @@ class LangGraphGenerator(BaseCodeGenerator):
     # -----------------------------------------------------------
 
     def _generate_tools_file(self) -> None:
-        """Generate a tools.py with @tool-decorated function skeletons."""
-        lines = [
-            '"""',
-            "Auto-generated LangGraph tool definitions.",
-            '"""',
-            "",
-            "from langchain_core.tools import tool",
-            "",
-        ]
+        """Generate a tools.py with @tool-decorated function skeletons using Jinja2."""
+        template = self.jinja_env.get_template("langgraph_tools.py.j2")
+        tools_data = []
 
         for key, tool in self.reader.tools.items():
             func_name = self._to_snake(key)
-            # Generate typed parameters from args_schema if available
             params = self._build_tool_params(tool)
-            lines.extend([
-                "",
-                "@tool",
-                f'def {func_name}({params}) -> str:',
-                f'    """{tool.name}',
-                f'    {tool.description}',
-                f'    """',
-                f'    raise NotImplementedError("TODO: implement {tool.name}")',
-                "",
-            ])
+            tools_data.append(
+                {
+                    "func_name": func_name,
+                    "params": params,
+                    "name": tool.name,
+                    "description": tool.description,
+                }
+            )
 
-        self._write_file("tools.py", "\n".join(lines))
+        content = template.render(tools=tools_data)
+        self._write_file("tools.py", content)
 
     def _build_tool_params(self, tool) -> str:
         """Build parameter string from tool's args_schema_json."""
         import json
+
         try:
             schema = json.loads(tool.args_schema_json)
         except (json.JSONDecodeError, TypeError):
@@ -123,9 +117,7 @@ class LangGraphGenerator(BaseCodeGenerator):
     def _generate_main(self) -> None:
         """Generate main.py with StateGraph construction."""
         # Determine if any agent has a system prompt
-        has_system_prompts = any(
-            a.backstory for a in self.reader.agents.values()
-        )
+        has_system_prompts = any(a.backstory for a in self.reader.agents.values())
 
         lines = [
             '"""',
@@ -147,11 +139,13 @@ class LangGraphGenerator(BaseCodeGenerator):
         # Tool imports
         if self.reader.tools:
             tool_funcs = ", ".join(self._to_snake(k) for k in self.reader.tools)
-            lines.extend([
-                f"from tools import {tool_funcs}",
-                "from langgraph.prebuilt import ToolNode",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"from tools import {tool_funcs}",
+                    "from langgraph.prebuilt import ToolNode",
+                    "",
+                ]
+            )
 
         # State definition — use actual fields if available from semantic layer
         lines.extend(self._generate_state_class())
@@ -163,27 +157,29 @@ class LangGraphGenerator(BaseCodeGenerator):
                 llm_models.add(agent.llm)
         model = next(iter(llm_models), "gpt-4o")
 
-        lines.extend([
-            f'model = ChatOpenAI(model="{model}")',
-            "",
-        ])
+        lines.extend(
+            [
+                f'model = ChatOpenAI(model="{model}")',
+                "",
+            ]
+        )
 
         # Per-agent tool binding
         # Build a mapping of which agents have tools
-        agents_with_tools = {
-            k: a for k, a in self.reader.agents.items() if a.tools
-        }
+        agents_with_tools = {k: a for k, a in self.reader.agents.items() if a.tools}
         agents_without_tools = {
             k: a for k, a in self.reader.agents.items() if not a.tools
         }
 
         if self.reader.tools:
             tool_list = ", ".join(self._to_snake(k) for k in self.reader.tools)
-            lines.extend([
-                f"tools = [{tool_list}]",
-                "tool_node = ToolNode(tools)",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"tools = [{tool_list}]",
+                    "tool_node = ToolNode(tools)",
+                    "",
+                ]
+            )
 
             if agents_with_tools and agents_without_tools:
                 # Some agents have tools, some don't — generate per-agent bindings
@@ -194,23 +190,27 @@ class LangGraphGenerator(BaseCodeGenerator):
                 lines.append("")
             elif agents_with_tools:
                 # All agents have tools
-                lines.extend([
-                    "model_with_tools = model.bind_tools(tools)",
-                    "",
-                ])
+                lines.extend(
+                    [
+                        "model_with_tools = model.bind_tools(tools)",
+                        "",
+                    ]
+                )
 
         # Node functions
         if self.reader.flow:
             for step in self.reader.flow.steps:
                 func_name = self._to_snake(step.method_name)
                 # Check if this step has routing logic (router or start+conditional)
-                has_routing = (step.return_values or step.edge_mapping) and step.function_body
+                has_routing = (
+                    step.return_values or step.edge_mapping
+                ) and step.function_body
                 if has_routing:
                     # It's a node with conditional routing — generate node func + router
                     lines.extend(self._render_node_function(func_name, step))
                     router_name = f"route_{func_name}"
                     lines.extend(self._render_router_function(router_name, step))
-                elif step.decorator_type == "router":
+                elif step.step_type == "router":
                     lines.extend(self._render_router_function(func_name, step))
                 else:
                     lines.extend(self._render_node_function(func_name, step))
@@ -221,12 +221,14 @@ class LangGraphGenerator(BaseCodeGenerator):
                 lines.extend(self._render_agent_node_function(func_name, agent))
 
         # Graph construction
-        lines.extend([
-            "",
-            "# Build the graph",
-            "graph = StateGraph(State)",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "# Build the graph",
+                "graph = StateGraph(State)",
+                "",
+            ]
+        )
 
         if self.reader.flow:
             self._generate_flow_graph(lines)
@@ -234,17 +236,19 @@ class LangGraphGenerator(BaseCodeGenerator):
             self._generate_sequential_graph(lines)
 
         # Compile and run
-        lines.extend([
-            "",
-            "# Compile the graph",
-            "app = graph.compile()",
-            "",
-            "",
-            'if __name__ == "__main__":',
-            '    result = app.invoke({"messages": ["Start the task."]})',
-            '    print(result["messages"][-1].content)',
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "# Compile the graph",
+                "app = graph.compile()",
+                "",
+                "",
+                'if __name__ == "__main__":',
+                '    result = app.invoke({"messages": ["Start the task."]})',
+                '    print(result["messages"][-1].content)',
+                "",
+            ]
+        )
 
         self._write_file("main.py", "\n".join(lines))
 
@@ -254,19 +258,36 @@ class LangGraphGenerator(BaseCodeGenerator):
 
     def _generate_state_class(self) -> list[str]:
         """Generate the State TypedDict from semantic layer state fields."""
-        lines = ["", "class State(TypedDict):", '    """Graph state."""']
+        lines = [
+            "",
+            "class State(TypedDict):",
+            '    """Graph state."""',
+            "    messages: Annotated[list, add_messages]",
+        ]
 
         state_fields = {}
         if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
             state_fields = self.reader.flow.state_fields or {}
 
-        if state_fields:
-            for field_name, field_type in state_fields.items():
-                # Handle Annotated types as-is
-                lines.append(f"    {field_name}: {field_type}")
-        else:
-            # Default fallback
-            lines.append("    messages: Annotated[list, add_messages]")
+        for field_name, field_type in state_fields.items():
+            if field_name == "messages":
+                continue  # Handled above
+            # Handle standard python types from JSON types
+            py_type = "str"
+            if field_type == "integer":
+                py_type = "int"
+            elif field_type == "boolean":
+                py_type = "bool"
+            elif field_type == "number":
+                py_type = "float"
+            elif field_type == "array":
+                py_type = "list"
+            elif field_type == "object":
+                py_type = "dict"
+            elif field_type in ("str", "int", "float", "bool", "list", "dict"):
+                py_type = field_type
+
+            lines.append(f"    {field_name}: {py_type}")
 
         lines.append("")
         return lines
@@ -277,6 +298,20 @@ class LangGraphGenerator(BaseCodeGenerator):
 
     def _render_node_function(self, func_name: str, step) -> list[str]:
         """Render a standard node function with system prompt if available."""
+
+        # Subgraph invocation
+        if step.calls_crew:
+            team = self.reader.teams.get(step.calls_crew)
+            team_name = team.team_class_name if team else "SubGraph"
+            return [
+                "",
+                f"def {func_name}(state: State) -> dict:",
+                f'    """Subgraph node: {step.method_name}"""',
+                f"    # TODO: Initialize and invoke the {team_name} compiled subgraph here",
+                f'    return {{"messages": []}}',
+                "",
+            ]
+
         # Find the corresponding agent for this step
         agent = self._find_agent_for_step(step)
 
@@ -289,22 +324,26 @@ class LangGraphGenerator(BaseCodeGenerator):
         # Inject system prompt if agent has one
         if agent and agent.backstory:
             escaped = agent.backstory.replace('"""', '\\"\\"\\"')
-            lines.extend([
-                f'    system_prompt = SystemMessage(content=',
-                f'        """{escaped}"""',
-                f"    )",
-                f'    messages = [system_prompt] + state["messages"]',
-            ])
+            lines.extend(
+                [
+                    f"    system_prompt = SystemMessage(content=",
+                    f'        """{escaped}"""',
+                    f"    )",
+                    f'    messages = [system_prompt] + state["messages"]',
+                ]
+            )
         else:
             lines.append(f'    messages = state["messages"]')
 
         # Use appropriate model (with or without tools)
         model_var = self._get_model_var_for_agent(agent)
-        lines.extend([
-            f"    response = {model_var}.invoke(messages)",
-            '    return {"messages": [response]}',
-            "",
-        ])
+        lines.extend(
+            [
+                f"    response = {model_var}.invoke(messages)",
+                '    return {"messages": [response]}',
+                "",
+            ]
+        )
         return lines
 
     def _render_agent_node_function(self, func_name: str, agent) -> list[str]:
@@ -317,21 +356,25 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         if agent.backstory:
             escaped = agent.backstory.replace('"""', '\\"\\"\\"')
-            lines.extend([
-                f'    system_prompt = SystemMessage(content=',
-                f'        """{escaped}"""',
-                f"    )",
-                f'    messages = [system_prompt] + state["messages"]',
-            ])
+            lines.extend(
+                [
+                    f"    system_prompt = SystemMessage(content=",
+                    f'        """{escaped}"""',
+                    f"    )",
+                    f'    messages = [system_prompt] + state["messages"]',
+                ]
+            )
         else:
             lines.append(f'    messages = state["messages"]')
 
         model_var = self._get_model_var_for_agent(agent)
-        lines.extend([
-            f"    response = {model_var}.invoke(messages)",
-            '    return {"messages": [response]}',
-            "",
-        ])
+        lines.extend(
+            [
+                f"    response = {model_var}.invoke(messages)",
+                '    return {"messages": [response]}',
+                "",
+            ]
+        )
         return lines
 
     def _render_router_function(self, func_name: str, step) -> list[str]:
@@ -343,7 +386,9 @@ class LangGraphGenerator(BaseCodeGenerator):
         ]
 
         # If we have actual routing logic from extraction, emit it
-        if step.function_body and not step.function_body.startswith("routing_function:"):
+        if step.function_body and not step.function_body.startswith(
+            "routing_function:"
+        ):
             # Indent the extracted function body
             for body_line in step.function_body.split("\n"):
                 lines.append(f"    {body_line}")
@@ -352,11 +397,13 @@ class LangGraphGenerator(BaseCodeGenerator):
             # Fallback: generate stub with return value hints
             for i, rv in enumerate(step.return_values):
                 if i == 0:
-                    lines.append(f'    # if condition:')
+                    lines.append(f"    # if condition:")
                     lines.append(f'    #     return "{rv}"')
                 else:
                     lines.append(f'    # return "{rv}"')
-            lines.append(f'    return "{step.return_values[0]}"  # TODO: implement routing logic')
+            lines.append(
+                f'    return "{step.return_values[0]}"  # TODO: implement routing logic'
+            )
             lines.append("")
         else:
             lines.append('    return "end"  # TODO: implement routing logic')
@@ -383,7 +430,7 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         # Add edges based on flow structure
         for step in self.reader.flow.steps:
-            if step.decorator_type == "start":
+            if step.step_type == "start":
                 lines.append(f'graph.add_edge(START, "{step.method_name}")')
 
                 # If start step has routing (conditional edges)
@@ -392,28 +439,26 @@ class LangGraphGenerator(BaseCodeGenerator):
                     mapping_entries = self._build_mapping_entries(step)
                     if mapping_entries:
                         lines.append(
-                            f'graph.add_conditional_edges(\n'
+                            f"graph.add_conditional_edges(\n"
                             f'    "{step.method_name}",\n'
-                            f'    {router_name},\n'
-                            f'    {{\n'
-                            + ",\n".join(mapping_entries) + "\n"
-                            f'    }},\n'
-                            f')'
+                            f"    {router_name},\n"
+                            f"    {{\n" + ",\n".join(mapping_entries) + "\n"
+                            f"    }},\n"
+                            f")"
                         )
 
-            elif step.decorator_type == "router":
+            elif step.step_type == "router":
                 func_name = self._to_snake(step.method_name)
-                source = step.decorator_args[0] if step.decorator_args else step.method_name
+                source = step.dependencies[0] if step.dependencies else step.method_name
                 mapping_entries = self._build_mapping_entries(step)
                 if mapping_entries:
                     lines.append(
-                        f'graph.add_conditional_edges(\n'
+                        f"graph.add_conditional_edges(\n"
                         f'    "{source}",\n'
-                        f'    {func_name},\n'
-                        f'    {{\n'
-                        + ",\n".join(mapping_entries) + "\n"
-                        f'    }},\n'
-                        f')'
+                        f"    {func_name},\n"
+                        f"    {{\n" + ",\n".join(mapping_entries) + "\n"
+                        f"    }},\n"
+                        f")"
                     )
 
         # End edges: listen steps with no outgoing edges
@@ -421,19 +466,31 @@ class LangGraphGenerator(BaseCodeGenerator):
         for step in self.reader.flow.steps:
             if step.return_values or step.edge_mapping:
                 has_outgoing.add(step.method_name)
-            if step.decorator_type == "start" and not step.return_values and not step.edge_mapping:
+            if (
+                step.step_type == "start"
+                and not step.return_values
+                and not step.edge_mapping
+            ):
                 has_outgoing.add(step.method_name)
 
         for step in self.reader.flow.steps:
-            if step.decorator_type == "listen" and step.method_name not in has_outgoing:
+            if step.return_values or step.edge_mapping:
+                has_outgoing.add(step.method_name)
+            if (
+                step.step_type == "start"
+                and not step.return_values
+                and not step.edge_mapping
+            ):
+                has_outgoing.add(step.method_name)
+
+        for step in self.reader.flow.steps:
+            if step.step_type == "listen" and step.method_name not in has_outgoing:
                 lines.append(f'graph.add_edge("{step.method_name}", END)')
 
         # Add tool-agent loop edges if tools exist
         if self.reader.tools:
             # Find agents with tools — add edges from tools back to those agents
-            agents_with_tools = [
-                k for k, a in self.reader.agents.items() if a.tools
-            ]
+            agents_with_tools = [k for k, a in self.reader.agents.items() if a.tools]
             for ak in agents_with_tools:
                 lines.append(f'graph.add_edge("tools", "{ak}")')
 
@@ -452,7 +509,9 @@ class LangGraphGenerator(BaseCodeGenerator):
         if agent_keys:
             lines.append(f'graph.add_edge(START, "{agent_keys[0]}")')
             for i in range(len(agent_keys) - 1):
-                lines.append(f'graph.add_edge("{agent_keys[i]}", "{agent_keys[i+1]}")')
+                lines.append(
+                    f'graph.add_edge("{agent_keys[i]}", "{agent_keys[i + 1]}")'
+                )
             lines.append(f'graph.add_edge("{agent_keys[-1]}", END)')
 
     # -----------------------------------------------------------

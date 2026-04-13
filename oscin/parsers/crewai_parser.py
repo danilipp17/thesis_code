@@ -511,7 +511,9 @@ class CrewAIParser(BaseSourceParser):
             guardrails.extend(self._extract_guardrails(guardrails_kw, method))
 
         # C2: Extract guardrail_max_retries
-        guardrail_max_retries = self._extract_keyword_int(task_call, "guardrail_max_retries")
+        guardrail_max_retries = self._extract_keyword_int(
+            task_call, "guardrail_max_retries"
+        )
 
         # Delegation strategy based on agent assignment
         delegation = "ExplicitAssignment" if agent_key else ""
@@ -633,8 +635,8 @@ class CrewAIParser(BaseSourceParser):
                     if step.calls_crew:
                         crew_references.add(step.calls_crew)
                     log.info(
-                        "    [FlowStep] @%s: %s%s",
-                        step.decorator_type,
+                        "    [FlowStep] %s: %s%s",
+                        step.step_type,
                         step.method_name,
                         f" → calls {step.calls_crew}" if step.calls_crew else "",
                     )
@@ -659,27 +661,33 @@ class CrewAIParser(BaseSourceParser):
         - @listen(x)  → WorkflowStep, x determines nextStep source
         - @router(x)  → ConditionalStep, return values → nextStep targets
         """
-        decorator_type = None
-        decorator_args: list[str] = []
+        step_type = None
+        dependencies: list[str] = []
 
         for deco in method.decorator_list:
             if isinstance(deco, ast.Call) and isinstance(deco.func, ast.Name):
                 deco_name = deco.func.id
                 if deco_name in ("start", "listen", "router"):
-                    decorator_type = deco_name
+                    step_type = deco_name
                     # Extract arguments (string labels or method references)
                     for arg in deco.args:
                         if isinstance(arg, ast.Constant):
-                            decorator_args.append(str(arg.value))
+                            dependencies.append(str(arg.value))
                         elif isinstance(arg, ast.Name):
-                            decorator_args.append(arg.id)
+                            dependencies.append(arg.id)
             elif isinstance(deco, ast.Name):
                 # Bare decorator without parentheses: @start
                 if deco.id in ("start", "listen", "router"):
-                    decorator_type = deco.id
+                    step_type = deco.id
 
-        if not decorator_type:
+        if not step_type:
             return None
+
+        # Map to common IR step types
+        if step_type == "listen":
+            step_type = "regular"
+        elif step_type == "router":
+            step_type = "conditional"
 
         # Detect crew.kickoff() calls in the method body.
         # Pattern: SomeCrewClass().crew().kickoff(...)
@@ -687,7 +695,7 @@ class CrewAIParser(BaseSourceParser):
 
         # For @router methods, extract return values
         return_values = []
-        if decorator_type == "router":
+        if step_type == "conditional":
             return_values = self._extract_return_values(method)
 
         # Serialize the function body for routing logic storage.
@@ -695,7 +703,7 @@ class CrewAIParser(BaseSourceParser):
         # the routing logic is complete and can be interpreted by a
         # generator targeting a different framework.
         function_body = ""
-        if decorator_type == "router":
+        if step_type == "conditional":
             # Strategy: use source positions to extract the full body
             # from the first statement to the last statement.
             first_stmt = method.body[0]
@@ -712,8 +720,8 @@ class CrewAIParser(BaseSourceParser):
 
         return ExtractedFlowStep(
             method_name=method.name,
-            decorator_type=decorator_type,
-            decorator_args=decorator_args,
+            step_type=step_type,
+            dependencies=dependencies,
             calls_crew=calls_crew,
             return_values=return_values,
             function_body=function_body,

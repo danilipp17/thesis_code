@@ -100,8 +100,9 @@ class CrewAIGenerator(BaseCodeGenerator):
 
         log.info("")
         log.info("=" * 60)
-        log.info("CREWAI GENERATION COMPLETE — %d files written",
-                 len(self._created_files))
+        log.info(
+            "CREWAI GENERATION COMPLETE — %d files written", len(self._created_files)
+        )
         log.info("=" * 60)
 
         return self._created_files
@@ -178,12 +179,16 @@ class {class_name}(BaseTool):
             lines.append("    pass")
         else:
             for fname, finfo in props.items():
-                ftype = self._json_type_to_python(finfo.get("type", "str") if isinstance(finfo, dict) else "str")
+                ftype = self._json_type_to_python(
+                    finfo.get("type", "str") if isinstance(finfo, dict) else "str"
+                )
                 desc = finfo.get("description", "") if isinstance(finfo, dict) else ""
                 if fname in required:
                     lines.append(f'    {fname}: {ftype} = Field(description="{desc}")')
                 else:
-                    lines.append(f'    {fname}: {ftype} = Field(default=None, description="{desc}")')
+                    lines.append(
+                        f'    {fname}: {ftype} = Field(default=None, description="{desc}")'
+                    )
 
         return "\n".join(lines)
 
@@ -210,7 +215,9 @@ class {class_name}(BaseTool):
                 parts.append("    pass")
             else:
                 for fname, ftype in model.fields.items():
-                    py_type = self._json_type_to_python(ftype if isinstance(ftype, str) else ftype.get("type", "str"))
+                    py_type = self._json_type_to_python(
+                        ftype if isinstance(ftype, str) else ftype.get("type", "str")
+                    )
                     # Check if field is nullable
                     nullable = False
                     if isinstance(ftype, dict) and ftype.get("nullable"):
@@ -247,8 +254,11 @@ class {class_name}(BaseTool):
             agents_yaml[agent_key] = agent_dict
 
         agents_yaml_str = yaml.dump(
-            agents_yaml, default_flow_style=False,
-            allow_unicode=True, sort_keys=False, width=1000,
+            agents_yaml,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+            width=1000,
         )
         self._write_file(f"crews/{crew_snake}/config/agents.yaml", agents_yaml_str)
 
@@ -268,8 +278,11 @@ class {class_name}(BaseTool):
             tasks_yaml[task_key] = task_dict
 
         tasks_yaml_str = yaml.dump(
-            tasks_yaml, default_flow_style=False,
-            allow_unicode=True, sort_keys=False, width=1000,
+            tasks_yaml,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+            width=1000,
         )
         self._write_file(f"crews/{crew_snake}/config/tasks.yaml", tasks_yaml_str)
 
@@ -285,7 +298,11 @@ class {class_name}(BaseTool):
         # Pydantic model imports
         model_imports = self._build_model_imports(team)
 
-        process_str = "Process.sequential" if team.process == "sequential" else "Process.hierarchical"
+        process_str = (
+            "Process.sequential"
+            if team.process == "sequential"
+            else "Process.hierarchical"
+        )
 
         # Build @agent methods
         agent_methods = []
@@ -293,7 +310,9 @@ class {class_name}(BaseTool):
             agent = self.reader.agents.get(agent_key)
             if not agent:
                 continue
-            agent_methods.append(self._render_agent_method(agent_key, agent, common_llm))
+            agent_methods.append(
+                self._render_agent_method(agent_key, agent, common_llm)
+            )
 
         # Build @task methods
         task_methods = []
@@ -304,8 +323,10 @@ class {class_name}(BaseTool):
             task_methods.append(self._render_task_method(task_key, task))
 
         # Compose imports block
-        all_imports = ["from crewai import Agent, Crew, Process, Task",
-                       "from crewai.project import CrewBase, agent, crew, task"]
+        all_imports = [
+            "from crewai import Agent, Crew, Process, Task",
+            "from crewai.project import CrewBase, agent, crew, task",
+        ]
         if llm_import:
             all_imports.append(llm_import)
         if tool_imports:
@@ -358,8 +379,9 @@ class {crew_class}:
             return llms.pop()
         return None
 
-    def _render_agent_method(self, agent_key: str, agent: ExtractedAgent,
-                             common_llm: Optional[str]) -> str:
+    def _render_agent_method(
+        self, agent_key: str, agent: ExtractedAgent, common_llm: Optional[str]
+    ) -> str:
         """Render a single @agent method."""
         extra_args = []
 
@@ -381,6 +403,18 @@ class {crew_class}:
         # Allow delegation
         if agent.allow_delegation is not None:
             extra_args.append(f"            allow_delegation={agent.allow_delegation},")
+
+        # Reasoning
+        if agent.reasoning is not None:
+            extra_args.append(f"            reasoning={agent.reasoning},")
+        if agent.max_reasoning_attempts is not None:
+            extra_args.append(
+                f"            max_reasoning_attempts={agent.max_reasoning_attempts},"
+            )
+
+        # Memory
+        if agent.memory is not None:
+            extra_args.append(f"            memory={agent.memory},")
 
         extra_str = ""
         if extra_args:
@@ -437,7 +471,11 @@ class {crew_class}:
         model_names = set()
         for task_key in team.task_keys:
             task = self.reader.tasks.get(task_key)
-            if task and task.output_pydantic and task.output_pydantic in self.reader.pydantic_models:
+            if (
+                task
+                and task.output_pydantic
+                and task.output_pydantic in self.reader.pydantic_models
+            ):
                 model_names.add(task.output_pydantic)
         if model_names:
             names = ", ".join(sorted(model_names))
@@ -487,6 +525,27 @@ class {crew_class}:
         for step in flow.steps:
             methods.append(self._render_flow_step(step, method_names))
 
+        state_fields_code = ""
+        if flow.state_fields:
+            lines = []
+            for field_name, field_type in flow.state_fields.items():
+                py_type = (
+                    self._json_type_to_python(field_type)
+                    if field_type not in ("str", "int", "float", "bool", "list", "dict")
+                    else field_type
+                )
+                if py_type == "str":
+                    lines.append(f'    {field_name}: {py_type} = ""')
+                elif py_type == "list":
+                    lines.append(f"    {field_name}: {py_type} = []")
+                elif py_type == "dict":
+                    lines.append(f"    {field_name}: {py_type} = {{}}")
+                else:
+                    lines.append(f"    {field_name}: {py_type} = None")
+            state_fields_code = "\n".join(lines)
+        else:
+            state_fields_code = "    pass"
+
         code = f'''"""
 Auto-generated CrewAI Flow: {flow_class}
 """
@@ -501,7 +560,7 @@ from pydantic import BaseModel
 
 class {state_class}(BaseModel):
     """Flow state — customize fields as needed."""
-    pass
+{state_fields_code}
 
 
 class {flow_class}(Flow[{state_class}]):
@@ -543,12 +602,13 @@ if __name__ == "__main__":
 '''
         self._write_file("main.py", code)
 
-    def _render_flow_step(self, step: ExtractedFlowStep,
-                          all_method_names: list[str]) -> str:
+    def _render_flow_step(
+        self, step: ExtractedFlowStep, all_method_names: list[str]
+    ) -> str:
         """Render a single flow method with the appropriate decorator."""
-        if step.decorator_type == "start":
-            if step.decorator_args:
-                dec = f'@start("{step.decorator_args[0]}")'
+        if step.step_type == "start":
+            if step.dependencies:
+                dec = f'@start("{step.dependencies[0]}")'
             else:
                 dec = "@start()"
             body = self._render_step_body(step)
@@ -558,10 +618,10 @@ if __name__ == "__main__":
 {body}
 """
 
-        elif step.decorator_type == "router":
+        elif step.step_type == "router":
             # @router takes a method reference to the preceding step
-            if step.decorator_args:
-                arg = step.decorator_args[0]
+            if step.dependencies:
+                arg = step.dependencies[0]
                 # Use as method reference if it matches a known method
                 if arg in all_method_names:
                     dec = f"@router({arg})"
@@ -576,9 +636,9 @@ if __name__ == "__main__":
 {body}
 """
 
-        else:  # listen
-            if step.decorator_args:
-                arg = step.decorator_args[0]
+        else:  # regular/listen
+            if step.dependencies:
+                arg = step.dependencies[0]
                 # Use as method reference if it matches a known method,
                 # otherwise use string (for router return values like "complete")
                 if arg in all_method_names:
@@ -604,10 +664,10 @@ if __name__ == "__main__":
             team = self.reader.teams.get(step.calls_crew)
             if team:
                 return (
-                    f'        result = {team.team_class_name}().crew().kickoff()\n'
-                    f'        return result'
+                    f"        result = {team.team_class_name}().crew().kickoff()\n"
+                    f"        return result"
                 )
-        return '        pass  # TODO: implement step logic'
+        return "        pass  # TODO: implement step logic"
 
     def _render_router_body(self, step: ExtractedFlowStep) -> str:
         """Render the body of a router step."""
@@ -622,8 +682,11 @@ if __name__ == "__main__":
             conditions = []
             for rv in step.return_values:
                 conditions.append(f'        # return "{rv}"')
-            return "\n".join(conditions) + "\n        pass  # TODO: implement routing logic"
-        return '        pass  # TODO: implement routing logic'
+            return (
+                "\n".join(conditions)
+                + "\n        pass  # TODO: implement routing logic"
+            )
+        return "        pass  # TODO: implement routing logic"
 
     # -----------------------------------------------------------
     # Type mapping helper

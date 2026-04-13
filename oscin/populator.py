@@ -433,16 +433,12 @@ class OntologyPopulator:
 
                 # C1: Parse structured guardrail type
                 if guardrail_str.startswith("FunctionBased:"):
-                    self._add_str(
-                        gr_uri, AGENTOSCIN.hasGuardrailType, "FunctionBased"
-                    )
-                    detail = guardrail_str[len("FunctionBased:"):]
+                    self._add_str(gr_uri, AGENTOSCIN.hasGuardrailType, "FunctionBased")
+                    detail = guardrail_str[len("FunctionBased:") :]
                     self._add_str(gr_uri, AGENTOSCIN.hasValidationLogic, detail)
                 elif guardrail_str.startswith("LLMBased:"):
-                    self._add_str(
-                        gr_uri, AGENTOSCIN.hasGuardrailType, "LLMBased"
-                    )
-                    detail = guardrail_str[len("LLMBased:"):]
+                    self._add_str(gr_uri, AGENTOSCIN.hasGuardrailType, "LLMBased")
+                    detail = guardrail_str[len("LLMBased:") :]
                     self._add_str(gr_uri, HAS_DESCRIPTION, detail)
                 else:
                     self._add_str(gr_uri, HAS_DESCRIPTION, guardrail_str)
@@ -500,7 +496,10 @@ class OntologyPopulator:
                 "sequential": COORD_SEQUENTIAL,
                 "hierarchical": COORD_HIERARCHICAL,
             }
-            if team.coordination_pattern and team.coordination_pattern in coord_pattern_map:
+            if (
+                team.coordination_pattern
+                and team.coordination_pattern in coord_pattern_map
+            ):
                 pattern_uri = coord_pattern_map[team.coordination_pattern]
             else:
                 pattern_uri = process_map.get(team.process, COORD_CUSTOM)
@@ -516,7 +515,9 @@ class OntologyPopulator:
                 self.g.add((uri, AGENTOSCIN.hasTerminationCondition, term_uri))
             else:
                 # Structured termination conditions from parser
-                self._populate_termination_conditions(uri, key, team.termination_conditions)
+                self._populate_termination_conditions(
+                    uri, key, team.termination_conditions
+                )
 
             # Turn-limit termination (e.g. AutoGen max_turns)
             if team.max_turns is not None:
@@ -681,11 +682,15 @@ class OntologyPopulator:
                     sub_type = sub_tc.get("type", "")
                     if sub_type == "EventBased":
                         sub_uri = self._create_individual(
-                            "EventTermination", sub_suffix, AGENTOSCIN.EventBasedTermination
+                            "EventTermination",
+                            sub_suffix,
+                            AGENTOSCIN.EventBasedTermination,
                         )
                         trigger = sub_tc.get("trigger", "")
                         if trigger:
-                            self._add_str(sub_uri, AGENTOSCIN.hasTriggerExpression, trigger)
+                            self._add_str(
+                                sub_uri, AGENTOSCIN.hasTriggerExpression, trigger
+                            )
                         self.g.add((comp_uri, AGENTOSCIN.hasSubCondition, sub_uri))
                     elif sub_type == "TurnLimit":
                         sub_uri = self._create_individual(
@@ -693,7 +698,9 @@ class OntologyPopulator:
                         )
                         max_turns = sub_tc.get("max_turns")
                         if max_turns is not None:
-                            self._add_int(sub_uri, AGENTOSCIN.hasMaxTurns, int(max_turns))
+                            self._add_int(
+                                sub_uri, AGENTOSCIN.hasMaxTurns, int(max_turns)
+                            )
                         self.g.add((comp_uri, AGENTOSCIN.hasSubCondition, sub_uri))
                 self.g.add((team_uri, AGENTOSCIN.hasTerminationCondition, comp_uri))
 
@@ -775,9 +782,9 @@ class OntologyPopulator:
             outgoing_edges[step.method_name] = []
 
             # Determine specific step types
-            if step.decorator_type == "start":
+            if step.step_type == "start":
                 self.g.add((uri, RDF.type, AGENTOSCIN.StartStep))
-            elif step.decorator_type == "router":
+            elif step.step_type == "router":
                 self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
 
             # Store routing logic if present (routers, or start nodes
@@ -787,9 +794,9 @@ class OntologyPopulator:
             ):
                 self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
                 # Mark as conditional even if also a start step
-                if step.decorator_type != "router":
+                if step.step_type != "router":
                     self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
-            elif step.decorator_type == "router" and step.function_body:
+            elif step.step_type == "router" and step.function_body:
                 self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
 
             # Store edge mapping if present (label → target node mapping)
@@ -818,8 +825,8 @@ class OntologyPopulator:
         # This handles CrewAI @listen("label") patterns without
         # overriding step_name → URI mappings needed by LangGraph.
         for step in flow.steps:
-            if step.decorator_type in ("listen", "start"):
-                for arg in step.decorator_args:
+            if step.step_type in ("listen", "regular", "start"):
+                for arg in step.dependencies:
                     if arg not in label_map:
                         label_map[arg] = step_uris[step.method_name]
 
@@ -835,10 +842,10 @@ class OntologyPopulator:
                         self.g.add((src_uri, AGENTOSCIN.nextStep, label_map[ret_val]))
                         outgoing_edges[step.method_name].append(ret_val)
 
-            elif step.decorator_type == "start":
+            elif step.step_type == "start":
                 for other in flow.steps:
-                    if other.decorator_type in ("router", "listen"):
-                        if any(arg == step.method_name for arg in other.decorator_args):
+                    if other.step_type in ("router", "listen", "regular"):
+                        if any(arg == step.method_name for arg in other.dependencies):
                             self.g.add(
                                 (
                                     src_uri,

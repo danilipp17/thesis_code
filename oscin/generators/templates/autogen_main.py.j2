@@ -1,0 +1,63 @@
+"""
+Auto-generated AutoGen application: {{ system_name }}
+"""
+
+import asyncio
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+{% if tools %}
+from autogen_core.tools import FunctionTool
+from tools import {{ tools | join(', ') }}
+{% endif %}
+
+model_client = OpenAIChatCompletionClient(model="{{ model }}")
+
+{% if tools %}
+# -- Tools --
+{% for tool in tools_config %}
+{{ tool.var_name }} = FunctionTool(
+    {{ tool.func_name }},
+    description="{{ tool.desc }}",
+)
+{% endfor %}
+{% endif %}
+
+# -- Agents --
+{% for agent in agents %}
+{{ agent.var_name }} = AssistantAgent(
+    name="{{ agent.name }}",
+    model_client=model_client,
+    {% if agent.tool_vars %}
+    tools=[{{ agent.tool_vars | join(', ') }}],
+    {% endif %}
+    system_message=(
+        "{{ agent.system_message }}"
+    ),
+)
+
+{% endfor %}
+{% for team in teams %}
+# -- Team --
+team = RoundRobinGroupChat(
+    participants=[{{ team.agents | join(', ') }}],
+    {% if team.max_turns is not none %}
+    max_turns={{ team.max_turns }},
+    {% endif %}
+)
+
+{% endfor %}
+
+async def main():
+    stream = team.run_stream(
+        task="Start the task."  # TODO: provide initial message
+    )
+    await Console(stream)
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

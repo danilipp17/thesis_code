@@ -1,0 +1,49 @@
+"""
+Auto-generated CrewAI Flow: {{ flow_class }}
+"""
+
+from typing import Optional
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+{% for imp in imports %}
+{{ imp }}
+{% endfor %}
+
+class {{ state_class }}(BaseModel):
+    """Flow state — customize fields as needed."""
+{% if state_fields %}
+{% for field_name, py_type in state_fields.items() %}
+    {{ field_name }}: {{ py_type }}
+{% endfor %}
+{% else %}
+    pass
+{% endif %}
+
+class {{ flow_class }}(Flow[{{ state_class }}]):
+
+{% for step in steps %}
+    {% if step.type == "start" %}
+    @start({% if step.dependencies %}"{{ step.dependencies[0] }}"{% endif %})
+    {% elif step.type == "router" %}
+    @router({% if step.dependencies %}{{ step.dependencies[0] }}{% endif %})
+    {% else %}
+    @listen({% if step.dependencies %}{{ step.dependencies[0] }}{% endif %})
+    {% endif %}
+    def {{ step.name }}(self):
+{% if step.body %}
+{% for line in step.body %}
+        {{ line }}
+{% endfor %}
+{% else %}
+        pass  # TODO: implement step logic
+{% endif %}
+
+{% endfor %}
+
+def kickoff():
+    flow = {{ flow_class }}()
+    flow.kickoff()
+
+if __name__ == "__main__":
+    kickoff()

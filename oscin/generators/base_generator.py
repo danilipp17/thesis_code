@@ -19,6 +19,7 @@ import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 if TYPE_CHECKING:
     from oscin.reader import OntologyReader
@@ -42,6 +43,15 @@ class BaseCodeGenerator(ABC):
         self.reader = reader
         self.output_dir = output_dir
         self._created_files: list[Path] = []
+
+        # Initialize Jinja2 Environment
+        template_dir = Path(__file__).parent / "templates"
+        self.jinja_env = Environment(
+            loader=FileSystemLoader(template_dir),
+            autoescape=select_autoescape(),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
 
     @staticmethod
     @abstractmethod
@@ -83,6 +93,7 @@ class BaseCodeGenerator(ABC):
     def _to_snake(name: str) -> str:
         """Convert a string to snake_case."""
         import re
+
         # Insert underscore before uppercase letters
         s = re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", name)
         return s.lower().replace(" ", "_").replace("-", "_")
@@ -95,6 +106,7 @@ class BaseCodeGenerator(ABC):
         it is returned as-is to avoid mangling.
         """
         import re
+
         # If name has no separators and already contains uppercase letters
         # beyond the first character, it's likely already PascalCase
         if "_" not in name and "-" not in name and " " not in name:

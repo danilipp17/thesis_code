@@ -110,7 +110,37 @@ class OntologyReader:
         self._read_teams()
         self._read_flow()
 
+        self._synthesize_state()
+
         self._log_summary()
+
+    def _synthesize_state(self) -> None:
+        """
+        Synthesize a unified global state from all extracted tasks if none was explicitly defined.
+        This ensures that target frameworks requiring explicit state (like LangGraph and CrewAI Flows)
+        have a populated state definition.
+        """
+        if not self.flow:
+            return
+
+        # If we already extracted explicit state fields, we respect them.
+        if self.flow.state_fields:
+            return
+
+        synthesized_fields = {}
+        for task_key, task in self.tasks.items():
+            if task.expected_output:
+                field_name = f"{task_key}_output"
+                synthesized_fields[field_name] = "str"
+
+        if not synthesized_fields:
+            # Universal fallback for workflows with no expected output defined
+            synthesized_fields["shared_context"] = "str"
+
+        self.flow.state_fields = synthesized_fields
+        log.info(
+            "  [State] Synthesized %d state fields from tasks", len(synthesized_fields)
+        )
 
     # -----------------------------------------------------------
     # System
@@ -123,7 +153,9 @@ class OntologyReader:
             self.source_framework = (
                 self._str_value(sys_uri, AGENTOSCIN.hasSourceFramework) or "Unknown"
             )
-            log.info("  [System] %s (framework: %s)", self.system_name, self.source_framework)
+            log.info(
+                "  [System] %s (framework: %s)", self.system_name, self.source_framework
+            )
 
     # -----------------------------------------------------------
     # Tools
@@ -139,7 +171,9 @@ class OntologyReader:
             name = self._str_value(tool_uri, HAS_TITLE) or ""
             description = self._str_value(tool_uri, HAS_DESCRIPTION) or ""
             input_schema = self._str_value(tool_uri, AGENTOSCIN.hasInputSchema) or "{}"
-            impl_ref = self._str_value(tool_uri, AGENTOSCIN.hasImplementationReference) or ""
+            impl_ref = (
+                self._str_value(tool_uri, AGENTOSCIN.hasImplementationReference) or ""
+            )
 
             # Derive class_name from the URI local name
             class_name = self._local_name(tool_uri).replace("Tool_", "")
@@ -190,14 +224,20 @@ class OntologyReader:
 
             # Reasoning
             reasoning = self._bool_value(agent_uri, AGENTOSCIN.hasReasoningEnabled)
-            max_reasoning = self._int_value(agent_uri, AGENTOSCIN.hasMaxReasoningAttempts)
+            max_reasoning = self._int_value(
+                agent_uri, AGENTOSCIN.hasMaxReasoningAttempts
+            )
 
             # Memory
             memory = bool(list(self.g.objects(agent_uri, AGENTOSCIN.hasMemoryBinding)))
 
             # Config — verbose, allow_delegation
-            verbose = self._config_value(agent_uri, AGENTOSCIN.hasAgentConfig, "verbose")
-            allow_deleg = self._config_value(agent_uri, AGENTOSCIN.hasAgentConfig, "allow_delegation")
+            verbose = self._config_value(
+                agent_uri, AGENTOSCIN.hasAgentConfig, "verbose"
+            )
+            allow_deleg = self._config_value(
+                agent_uri, AGENTOSCIN.hasAgentConfig, "allow_delegation"
+            )
 
             # Derive key from URI local name
             key = self._local_name(agent_uri).replace("Agent_", "")
@@ -226,7 +266,9 @@ class OntologyReader:
     def _read_tasks(self) -> None:
         """Read all Task individuals."""
         for task_uri in self.g.subjects(RDF.type, AGENTOSCIN.Task):
-            expected_output = self._str_value(task_uri, AGENTOSCIN.hasExpectedOutput) or ""
+            expected_output = (
+                self._str_value(task_uri, AGENTOSCIN.hasExpectedOutput) or ""
+            )
 
             # Agent assignment — follow performedByAgent → agent URI
             agent_key = None
@@ -236,7 +278,9 @@ class OntologyReader:
             # Description — follow taskPrompt → Prompt → promptInstruction
             description = ""
             for prompt_uri in self.g.objects(task_uri, AGENTOSCIN.taskPrompt):
-                description = self._str_value(prompt_uri, AGENTOSCIN.promptInstruction) or ""
+                description = (
+                    self._str_value(prompt_uri, AGENTOSCIN.promptInstruction) or ""
+                )
 
             # Tools — follow taskToolUsage → Tool URIs
             task_tools = []
@@ -253,14 +297,18 @@ class OntologyReader:
                     context_tasks.append(dep_key)
 
             # Human checkpoint
-            human_input = bool(list(self.g.objects(task_uri, AGENTOSCIN.hasHumanCheckpoint)))
+            human_input = bool(
+                list(self.g.objects(task_uri, AGENTOSCIN.hasHumanCheckpoint))
+            )
 
             # Output schema
             output_pydantic = None
             for schema_uri in self.g.objects(task_uri, AGENTOSCIN.hasOutputSchema):
                 schema_def = self._str_value(schema_uri, AGENTOSCIN.hasSchemaDefinition)
                 if schema_def:
-                    output_pydantic = self._local_name(schema_uri).replace("Schema_", "")
+                    output_pydantic = self._local_name(schema_uri).replace(
+                        "Schema_", ""
+                    )
                     # Store as a pydantic model
                     try:
                         schema_dict = json.loads(schema_def)
@@ -308,9 +356,14 @@ class OntologyReader:
 
             # Coordination pattern → process
             process = "sequential"
-            for pattern_uri in self.g.objects(team_uri, AGENTOSCIN.employsCoordinationPattern):
+            for pattern_uri in self.g.objects(
+                team_uri, AGENTOSCIN.employsCoordinationPattern
+            ):
                 pattern_local = self._local_name(pattern_uri)
-                if "Hierachical" in pattern_local or "hierarchical" in pattern_local.lower():
+                if (
+                    "Hierachical" in pattern_local
+                    or "hierarchical" in pattern_local.lower()
+                ):
                     process = "hierarchical"
                 elif "Custom" in pattern_local:
                     process = "custom"
@@ -332,11 +385,15 @@ class OntologyReader:
                     verbose = True
 
             # Memory
-            memory = bool(list(self.g.objects(team_uri, AGENTOSCIN.hasTeamMemoryBinding)))
+            memory = bool(
+                list(self.g.objects(team_uri, AGENTOSCIN.hasTeamMemoryBinding))
+            )
 
             # Max turns (TurnLimitTermination)
             max_turns = None
-            for term_uri in self.g.objects(team_uri, AGENTOSCIN.hasTerminationCondition):
+            for term_uri in self.g.objects(
+                team_uri, AGENTOSCIN.hasTerminationCondition
+            ):
                 if (term_uri, RDF.type, AGENTOSCIN.TurnLimitTermination) in self.g:
                     mt = self._int_value(term_uri, AGENTOSCIN.hasMaxTurns)
                     if mt is not None:
@@ -355,8 +412,13 @@ class OntologyReader:
             )
             self.teams[key] = team
             self._team_uri_to_key[str(team_uri)] = key
-            log.info("  [Team] %s (agents: %d, tasks: %d, process: %s)",
-                     key, len(agent_keys), len(task_keys), process)
+            log.info(
+                "  [Team] %s (agents: %d, tasks: %d, process: %s)",
+                key,
+                len(agent_keys),
+                len(task_keys),
+                process,
+            )
 
     # -----------------------------------------------------------
     # Flow / Orchestration
@@ -380,7 +442,9 @@ class OntologyReader:
             for schema_uri in self.g.objects(orch_uri, AGENTOSCIN.hasOutputSchema):
                 if (schema_uri, RDF.type, AGENTOSCIN.Schema) in self.g:
                     state_model = self._str_value(schema_uri, HAS_TITLE)
-                    schema_def = self._str_value(schema_uri, AGENTOSCIN.hasSchemaDefinition)
+                    schema_def = self._str_value(
+                        schema_uri, AGENTOSCIN.hasSchemaDefinition
+                    )
                     if schema_def:
                         try:
                             state_fields = json.loads(schema_def)
@@ -399,9 +463,13 @@ class OntologyReader:
                 crew_references=crew_refs,
                 state_fields=state_fields,
             )
-            log.info("  [Flow] %s (%d steps, %d crew refs, state_fields: %s)",
-                     class_name, len(steps), len(crew_refs),
-                     list(state_fields.keys()) if state_fields else "none")
+            log.info(
+                "  [Flow] %s (%d steps, %d crew refs, state_fields: %s)",
+                class_name,
+                len(steps),
+                len(crew_refs),
+                list(state_fields.keys()) if state_fields else "none",
+            )
 
     def _read_flow_steps(self, wp_uri: URIRef) -> list[ExtractedFlowStep]:
         """
@@ -409,7 +477,7 @@ class OntologyReader:
         and convert them to ExtractedFlowStep.
         """
         raw_steps: list[tuple[int, str, str, str, list[str]]] = []
-        # (order, method_name, decorator_type, routing_logic, next_step_names)
+        # (order, method_name, step_type, routing_logic, next_step_names)
 
         step_uri_to_name: dict[str, str] = {}
         step_info: dict[str, dict] = {}
@@ -419,7 +487,7 @@ class OntologyReader:
             name = self._str_value(step_uri, HAS_TITLE) or self._local_name(step_uri)
             order = self._int_value(step_uri, AGENTOSCIN.stepOrder) or 0
 
-            # Determine decorator type from RDF type
+            # Determine step type from RDF type
             is_start = (step_uri, RDF.type, AGENTOSCIN.StartStep) in self.g
             is_conditional = (step_uri, RDF.type, AGENTOSCIN.ConditionalStep) in self.g
             is_end = (step_uri, RDF.type, AGENTOSCIN.EndStep) in self.g
@@ -427,19 +495,23 @@ class OntologyReader:
             # A step can be both start and conditional (LangGraph pattern:
             # entry node with conditional edges)
             if is_conditional and not is_start:
-                dec_type = "router"
+                step_type = "conditional"
             elif is_start:
-                dec_type = "start"
+                step_type = "start"
             else:
-                dec_type = "listen"
+                step_type = "regular"
 
             # Read routing logic for any conditional step (including start+conditional)
             routing_logic = ""
             if is_conditional:
-                routing_logic = self._str_value(step_uri, AGENTOSCIN.hasRoutingLogic) or ""
+                routing_logic = (
+                    self._str_value(step_uri, AGENTOSCIN.hasRoutingLogic) or ""
+                )
 
             # Read edge mapping (label → target node mapping)
-            edge_mapping_json = self._str_value(step_uri, AGENTOSCIN.hasEdgeMapping) or ""
+            edge_mapping_json = (
+                self._str_value(step_uri, AGENTOSCIN.hasEdgeMapping) or ""
+            )
             edge_mapping: dict[str, str] = {}
             if edge_mapping_json:
                 try:
@@ -456,7 +528,7 @@ class OntologyReader:
             step_info[str(step_uri)] = {
                 "order": order,
                 "name": name,
-                "dec_type": dec_type,
+                "step_type": step_type,
                 "routing_logic": routing_logic,
                 "edge_mapping": edge_mapping,
                 "next_uris": next_names,
@@ -476,7 +548,7 @@ class OntologyReader:
         sorted_uris = sorted(step_info.keys(), key=lambda u: step_info[u]["order"])
 
         # Build a reverse map: for each step, what listens to it?
-        # This helps determine decorator_args for @listen steps
+        # This helps determine dependencies for regular steps
         listened_by: dict[str, list[str]] = {}
         for uri_str, info in step_info.items():
             for next_name in info.get("next_names", []):
@@ -487,16 +559,16 @@ class OntologyReader:
             info = step_info[uri_str]
             name = info["name"]
 
-            # For @listen and @router steps, decorator_args = the method
+            # For regular and conditional steps, dependencies = the method
             # names they listen to / are routed from
             dec_args = []
-            if info["dec_type"] in ("listen", "router"):
+            if info["step_type"] in ("regular", "conditional"):
                 dec_args = listened_by.get(name, [])
 
-            # For router steps and start steps with routing logic,
+            # For conditional steps and start steps with routing logic,
             # return_values = the next step names or edge_mapping keys
             return_values = []
-            if info["dec_type"] == "router" or info["routing_logic"]:
+            if info["step_type"] == "conditional" or info["routing_logic"]:
                 return_values = info.get("next_names", [])
                 # If no resolved next_names but we have edge_mapping,
                 # use the mapping keys as return values
@@ -505,8 +577,8 @@ class OntologyReader:
 
             step = ExtractedFlowStep(
                 method_name=name,
-                decorator_type=info["dec_type"],
-                decorator_args=dec_args,
+                step_type=info["step_type"],
+                dependencies=dec_args,
                 return_values=return_values,
                 function_body=info["routing_logic"],
                 edge_mapping=info.get("edge_mapping", {}),
@@ -608,6 +680,7 @@ class OntologyReader:
 # -----------------------------------------------------------
 # Utility
 # -----------------------------------------------------------
+
 
 def _str_to_bool(s: str) -> bool:
     return s.lower() in ("true", "1", "yes")

@@ -58,13 +58,23 @@ class ExtractedAgent:
     knowledge_sources: list[str] = field(default_factory=list)  # → hasKnowledge
 
     # Framework-specific agent metadata
-    agent_type: str = "GeneralPurpose"  # → agentType ("GeneralPurpose", "UserProxy", "Manager")
+    agent_type: str = (
+        "GeneralPurpose"  # → agentType ("GeneralPurpose", "UserProxy", "Manager")
+    )
     description: str = ""  # → OrchestratorDirective Prompt (AutoGen description param)
     directive_function: str = "DualDirective"  # → Prompt.hasDirectiveFunction
-    reasoning_origin: str = ""  # → hasReasoningOrigin ("FrameworkManaged", "ModelNative")
-    memory_type: str = ""  # Specific memory class (e.g. "ListMemory", "ChromaDBVectorMemory")
-    memory_persistence: str = ""  # → Memory.hasPersistenceScope ("ExecutionScoped", "Persistent")
-    human_input: bool = False  # → hasHumanCheckpoint (for AutoGen UserProxy / LangGraph interrupt)
+    reasoning_origin: str = (
+        ""  # → hasReasoningOrigin ("FrameworkManaged", "ModelNative")
+    )
+    memory_type: str = (
+        ""  # Specific memory class (e.g. "ListMemory", "ChromaDBVectorMemory")
+    )
+    memory_persistence: str = (
+        ""  # → Memory.hasPersistenceScope ("ExecutionScoped", "Persistent")
+    )
+    human_input: bool = (
+        False  # → hasHumanCheckpoint (for AutoGen UserProxy / LangGraph interrupt)
+    )
 
     # Provenance
     source_file: str = ""
@@ -148,8 +158,12 @@ class ExtractedTeam:
     manager_agent: Optional[str] = None  # → Manager agent
     max_turns: Optional[int] = None  # → hasTerminationCondition.hasMaxTurns
     knowledge_sources: list[str] = field(default_factory=list)  # → hasKnowledge
-    coordination_pattern: str = ""  # Explicit pattern name (overrides process-based inference)
-    termination_conditions: list[dict] = field(default_factory=list)  # Structured termination [{type, ...}]
+    coordination_pattern: str = (
+        ""  # Explicit pattern name (overrides process-based inference)
+    )
+    termination_conditions: list[dict] = field(
+        default_factory=list
+    )  # Structured termination [{type, ...}]
     source_file: str = ""
 
 
@@ -167,8 +181,8 @@ class ExtractedFlowStep:
     """
 
     method_name: str  # Python method / node name → step title
-    decorator_type: str  # "start", "listen", or "router"
-    decorator_args: list[str]  # Arguments to the decorator / edge targets
+    step_type: str  # "start", "regular", "conditional", or "end"
+    dependencies: list[str]  # Previous steps that must complete before this one
     calls_crew: Optional[str] = None  # If step invokes a team
     return_values: list[str] = field(default_factory=list)  # Router returns
     function_body: str = ""  # Serialized body → hasRoutingLogic (routers)

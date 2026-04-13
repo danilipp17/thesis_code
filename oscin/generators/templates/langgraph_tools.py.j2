@@ -1,0 +1,15 @@
+"""
+Auto-generated LangGraph tool definitions.
+"""
+
+from langchain_core.tools import tool
+
+{% for tool in tools %}
+@tool
+def {{ tool.func_name }}({{ tool.params }}) -> str:
+    """{{ tool.name }}
+    {{ tool.description }}
+    """
+    raise NotImplementedError("TODO: implement {{ tool.name }}")
+
+{% endfor %}

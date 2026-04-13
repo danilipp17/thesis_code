@@ -1,0 +1,121 @@
+"""
+Auto-generated LangGraph application: {{ system_name }}
+"""
+
+from typing import Annotated, TypedDict
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+{% if has_system_prompts %}
+from langchain_core.messages import SystemMessage
+{% endif %}
+
+{% if tools %}
+from tools import {{ tools | join(', ') }}
+from langgraph.prebuilt import ToolNode
+{% endif %}
+
+class State(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+{% for field_name, py_type in state_fields.items() %}
+    {{ field_name }}: {{ py_type }}
+{% endfor %}
+
+model = ChatOpenAI(model="{{ model_name }}")
+
+{% if tools %}
+tools_list = [{{ tools | join(', ') }}]
+tool_node = ToolNode(tools_list)
+{% if per_agent_tools %}
+{% for agent_var, agent_tools in agent_tool_bindings.items() %}
+{{ agent_var }} = model.bind_tools([{{ agent_tools | join(', ') }}])
+{% endfor %}
+{% else %}
+model_with_tools = model.bind_tools(tools_list)
+{% endif %}
+{% endif %}
+
+{% for node in nodes %}
+{% if node.is_subgraph %}
+def {{ node.func_name }}(state: State) -> dict:
+    """Subgraph node: {{ node.method_name }}"""
+    # TODO: Initialize and invoke the {{ node.team_name }} compiled subgraph here
+    return {"messages": []}
+{% else %}
+def {{ node.func_name }}(state: State) -> dict:
+    """Node: {{ node.method_name }}"""
+{% if node.system_prompt %}
+    system_prompt = SystemMessage(content=
+        """{{ node.system_prompt }}"""
+    )
+    messages = [system_prompt] + state["messages"]
+{% else %}
+    messages = state["messages"]
+{% endif %}
+    response = {{ node.model_var }}.invoke(messages)
+    return {"messages": [response]}
+{% endif %}
+{% endfor %}
+
+{% for router in routers %}
+def {{ router.func_name }}(state: State) -> str:
+    """Router: {{ router.method_name }}"""
+{% if router.routing_logic %}
+{% for line in router.routing_logic %}
+    {{ line }}
+{% endfor %}
+{% elif router.return_values %}
+{% for rv in router.return_values %}
+{% if loop.first %}
+    # if condition:
+    #     return "{{ rv }}"
+{% else %}
+    # return "{{ rv }}"
+{% endif %}
+{% endfor %}
+    return "{{ router.return_values[0] }}"  # TODO: implement routing logic
+{% else %}
+    return "end"  # TODO: implement routing logic
+{% endif %}
+
+{% endfor %}
+
+# Build the graph
+graph = StateGraph(State)
+
+{% for node in graph_nodes %}
+graph.add_node("{{ node.key }}", {{ node.func_name }})
+{% endfor %}
+{% if tools %}
+graph.add_node("tools", tool_node)
+{% endif %}
+
+{% for edge in graph_edges %}
+{% if edge.type == "standard" %}
+graph.add_edge("{{ edge.source }}", "{{ edge.target }}")
+{% elif edge.type == "conditional" %}
+graph.add_conditional_edges(
+    "{{ edge.source }}",
+    {{ edge.router_name }},
+    {
+{% for k, v in edge.mapping.items() %}
+{% if v == "END" %}
+        "{{ k }}": END{% if not loop.last %},{% endif %}
+
+{% else %}
+        "{{ k }}": "{{ v }}"{% if not loop.last %},{% endif %}
+
+{% endif %}
+{% endfor %}
+    },
+)
+{% endif %}
+{% endfor %}
+
+# Compile the graph
+app = graph.compile()
+
+if __name__ == "__main__":
+    result = app.invoke({"messages": ["Start the task."]})
+    print(result["messages"][-1].content)

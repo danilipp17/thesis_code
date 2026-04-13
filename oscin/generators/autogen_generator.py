@@ -50,8 +50,9 @@ class AutoGenGenerator(BaseCodeGenerator):
 
         log.info("")
         log.info("=" * 60)
-        log.info("AUTOGEN GENERATION COMPLETE — %d files written",
-                 len(self._created_files))
+        log.info(
+            "AUTOGEN GENERATION COMPLETE — %d files written", len(self._created_files)
+        )
         log.info("=" * 60)
 
         return self._created_files
@@ -74,23 +75,27 @@ class AutoGenGenerator(BaseCodeGenerator):
             # Generate typed parameters from args_schema
             params = self._build_tool_params(tool)
             desc = tool.description.replace('"""', '\\"\\"\\"')
-            lines.extend([
-                "",
-                f"def {func_name}({params}) -> str:",
-                f'    """',
-                f"    {tool.name}",
-            ])
+            lines.extend(
+                [
+                    "",
+                    f"def {func_name}({params}) -> str:",
+                    f'    """',
+                    f"    {tool.name}",
+                ]
+            )
             if desc:
                 for desc_line in desc.split("\n"):
                     lines.append(f"    {desc_line}")
             if tool.implementation_ref:
                 lines.append(f"")
                 lines.append(f"    Implementation reference: {tool.implementation_ref}")
-            lines.extend([
-                f'    """',
-                f'    raise NotImplementedError("TODO: implement {tool.name}")',
-                "",
-            ])
+            lines.extend(
+                [
+                    f'    """',
+                    f'    raise NotImplementedError("TODO: implement {tool.name}")',
+                    "",
+                ]
+            )
 
         self._write_file("tools.py", "\n".join(lines))
 
@@ -125,65 +130,36 @@ class AutoGenGenerator(BaseCodeGenerator):
     # -----------------------------------------------------------
 
     def _generate_main(self) -> None:
-        """Generate the main.py with AutoGen v0.4 agent setup."""
-        lines = [
-            '"""',
-            f"Auto-generated AutoGen application: {self.reader.system_name}",
-            '"""',
-            "",
-            "import asyncio",
-            "",
-            "from autogen_agentchat.agents import AssistantAgent",
-            "from autogen_agentchat.teams import RoundRobinGroupChat",
-            "from autogen_agentchat.ui import Console",
-            "from autogen_ext.models.openai import OpenAIChatCompletionClient",
-        ]
-
-        # Tool imports
-        if self.reader.tools:
-            lines.extend([
-                "from autogen_core.tools import FunctionTool",
-                "",
-            ])
-            tool_funcs = ", ".join(self._to_snake(k) for k in self.reader.tools)
-            lines.append(f"from tools import {tool_funcs}")
-        lines.append("")
-
+        """Generate the main.py with AutoGen v0.4 agent setup using Jinja2."""
         # LLM client — collect unique models
         llm_models = set()
         for agent in self.reader.agents.values():
             if agent.llm:
                 llm_models.add(agent.llm)
-
         model = next(iter(llm_models), "gpt-4o")
-        lines.extend([
-            f'model_client = OpenAIChatCompletionClient(model="{model}")',
-            "",
-        ])
 
-        # FunctionTool wrapping
+        tools_list = []
+        tools_config = []
         if self.reader.tools:
-            lines.append("# -- Tools --")
+            tools_list = [self._to_snake(k) for k in self.reader.tools]
             for key, tool in self.reader.tools.items():
                 func_name = self._to_snake(key)
                 var_name = f"{func_name}_tool"
                 desc = tool.description.replace('"', '\\"').replace("\n", " ")
-                lines.extend([
-                    f"{var_name} = FunctionTool(",
-                    f"    {func_name},",
-                    f'    description="{desc}",',
-                    f")",
-                ])
-            lines.append("")
+                tools_config.append(
+                    {
+                        "var_name": var_name,
+                        "func_name": func_name,
+                        "desc": desc,
+                    }
+                )
 
-        # Agent instantiations
-        lines.append("# -- Agents --")
+        agents_data = []
         agent_vars: dict[str, str] = {}
         for key, agent in self.reader.agents.items():
             var_name = self._to_snake(key)
             agent_vars[key] = var_name
 
-            # Build system message from goal + backstory
             system_parts = []
             if agent.goal:
                 system_parts.append(agent.goal)
@@ -191,63 +167,43 @@ class AutoGenGenerator(BaseCodeGenerator):
                 system_parts.append(agent.backstory)
             system_message = " ".join(system_parts) if system_parts else ""
 
-            # Build tools list for this agent
             agent_tool_vars = []
             for tool_key in agent.tools:
                 tool_var = f"{self._to_snake(tool_key)}_tool"
                 agent_tool_vars.append(tool_var)
 
-            lines.extend([
-                f"{var_name} = AssistantAgent(",
-                f'    name="{agent.role}",',
-                f"    model_client=model_client,",
-            ])
-            if agent_tool_vars:
-                tools_str = ", ".join(agent_tool_vars)
-                lines.append(f"    tools=[{tools_str}],")
-            lines.extend([
-                f'    system_message=(',
-                f'        "{self._escape_string(system_message)}"',
-                f"    ),",
-                f")",
-                "",
-            ])
-
-        # Team setup
-        for key, team in self.reader.teams.items():
-            agent_list = ", ".join(
-                agent_vars.get(ak, self._to_snake(ak))
-                for ak in team.agent_keys
+            agents_data.append(
+                {
+                    "var_name": var_name,
+                    "name": agent.role,
+                    "system_message": self._escape_string(system_message),
+                    "tool_vars": agent_tool_vars,
+                }
             )
-            var_name = self._to_snake(key)
 
-            lines.append("# -- Team --")
-            lines.append(f"team = RoundRobinGroupChat(")
-            lines.append(f"    participants=[{agent_list}],")
-            if team.max_turns is not None:
-                lines.append(f"    max_turns={team.max_turns},")
-            lines.extend([
-                f")",
-                "",
-            ])
+        teams_data = []
+        for key, team in self.reader.teams.items():
+            agent_list = [
+                agent_vars.get(ak, self._to_snake(ak)) for ak in team.agent_keys
+            ]
+            teams_data.append(
+                {
+                    "agents": agent_list,
+                    "max_turns": team.max_turns,
+                }
+            )
 
-        # Async main function
-        lines.extend([
-            "",
-            "async def main():",
-            "    stream = team.run_stream(",
-            '        task="Start the task."  # TODO: provide initial message',
-            "    )",
-            "    await Console(stream)",
-            "    await model_client.close()",
-            "",
-            "",
-            'if __name__ == "__main__":',
-            "    asyncio.run(main())",
-            "",
-        ])
+        template = self.jinja_env.get_template("autogen_main.py.j2")
+        code = template.render(
+            system_name=self.reader.system_name,
+            model=model,
+            tools=tools_list,
+            tools_config=tools_config,
+            agents=agents_data,
+            teams=teams_data,
+        )
 
-        self._write_file("main.py", "\n".join(lines))
+        self._write_file("main.py", code)
 
     # -----------------------------------------------------------
     # Helpers
