@@ -502,10 +502,11 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         # Add tool-agent loop edges if tools exist
         if self.reader.tools:
-            # Find agents with tools — add edges from tools back to those agents
-            agents_with_tools = [k for k, a in self.reader.agents.items() if a.tools]
-            for ak in agents_with_tools:
-                lines.append(f'graph.add_edge("tools", "{ak}")')
+            # Find steps that use agents with tools
+            for step in self.reader.flow.steps:
+                agent = self._find_agent_for_step(step)
+                if agent and agent.tools:
+                    lines.append(f'graph.add_edge("tools", "{step.method_name}")')
 
     def _generate_sequential_graph(self, lines: list[str]) -> None:
         """Generate a sequential graph when no flow is defined."""
@@ -516,6 +517,10 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         if self.reader.tools:
             lines.append('graph.add_node("tools", tool_node)')
+            for key in agent_keys:
+                agent = self.reader.agents.get(key)
+                if agent and agent.tools:
+                    lines.append(f'graph.add_edge("tools", "{key}")')
 
         lines.append("")
 

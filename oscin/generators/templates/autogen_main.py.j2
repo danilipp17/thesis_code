@@ -5,6 +5,7 @@ Auto-generated AutoGen application: {{ system_name }}
 import asyncio
 
 from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -42,20 +43,18 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
 {% endfor %}
 {% for team in teams %}
 # -- Team --
+termination = MaxMessageTermination(10) | TextMentionTermination("TERMINATE")
+
 {% if team.process == "hierarchical" %}
 team = SelectorGroupChat(
     participants=[{{ team.agents | join(', ') }}],
     model_client=model_client,
-    {% if team.max_turns is not none %}
-    max_turns={{ team.max_turns }},
-    {% endif %}
+    termination_condition=termination,
 )
 {% else %}
 team = RoundRobinGroupChat(
     participants=[{{ team.agents | join(', ') }}],
-    {% if team.max_turns is not none %}
-    max_turns={{ team.max_turns }},
-    {% endif %}
+    termination_condition=termination,
 )
 {% endif %}
 

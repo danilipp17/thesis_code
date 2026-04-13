@@ -175,7 +175,7 @@ class AutoGenGenerator(BaseCodeGenerator):
             agents_data.append(
                 {
                     "var_name": var_name,
-                    "name": agent.role,
+                    "name": agent.role.replace(" ", "_"),
                     "system_message": self._escape_string(system_message),
                     "tool_vars": agent_tool_vars,
                 }

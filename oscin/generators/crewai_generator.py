@@ -291,10 +291,6 @@ class {class_name}(BaseTool):
 
         # --- Build imports ---
         tool_imports = self._build_tool_imports(team)
-        llm_import = ""
-        if common_llm:
-            llm_import = "from langchain_openai import ChatOpenAI"
-
         # Pydantic model imports
         model_imports = self._build_model_imports(team)
 
@@ -327,8 +323,6 @@ class {class_name}(BaseTool):
             "from crewai import Agent, Crew, Process, Task",
             "from crewai.project import CrewBase, agent, crew, task",
         ]
-        if llm_import:
-            all_imports.append(llm_import)
         if tool_imports:
             all_imports.extend(tool_imports)
         if model_imports:
@@ -337,8 +331,6 @@ class {class_name}(BaseTool):
 
         # LLM class attribute
         llm_attr = ""
-        if common_llm:
-            llm_attr = f'\n    llm = ChatOpenAI(model="{common_llm}")'
 
         code = f'''"""
 Auto-generated CrewAI crew: {crew_class}
@@ -390,11 +382,11 @@ class {crew_class}:
         if tool_list:
             extra_args.append(f"            tools=[{tool_list}],")
 
-        # LLM — use self.llm if common, or explicit model if different
+        # LLM — use string format
         if common_llm and agent.llm == common_llm:
-            extra_args.append("            llm=self.llm,")
+            extra_args.append(f'            llm="{agent.llm}",')
         elif agent.llm:
-            extra_args.append(f'            llm=ChatOpenAI(model="{agent.llm}"),')
+            extra_args.append(f'            llm="{agent.llm}",')
 
         # Verbose
         if agent.verbose is not None:
@@ -606,6 +598,9 @@ if __name__ == "__main__":
         self, step: ExtractedFlowStep, all_method_names: list[str]
     ) -> str:
         """Render a single flow method with the appropriate decorator."""
+        is_router = step.step_type == "router" or bool(
+            step.return_values or step.edge_mapping
+        )
         if step.step_type == "start":
             if step.dependencies:
                 dec = f'@start("{step.dependencies[0]}")'
@@ -618,7 +613,7 @@ if __name__ == "__main__":
 {body}
 """
 
-        elif step.step_type == "router":
+        elif is_router:
             # @router takes a method reference to the preceding step
             if step.dependencies:
                 arg = step.dependencies[0]
