@@ -190,6 +190,7 @@ class AutoGenGenerator(BaseCodeGenerator):
                 {
                     "agents": agent_list,
                     "max_turns": team.max_turns,
+                    "process": team.process,
                 }
             )
 

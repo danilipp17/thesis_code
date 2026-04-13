@@ -390,8 +390,12 @@ class LangGraphGenerator(BaseCodeGenerator):
             "routing_function:"
         ):
             # Indent the extracted function body
-            for body_line in step.function_body.split("\n"):
-                lines.append(f"    {body_line}")
+            body = textwrap.dedent(step.function_body).strip("\n")
+            for body_line in body.split("\n"):
+                if body_line.strip():
+                    lines.append(f"    {body_line}")
+                else:
+                    lines.append("")
             lines.append("")
         elif step.return_values:
             # Fallback: generate stub with return value hints
@@ -446,20 +450,29 @@ class LangGraphGenerator(BaseCodeGenerator):
                             f"    }},\n"
                             f")"
                         )
-
-            elif step.step_type == "router":
+            elif step.step_type == "conditional":
                 func_name = self._to_snake(step.method_name)
                 source = step.dependencies[0] if step.dependencies else step.method_name
+
+                # Check if it has an explicit routing body, if so it generated a route_func
+                if step.function_body:
+                    router_name = f"route_{func_name}"
+                else:
+                    router_name = func_name
+
                 mapping_entries = self._build_mapping_entries(step)
                 if mapping_entries:
                     lines.append(
                         f"graph.add_conditional_edges(\n"
                         f'    "{source}",\n'
-                        f"    {func_name},\n"
+                        f"    {router_name},\n"
                         f"    {{\n" + ",\n".join(mapping_entries) + "\n"
                         f"    }},\n"
                         f")"
                     )
+            elif step.step_type == "regular":
+                for dep in step.dependencies:
+                    lines.append(f'graph.add_edge("{dep}", "{step.method_name}")')
 
         # End edges: listen steps with no outgoing edges
         has_outgoing = set()

@@ -62,9 +62,7 @@ def {{ node.func_name }}(state: State) -> dict:
 def {{ router.func_name }}(state: State) -> str:
     """Router: {{ router.method_name }}"""
 {% if router.routing_logic %}
-{% for line in router.routing_logic %}
-    {{ line }}
-{% endfor %}
+{{ router.routing_logic | join('\n') | indent(4) }}
 {% elif router.return_values %}
 {% for rv in router.return_values %}
 {% if loop.first %}
