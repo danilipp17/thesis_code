@@ -1,0 +1,6 @@
+task_researcher:
+  description: Perform researcher responsibilities
+  agent: researcher
+task_writer:
+  description: Perform writer responsibilities
+  agent: writer
