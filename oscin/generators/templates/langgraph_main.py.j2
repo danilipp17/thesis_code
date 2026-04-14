@@ -2,8 +2,11 @@
 Auto-generated LangGraph application: {{ system_name }}
 """
 
+import dotenv
 from typing import Annotated, TypedDict
 from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
 {% if has_system_prompts %}

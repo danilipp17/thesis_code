@@ -191,8 +191,15 @@ class AutoGenGenerator(BaseCodeGenerator):
                     "agents": agent_list,
                     "max_turns": team.max_turns,
                     "process": team.process,
+                    "pattern": team.coordination_pattern,
                 }
             )
+
+        task_str = "Start the task."
+        if self.reader.tasks:
+            first_task = list(self.reader.tasks.values())[0]
+            if first_task.description:
+                task_str = self._escape_string(first_task.description)
 
         template = self.jinja_env.get_template("autogen_main.py.j2")
         code = template.render(
@@ -202,6 +209,7 @@ class AutoGenGenerator(BaseCodeGenerator):
             tools_config=tools_config,
             agents=agents_data,
             teams=teams_data,
+            task_string=task_str,
         )
 
         self._write_file("main.py", code)

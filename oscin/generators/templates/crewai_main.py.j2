@@ -2,8 +2,11 @@
 Auto-generated CrewAI Flow: {{ flow_class }}
 """
 
+import dotenv
 from typing import Optional
 from crewai.flow.flow import Flow, listen, router, start
+
+dotenv.load_dotenv()
 from pydantic import BaseModel
 
 {% for imp in imports %}

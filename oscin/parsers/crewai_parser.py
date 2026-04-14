@@ -26,6 +26,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Optional
+from oscin.parsers import ast_utils
 
 import yaml
 
@@ -120,15 +121,15 @@ class CrewAIParser(BaseSourceParser):
         local_schemas: dict[str, dict[str, str]] = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
-                if self._inherits_from(node, "BaseModel"):
-                    fields = self._extract_pydantic_fields(node)
+                if ast_utils.inherits_from(node, "BaseModel"):
+                    fields = ast_utils.extract_pydantic_fields(node)
                     local_schemas[node.name] = fields
 
         # Second pass: find BaseTool subclasses.
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
-            if not self._inherits_from(node, "BaseTool"):
+            if not ast_utils.inherits_from(node, "BaseTool"):
                 continue
 
             tool_name = ""
@@ -142,7 +143,7 @@ class CrewAIParser(BaseSourceParser):
                     item.target, ast.Name
                 ):
                     attr_name = item.target.id
-                    attr_value = self._extract_constant_value(item.value)
+                    attr_value = ast_utils.extract_constant_value(item.value)
 
                     if attr_name == "name" and attr_value:
                         tool_name = attr_value
@@ -243,13 +244,13 @@ class CrewAIParser(BaseSourceParser):
                 continue
             tree = ast.parse(py_file.read_text(), filename=str(py_file))
             for node in ast.iter_child_nodes(tree):
-                if isinstance(node, ast.ClassDef) and self._inherits_from(
+                if isinstance(node, ast.ClassDef) and ast_utils.inherits_from(
                     node, "BaseModel"
                 ):
                     # Skip tool input schemas (already handled)
                     if node.name.endswith("Input"):
                         continue
-                    fields = self._extract_pydantic_fields(node)
+                    fields = ast_utils.extract_pydantic_fields(node)
                     self.pydantic_models[node.name] = ExtractedPydanticModel(
                         class_name=node.name,
                         fields=fields,
@@ -299,7 +300,7 @@ class CrewAIParser(BaseSourceParser):
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
-            if not self._has_decorator(node, "CrewBase"):
+            if not ast_utils.has_decorator(node, "CrewBase"):
                 continue
 
             crew_class_name = node.name
@@ -313,7 +314,7 @@ class CrewAIParser(BaseSourceParser):
                 if isinstance(item, ast.Assign):
                     for target in item.targets:
                         if isinstance(target, ast.Name):
-                            val = self._extract_constant_value(item.value)
+                            val = ast_utils.extract_constant_value(item.value)
                             if target.id == "agents_config" and val:
                                 agents_yaml_path = filepath.parent / val
                             elif target.id == "tasks_config" and val:
@@ -341,8 +342,8 @@ class CrewAIParser(BaseSourceParser):
 
             # --- Extract agents from @agent methods ---
             agent_keys_in_crew = []
-            for method in self._iter_methods(node):
-                if not self._has_decorator(method, "agent"):
+            for method in ast_utils.iter_methods(node):
+                if not ast_utils.has_decorator(method, "agent"):
                     continue
                 agent_key = method.name  # Method name = agent key
                 agent_info = self._extract_agent_from_method(
@@ -355,8 +356,8 @@ class CrewAIParser(BaseSourceParser):
 
             # --- Extract tasks from @task methods ---
             task_keys_in_crew = []
-            for method in self._iter_methods(node):
-                if not self._has_decorator(method, "task"):
+            for method in ast_utils.iter_methods(node):
+                if not ast_utils.has_decorator(method, "task"):
                     continue
                 task_key = method.name  # Method name = task key
                 task_info = self._extract_task_from_method(
@@ -397,7 +398,7 @@ class CrewAIParser(BaseSourceParser):
         - Agent.llm        → useLanguageModel
         """
         # Find the Agent() call in the method body
-        agent_call = self._find_call_in_method(method, "Agent")
+        agent_call = ast_utils.find_call_in_method(method, "Agent")
         if not agent_call:
             return None
 
@@ -419,17 +420,17 @@ class CrewAIParser(BaseSourceParser):
 
         # Extract Python-level keyword arguments that override or
         # supplement the YAML config
-        local_vars = self._collect_local_assignments(method)
+        local_vars = ast_utils.collect_local_assignments(method)
         tools = self._extract_tool_references(agent_call, local_vars)
-        llm = self._extract_keyword_string(agent_call, "llm")
+        llm = ast_utils.extract_keyword_string(agent_call, "llm")
         # If llm=self.llm (attribute access), resolve from class-level assignment
         if not llm:
             llm = self._resolve_llm_from_call(agent_call, class_llm)
-        verbose = self._extract_keyword_bool(agent_call, "verbose")
-        allow_delegation = self._extract_keyword_bool(agent_call, "allow_delegation")
-        reasoning = self._extract_keyword_bool(agent_call, "reasoning") or False
-        max_reasoning = self._extract_keyword_int(agent_call, "max_reasoning_attempts")
-        memory = self._extract_keyword_bool(agent_call, "memory") or False
+        verbose = ast_utils.extract_keyword_bool(agent_call, "verbose")
+        allow_delegation = ast_utils.extract_keyword_bool(agent_call, "allow_delegation")
+        reasoning = ast_utils.extract_keyword_bool(agent_call, "reasoning") or False
+        max_reasoning = ast_utils.extract_keyword_int(agent_call, "max_reasoning_attempts")
+        memory = ast_utils.extract_keyword_bool(agent_call, "memory") or False
         knowledge_sources = self._extract_knowledge_sources(agent_call, local_vars)
 
         return ExtractedAgent(
@@ -467,7 +468,7 @@ class CrewAIParser(BaseSourceParser):
         - Task.human_input     → hasHumanCheckpoint
         - Task.guardrail       → hasGuardrail
         """
-        task_call = self._find_call_in_method(method, "Task")
+        task_call = ast_utils.find_call_in_method(method, "Task")
         if not task_call:
             return None
 
@@ -484,15 +485,15 @@ class CrewAIParser(BaseSourceParser):
         agent_key = yaml_data.get("agent", None)
 
         # Python-level overrides
-        output_pydantic = self._extract_keyword_name(task_call, "output_pydantic")
-        output_json = self._extract_keyword_name(task_call, "output_json")
+        output_pydantic = ast_utils.extract_keyword_name(task_call, "output_pydantic")
+        output_json = ast_utils.extract_keyword_name(task_call, "output_json")
         tools = self._extract_tool_references(task_call)
-        human_input = self._extract_keyword_bool(task_call, "human_input") or False
+        human_input = ast_utils.extract_keyword_bool(task_call, "human_input") or False
 
         # Context (task dependencies): context=[task_a, task_b]
         # In CrewAI, context is often passed as context=[self.data_gathering()]
         context_tasks = []
-        context_kw = self._find_keyword(task_call, "context")
+        context_kw = ast_utils.find_keyword(task_call, "context")
         if context_kw and isinstance(context_kw.value, ast.List):
             for elt in context_kw.value.elts:
                 if isinstance(elt, ast.Call) and isinstance(elt.func, ast.Attribute):
@@ -502,16 +503,16 @@ class CrewAIParser(BaseSourceParser):
 
         # C1: Detect guardrail type (FunctionBased vs LLMBased) and extract details
         guardrails = []
-        guardrail_kw = self._find_keyword(task_call, "guardrail")
+        guardrail_kw = ast_utils.find_keyword(task_call, "guardrail")
         if guardrail_kw:
             guardrails = self._extract_guardrails(guardrail_kw, method)
         # Also check plural 'guardrails' kwarg
-        guardrails_kw = self._find_keyword(task_call, "guardrails")
+        guardrails_kw = ast_utils.find_keyword(task_call, "guardrails")
         if guardrails_kw:
             guardrails.extend(self._extract_guardrails(guardrails_kw, method))
 
         # C2: Extract guardrail_max_retries
-        guardrail_max_retries = self._extract_keyword_int(
+        guardrail_max_retries = ast_utils.extract_keyword_int(
             task_call, "guardrail_max_retries"
         )
 
@@ -557,24 +558,24 @@ class CrewAIParser(BaseSourceParser):
         manager_agent = None
         knowledge_sources = []
 
-        for method in self._iter_methods(class_node):
-            if not self._has_decorator(method, "crew"):
+        for method in ast_utils.iter_methods(class_node):
+            if not ast_utils.has_decorator(method, "crew"):
                 continue
 
-            crew_call = self._find_call_in_method(method, "Crew")
+            crew_call = ast_utils.find_call_in_method(method, "Crew")
             if not crew_call:
                 continue
 
             # Extract process type
             # Pattern: process=Process.sequential or process=Process.hierarchical
-            process_kw = self._find_keyword(crew_call, "process")
+            process_kw = ast_utils.find_keyword(crew_call, "process")
             if process_kw and isinstance(process_kw.value, ast.Attribute):
                 process = process_kw.value.attr  # "sequential" or "hierarchical"
 
-            verbose = self._extract_keyword_bool(crew_call, "verbose") or False
-            memory = self._extract_keyword_bool(crew_call, "memory") or False
-            manager_llm = self._extract_keyword_string(crew_call, "manager_llm")
-            manager_agent = self._extract_keyword_name(crew_call, "manager_agent")
+            verbose = ast_utils.extract_keyword_bool(crew_call, "verbose") or False
+            memory = ast_utils.extract_keyword_bool(crew_call, "memory") or False
+            manager_llm = ast_utils.extract_keyword_string(crew_call, "manager_llm")
+            manager_agent = ast_utils.extract_keyword_name(crew_call, "manager_agent")
 
             # Use local_vars = {} here since crew definition typically doesn't use complex locals for knowledge
             knowledge_sources = self._extract_knowledge_sources(crew_call, {})
@@ -612,7 +613,7 @@ class CrewAIParser(BaseSourceParser):
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
-            if not self._inherits_from(node, "Flow"):
+            if not ast_utils.inherits_from(node, "Flow"):
                 continue
 
             flow_class_name = node.name
@@ -628,7 +629,7 @@ class CrewAIParser(BaseSourceParser):
             steps = []
             crew_references = set()
 
-            for method in self._iter_methods(node):
+            for method in ast_utils.iter_methods(node):
                 step = self._extract_flow_step(method, source)
                 if step:
                     steps.append(step)
@@ -696,7 +697,7 @@ class CrewAIParser(BaseSourceParser):
         # For @router methods, extract return values
         return_values = []
         if step_type == "conditional":
-            return_values = self._extract_return_values(method)
+            return_values = ast_utils.extract_return_values(method)
 
         # Serialize the function body for routing logic storage.
         # We capture the entire method body (all statements) so that
@@ -731,103 +732,16 @@ class CrewAIParser(BaseSourceParser):
     # AST Helper Methods
     # -----------------------------------------------------------
 
-    @staticmethod
-    def _inherits_from(class_node: ast.ClassDef, base_name: str) -> bool:
-        """Check if a class inherits from a given base (by simple name)."""
-        for base in class_node.bases:
-            if isinstance(base, ast.Name) and base.id == base_name:
-                return True
-            if isinstance(base, ast.Subscript):
-                if isinstance(base.value, ast.Name) and base.value.id == base_name:
-                    return True
-            if isinstance(base, ast.Attribute) and base.attr == base_name:
-                return True
-        return False
 
-    @staticmethod
-    def _has_decorator(node: ast.AST, decorator_name: str) -> bool:
-        """Check if a class or function has a given decorator."""
-        if not hasattr(node, "decorator_list"):
-            return False
-        for deco in node.decorator_list:
-            if isinstance(deco, ast.Name) and deco.id == decorator_name:
-                return True
-            if isinstance(deco, ast.Call) and isinstance(deco.func, ast.Name):
-                if deco.func.id == decorator_name:
-                    return True
-        return False
 
-    @staticmethod
-    def _iter_methods(class_node: ast.ClassDef):
-        """Yield all method definitions in a class."""
-        for item in class_node.body:
-            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                yield item
 
-    @staticmethod
-    def _find_call_in_method(
-        method: ast.FunctionDef, func_name: str
-    ) -> Optional[ast.Call]:
-        """Find the first call to func_name() inside a method body."""
-        for node in ast.walk(method):
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name) and node.func.id == func_name:
-                    return node
-        return None
 
-    @staticmethod
-    def _find_keyword(call_node: ast.Call, keyword: str) -> Optional[ast.keyword]:
-        """Find a keyword argument in a function call."""
-        for kw in call_node.keywords:
-            if kw.arg == keyword:
-                return kw
-        return None
 
-    @staticmethod
-    def _extract_constant_value(node: Optional[ast.expr]) -> Optional[str]:
-        """Extract a string constant from an AST node."""
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            return node.value
-        return None
 
-    def _extract_keyword_string(self, call: ast.Call, name: str) -> Optional[str]:
-        """Extract a string keyword argument value."""
-        kw = self._find_keyword(call, name)
-        if kw:
-            return self._extract_constant_value(kw.value)
-        return None
 
-    def _extract_keyword_bool(self, call: ast.Call, name: str) -> Optional[bool]:
-        """Extract a boolean keyword argument value."""
-        kw = self._find_keyword(call, name)
-        if kw and isinstance(kw.value, ast.Constant):
-            return bool(kw.value.value)
-        return None
 
-    def _extract_keyword_int(self, call: ast.Call, name: str) -> Optional[int]:
-        """Extract an integer keyword argument value."""
-        kw = self._find_keyword(call, name)
-        if (
-            kw
-            and isinstance(kw.value, ast.Constant)
-            and isinstance(kw.value.value, int)
-        ):
-            return kw.value.value
-        return None
 
-    def _extract_keyword_name(self, call: ast.Call, name: str) -> Optional[str]:
-        """Extract a Name reference (variable/class name) from a keyword."""
-        kw = self._find_keyword(call, name)
-        if kw and isinstance(kw.value, ast.Name):
-            return kw.value.id
-        return None
 
-    def _extract_keyword_name_list(self, call: ast.Call, name: str) -> list[str]:
-        """Extract a list of Name references from a keyword argument."""
-        kw = self._find_keyword(call, name)
-        if kw and isinstance(kw.value, ast.List):
-            return [elt.id for elt in kw.value.elts if isinstance(elt, ast.Name)]
-        return []
 
     @staticmethod
     def _resolve_config_key(call: ast.Call) -> Optional[str]:
@@ -939,18 +853,6 @@ class CrewAIParser(BaseSourceParser):
                 guardrails.append("FunctionBased:unknown")
         return guardrails
 
-    @staticmethod
-    def _extract_return_values(method: ast.FunctionDef) -> list[str]:
-        """
-        Extract all string return values from a method body.
-        Used for @router methods to determine conditional branches.
-        """
-        values = []
-        for node in ast.walk(method):
-            if isinstance(node, ast.Return) and isinstance(node.value, ast.Constant):
-                if isinstance(node.value.value, str):
-                    values.append(node.value.value)
-        return values
 
     def _find_crew_kickoff_in_method(self, method: ast.FunctionDef) -> Optional[str]:
         """
@@ -978,26 +880,6 @@ class CrewAIParser(BaseSourceParser):
                                 return obj.func.id
         return None
 
-    @staticmethod
-    def _extract_pydantic_fields(class_node: ast.ClassDef) -> dict[str, dict[str, str]]:
-        """
-        Extract field names, type annotations and Field descriptions
-        from a Pydantic model. Returns {field_name: {"type": ..., "description": ...}}.
-        """
-        fields = {}
-        for item in class_node.body:
-            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
-                type_str = ast.unparse(item.annotation) if item.annotation else "Any"
-                desc = ""
-                # Check for Field(..., description="...") in the default value
-                if isinstance(item.value, ast.Call):
-                    for kw in item.value.keywords:
-                        if kw.arg == "description" and isinstance(
-                            kw.value, ast.Constant
-                        ):
-                            desc = str(kw.value.value)
-                fields[item.target.id] = {"type": type_str, "description": desc}
-        return fields
 
     @staticmethod
     def _pydantic_fields_to_json_schema(fields: dict[str, dict[str, str] | str]) -> str:
@@ -1016,20 +898,6 @@ class CrewAIParser(BaseSourceParser):
             return ""
         return str(value).strip()
 
-    @staticmethod
-    def _collect_local_assignments(method: ast.FunctionDef) -> dict[str, str]:
-        """
-        Collect local variable assignments of the form ``x = ClassName(...)``
-        inside a method body. Returns {variable_name: class_name}.
-        """
-        assignments: dict[str, str] = {}
-        for stmt in method.body:
-            if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
-                target = stmt.targets[0]
-                if isinstance(target, ast.Name) and isinstance(stmt.value, ast.Call):
-                    if isinstance(stmt.value.func, ast.Name):
-                        assignments[target.id] = stmt.value.func.id
-        return assignments
 
     @staticmethod
     def _extract_llm_string(node: ast.expr) -> Optional[str]:

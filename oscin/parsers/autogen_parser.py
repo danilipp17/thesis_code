@@ -32,6 +32,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Optional
+from oscin.parsers import ast_utils
 
 from oscin.base_parser import BaseSourceParser
 from oscin.intermediate import (
@@ -136,9 +137,9 @@ class AutoGenParser(BaseSourceParser):
             if isinstance(node, ast.Assign) and len(node.targets) == 1:
                 target = node.targets[0]
                 if isinstance(target, ast.Name) and isinstance(node.value, ast.Call):
-                    call_name = self._get_call_name(node.value)
+                    call_name = ast_utils.get_call_name(node.value)
                     if call_name == "OpenAIChatCompletionClient":
-                        model = self._extract_keyword_string(node.value, "model")
+                        model = ast_utils.extract_keyword_string(node.value, "model")
                         if model:
                             self.llm_clients[target.id] = model
                             log.info(
@@ -165,7 +166,7 @@ class AutoGenParser(BaseSourceParser):
             target = node.targets[0]
             if not isinstance(target, ast.Name) or not isinstance(node.value, ast.Call):
                 continue
-            call_name = self._get_call_name(node.value)
+            call_name = ast_utils.get_call_name(node.value)
             if call_name != "FunctionTool":
                 continue
 
@@ -175,7 +176,7 @@ class AutoGenParser(BaseSourceParser):
                 func_name = node.value.args[0].id
 
             # Extract description keyword
-            description = self._extract_keyword_string(node.value, "description") or ""
+            description = ast_utils.extract_keyword_string(node.value, "description") or ""
 
             if func_name:
                 self._function_tools[target.id] = (func_name, description)
@@ -236,12 +237,12 @@ class AutoGenParser(BaseSourceParser):
             if not isinstance(target, ast.Name) or not isinstance(node.value, ast.Call):
                 continue
 
-            class_name = self._get_call_name(node.value)
+            class_name = ast_utils.get_call_name(node.value)
             if class_name not in _AGENT_CLASSES:
                 continue
 
             # Name can be passed as keyword (name="x") or first positional arg ("x")
-            name = self._extract_keyword_string(node.value, "name")
+            name = ast_utils.extract_keyword_string(node.value, "name")
             if not name and node.value.args:
                 first_arg = node.value.args[0]
                 if isinstance(first_arg, ast.Constant) and isinstance(
@@ -251,14 +252,14 @@ class AutoGenParser(BaseSourceParser):
             if not name:
                 name = target.id  # Fall back to variable name
             system_message = (
-                self._extract_keyword_string(node.value, "system_message") or ""
+                ast_utils.extract_keyword_string(node.value, "system_message") or ""
             )
 
             # A1: Extract description (orchestrator-facing prompt)
-            description = self._extract_keyword_string(node.value, "description") or ""
+            description = ast_utils.extract_keyword_string(node.value, "description") or ""
 
             # Check for human input mode
-            human_input_mode = self._extract_keyword_string(
+            human_input_mode = ast_utils.extract_keyword_string(
                 node.value, "human_input_mode"
             )
             has_human_checkpoint = False
@@ -314,7 +315,7 @@ class AutoGenParser(BaseSourceParser):
                     for elt in kw.value.elts:
                         mem_class = None
                         if isinstance(elt, ast.Call):
-                            mem_class = self._get_call_name(elt)
+                            mem_class = ast_utils.get_call_name(elt)
                         elif isinstance(elt, ast.Name):
                             mem_class = elt.id
                         if mem_class and mem_class in _MEMORY_PERSISTENCE:
@@ -336,7 +337,7 @@ class AutoGenParser(BaseSourceParser):
                 "UserProxy" if class_name == "UserProxyAgent" else "GeneralPurpose"
             )
 
-            agent_key = self._safe_key(name)
+            agent_key = ast_utils.safe_key(name)
 
             # A2: AutoGen uses ModelDirective for system_message, or separate
             # ModelDirective + OrchestratorDirective when description is also present
@@ -390,7 +391,7 @@ class AutoGenParser(BaseSourceParser):
             target = node.targets[0]
             if not isinstance(target, ast.Name) or not isinstance(node.value, ast.Call):
                 continue
-            call_name = self._get_call_name(node.value)
+            call_name = ast_utils.get_call_name(node.value)
             if call_name == "TextMentionTermination":
                 trigger = ""
                 if node.value.args and isinstance(node.value.args[0], ast.Constant):
@@ -427,7 +428,7 @@ class AutoGenParser(BaseSourceParser):
             if not isinstance(node, ast.Call):
                 continue
 
-            class_name = self._get_call_name(node)
+            class_name = ast_utils.get_call_name(node)
             if class_name not in [
                 "RoundRobinGroupChat",
                 "SelectorGroupChat",
@@ -438,6 +439,16 @@ class AutoGenParser(BaseSourceParser):
                 continue
 
             agent_keys = []
+            
+            # Check for positional list of participants (first argument)
+            if node.args and isinstance(node.args[0], ast.List):
+                for elt in node.args[0].elts:
+                    if isinstance(elt, ast.Name):
+                        if elt.id in self._var_to_agent_key:
+                            agent_keys.append(self._var_to_agent_key[elt.id])
+                        else:
+                            agent_keys.append(ast_utils.safe_key(elt.id))
+
             # 'participants' is used in v0.4, 'agents' is used in older autogen
             for param_name in ["participants", "agents"]:
                 for kw in node.keywords:
@@ -449,7 +460,7 @@ class AutoGenParser(BaseSourceParser):
                                     agent_keys.append(self._var_to_agent_key[elt.id])
                                 else:
                                     # Fallback: use the variable name as-is
-                                    agent_keys.append(self._safe_key(elt.id))
+                                    agent_keys.append(ast_utils.safe_key(elt.id))
 
             # Extract max_turns (v0.4) or max_round (older)
             max_turns = None
@@ -575,10 +586,10 @@ class AutoGenParser(BaseSourceParser):
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 if node.func.attr in ("run", "run_stream", "initiate_chat"):
-                    caller = self._get_attr_value_name(node.func)
+                    caller = ast_utils.get_attr_value_name(node.func)
 
                     # A4: Extract task string from team.run(task="...")
-                    task_string = self._extract_keyword_string(node, "task") or ""
+                    task_string = ast_utils.extract_keyword_string(node, "task") or ""
                     # Also check first positional arg for initiate_chat
                     if not task_string and node.func.attr == "initiate_chat":
                         if (
@@ -707,36 +718,6 @@ class AutoGenParser(BaseSourceParser):
     # AST Helper Methods
     # -----------------------------------------------------------
 
-    @staticmethod
-    def _get_call_name(node: ast.Call) -> str:
-        if isinstance(node.func, ast.Name):
-            return node.func.id
-        if isinstance(node.func, ast.Attribute):
-            return node.func.attr
-        return ""
 
-    @staticmethod
-    def _get_attr_value_name(node: ast.Attribute) -> Optional[str]:
-        if isinstance(node.value, ast.Name):
-            return node.value.id
-        return None
 
-    @staticmethod
-    def _extract_keyword_string(call: ast.Call, name: str) -> Optional[str]:
-        """Extract a string keyword argument, handling both simple and joined strings."""
-        for kw in call.keywords:
-            if kw.arg != name:
-                continue
-            if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
-                return kw.value.value
-            # Handle parenthesized multi-line strings: ("part1" "part2")
-            if isinstance(kw.value, ast.JoinedStr):
-                try:
-                    return ast.literal_eval(kw.value)
-                except (ValueError, TypeError):
-                    return ast.unparse(kw.value)
-        return None
 
-    @staticmethod
-    def _safe_key(name: str) -> str:
-        return name.replace(" ", "_").replace("-", "_").replace(".", "_")

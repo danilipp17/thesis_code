@@ -3,6 +3,9 @@ Auto-generated AutoGen application: {{ system_name }}
 """
 
 import asyncio
+import dotenv
+
+dotenv.load_dotenv()
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
@@ -43,9 +46,13 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
 {% endfor %}
 {% for team in teams %}
 # -- Team --
+{% if team.max_turns %}
+termination = MaxMessageTermination({{ team.max_turns }}) | TextMentionTermination("TERMINATE")
+{% else %}
 termination = MaxMessageTermination(10) | TextMentionTermination("TERMINATE")
+{% endif %}
 
-{% if team.process == "hierarchical" %}
+{% if team.pattern == "SelectorBased" or team.process == "hierarchical" %}
 team = SelectorGroupChat(
     participants=[{{ team.agents | join(', ') }}],
     model_client=model_client,
@@ -62,7 +69,7 @@ team = RoundRobinGroupChat(
 
 async def main():
     stream = team.run_stream(
-        task="Start the task."  # TODO: provide initial message
+        task="{{ task_string }}"
     )
     await Console(stream)
     await model_client.close()

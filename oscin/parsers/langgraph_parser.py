@@ -39,6 +39,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Optional
+from oscin.parsers import ast_utils
 
 import nbformat
 
@@ -176,7 +177,7 @@ class LangGraphParser(BaseSourceParser):
                     if isinstance(target, ast.Name) and isinstance(
                         node.value, ast.Call
                     ):
-                        if self._get_call_name(node.value) == "ToolNode":
+                        if ast_utils.get_call_name(node.value) == "ToolNode":
                             self._tool_node_vars.add(target.id)
 
         for filepath, source, tree in sources:
@@ -185,7 +186,7 @@ class LangGraphParser(BaseSourceParser):
                     continue
 
                 # --- StateGraph(...) instantiation ---
-                call_name = self._get_call_name(node)
+                call_name = ast_utils.get_call_name(node)
                 if call_name == "StateGraph":
                     graph_class_name = "StateGraph"
                     graph_source_file = str(filepath)
@@ -217,7 +218,7 @@ class LangGraphParser(BaseSourceParser):
                             is_tool_node = True
                         # Also detect inline: add_node("tools", ToolNode(tools))
                         if len(node.args) >= 2 and isinstance(node.args[1], ast.Call):
-                            if self._get_call_name(node.args[1]) == "ToolNode":
+                            if ast_utils.get_call_name(node.args[1]) == "ToolNode":
                                 is_tool_node = True
 
                         if is_tool_node:
@@ -295,7 +296,7 @@ class LangGraphParser(BaseSourceParser):
         # --- Create stub agents for nodes without a matched function ---
         # Skip ToolNode nodes — they are infrastructure, not agents.
         for name, info in nodes.items():
-            agent_key = self._safe_key(name)
+            agent_key = ast_utils.safe_key(name)
             if agent_key not in self.agents:
                 if name in self._tool_node_names:
                     log.info("  [Agent] Skipping stub for ToolNode '%s'", name)
@@ -483,7 +484,7 @@ class LangGraphParser(BaseSourceParser):
             hm_content_node = None
             for node in ast.walk(item):
                 if isinstance(node, ast.Call):
-                    name = self._get_call_name(node)
+                    name = ast_utils.get_call_name(node)
                     if name == "HumanMessage":
                         for kw in node.keywords:
                             if kw.arg == "content":
@@ -650,10 +651,10 @@ class LangGraphParser(BaseSourceParser):
             # Check if function body contains interrupt()
             for child in ast.walk(item):
                 if isinstance(child, ast.Call):
-                    call_name = self._get_call_name(child)
+                    call_name = ast_utils.get_call_name(child)
                     if call_name == "interrupt":
                         node_name = func_to_node[item.name]
-                        agent_key = self._safe_key(node_name)
+                        agent_key = ast_utils.safe_key(node_name)
                         if agent_key in self.agents:
                             self.agents[agent_key].human_input = True
                             log.info(
@@ -681,7 +682,7 @@ class LangGraphParser(BaseSourceParser):
                 continue
             if not isinstance(node.value, ast.Call):
                 continue
-            call_name = self._get_call_name(node.value)
+            call_name = ast_utils.get_call_name(node.value)
             if call_name in _LLM_CLASSES:
                 model = self._extract_model_kwarg(node.value)
                 if model:
@@ -918,7 +919,7 @@ class LangGraphParser(BaseSourceParser):
 
             # Use the node name (not the function name) as the agent key
             # so it matches flow steps correctly
-            agent_key = self._safe_key(node_name)
+            agent_key = ast_utils.safe_key(node_name)
             agent = ExtractedAgent(
                 agent_key=agent_key,
                 role=node_name,
@@ -953,7 +954,7 @@ class LangGraphParser(BaseSourceParser):
         """
         for node in ast.iter_child_nodes(tree):
             # @tool decorated functions
-            if isinstance(node, ast.FunctionDef) and self._has_decorator(node, "tool"):
+            if isinstance(node, ast.FunctionDef) and ast_utils.has_decorator(node, "tool"):
                 # Extract argument schema from function signature
                 args_schema = self._extract_tool_args_schema(node)
                 tool = ExtractedTool(
@@ -975,7 +976,7 @@ class LangGraphParser(BaseSourceParser):
         # ToolNode([...]) calls — handles both Name refs and StructuredTool.from_function()
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
-                if self._get_call_name(node) == "ToolNode":
+                if ast_utils.get_call_name(node) == "ToolNode":
                     if node.args and isinstance(node.args[0], ast.List):
                         for elt in node.args[0].elts:
                             tool_name = None
@@ -1025,12 +1026,12 @@ class LangGraphParser(BaseSourceParser):
             for node in classes:
                 if node.name in self.pydantic_models:
                     continue
-                if self._inherits_from(node, "TypedDict"):
+                if ast_utils.inherits_from(node, "TypedDict"):
                     continue
-                if not any(self._inherits_from(node, b) for b in known_bases):
+                if not any(ast_utils.inherits_from(node, b) for b in known_bases):
                     continue
 
-                fields = self._extract_pydantic_fields(node)
+                fields = ast_utils.extract_pydantic_fields(node)
                 if not fields:
                     continue
 
@@ -1048,31 +1049,7 @@ class LangGraphParser(BaseSourceParser):
                     filepath.name,
                 )
 
-    @staticmethod
-    def _inherits_from(class_node: ast.ClassDef, base_name: str) -> bool:
-        """Check if a class inherits from a given base class name."""
-        for base in class_node.bases:
-            if isinstance(base, ast.Name) and base.id == base_name:
-                return True
-            if isinstance(base, ast.Attribute) and base.attr == base_name:
-                return True
-        return False
 
-    @staticmethod
-    def _extract_pydantic_fields(class_node: ast.ClassDef) -> dict[str, str]:
-        """Extract field names and type annotations from a Pydantic model."""
-        fields: dict[str, str] = {}
-        for item in class_node.body:
-            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
-                type_str = ast.dump(item.annotation) if item.annotation else "Any"
-                # Try to get a more readable type string
-                if isinstance(item.annotation, ast.Name):
-                    type_str = item.annotation.id
-                elif isinstance(item.annotation, ast.Subscript):
-                    if isinstance(item.annotation.value, ast.Name):
-                        type_str = f"{item.annotation.value.id}[...]"
-                fields[item.target.id] = type_str
-        return fields
 
     # -----------------------------------------------------------
     # Router Target Inference
@@ -1257,14 +1234,6 @@ class LangGraphParser(BaseSourceParser):
     # AST Helper Methods
     # -----------------------------------------------------------
 
-    @staticmethod
-    def _get_call_name(node: ast.Call) -> str:
-        """Get the simple name of a function/class being called."""
-        if isinstance(node.func, ast.Name):
-            return node.func.id
-        if isinstance(node.func, ast.Attribute):
-            return node.func.attr
-        return ""
 
     @staticmethod
     def _extract_first_string_arg(node: ast.Call) -> Optional[str]:
@@ -1330,8 +1299,8 @@ class LangGraphParser(BaseSourceParser):
         if isinstance(arg, ast.Dict):
             result = {}
             for key, val in zip(arg.keys, arg.values):
-                k = _ast_to_string(key)
-                v = _ast_to_string(val)
+                k = ast_utils.ast_to_string(key)
+                v = ast_utils.ast_to_string(val)
                 if k and v:
                     result[k] = v
             return result
@@ -1340,7 +1309,7 @@ class LangGraphParser(BaseSourceParser):
         if isinstance(arg, ast.List):
             result = {}
             for elt in arg.elts:
-                v = _ast_to_string(elt)
+                v = ast_utils.ast_to_string(elt)
                 if v:
                     result[v] = v
             return result
@@ -1374,16 +1343,6 @@ class LangGraphParser(BaseSourceParser):
                 return str(kw.value.value)
         return None
 
-    @staticmethod
-    def _has_decorator(node: ast.FunctionDef, decorator_name: str) -> bool:
-        """Check if a function has a given decorator."""
-        for deco in node.decorator_list:
-            if isinstance(deco, ast.Name) and deco.id == decorator_name:
-                return True
-            if isinstance(deco, ast.Call) and isinstance(deco.func, ast.Name):
-                if deco.func.id == decorator_name:
-                    return True
-        return False
 
     @staticmethod
     def _extract_tool_args_schema(func_node: ast.FunctionDef) -> dict:
@@ -1479,10 +1438,6 @@ class LangGraphParser(BaseSourceParser):
                             return str(kw.value.value)
         return None
 
-    @staticmethod
-    def _safe_key(name: str) -> str:
-        """Convert a name to a safe dict key."""
-        return name.replace(" ", "_").replace("-", "_").replace(".", "_")
 
 
 # -----------------------------------------------------------
@@ -1490,15 +1445,6 @@ class LangGraphParser(BaseSourceParser):
 # -----------------------------------------------------------
 
 
-def _ast_to_string(node: ast.expr | None) -> str | None:
-    """Convert an AST node to a plain string if possible."""
-    if node is None:
-        return None
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
-    if isinstance(node, ast.Name):
-        return node.id
-    return None
 
 
 # -----------------------------------------------------------
