@@ -124,15 +124,19 @@ class LangGraphGenerator(BaseCodeGenerator):
             f"Auto-generated LangGraph application: {self.reader.system_name}",
             '"""',
             "",
+            "import dotenv",
             "from typing import Annotated, TypedDict",
             "",
             "from langgraph.graph import END, START, StateGraph",
+            "",
+            "dotenv.load_dotenv()",
             "from langgraph.graph.message import add_messages",
             "from langchain_openai import ChatOpenAI",
+        "from langchain_core.messages import SystemMessage, HumanMessage",
         ]
 
         if has_system_prompts:
-            lines.append("from langchain_core.messages import SystemMessage")
+            lines.append("from langchain_core.messages import SystemMessage, HumanMessage")
 
         lines.append("")
 
@@ -321,26 +325,59 @@ class LangGraphGenerator(BaseCodeGenerator):
             f'    """Node: {step.method_name}"""',
         ]
 
-        # Inject system prompt if agent has one
+        messages_init = []
         if agent and agent.backstory:
-            escaped = agent.backstory.replace('"""', '\\"\\"\\"')
-            lines.extend(
-                [
-                    f"    system_prompt = SystemMessage(content=",
-                    f'        """{escaped}"""',
-                    f"    )",
-                    f'    messages = [system_prompt] + state["messages"]',
-                ]
-            )
+            escaped = agent.backstory.replace('"""', '\"\"\"')
+            messages_init.extend([
+                f"    system_prompt = SystemMessage(content=",
+                f'        """{escaped}"""',
+                f"    )"
+            ])
+            
+        # Get dynamic task prompt
+        task = self._find_task_for_agent(agent)
+        task_prompt_code = None
+        if task and task.description and "Perform " not in task.description:
+            import re
+            # Extract variables like {topic} from the task description
+            vars_in_prompt = re.findall(r'\{([a-zA-Z0-9_]+)\}', task.description)
+            for v in set(vars_in_prompt):
+                messages_init.append(f"    {v} = state.get('{v}', '')")
+            
+            # Now the prompt
+            if task.description.startswith("f'") or task.description.startswith('f"'):
+                desc_val = task.description
+            else:
+                desc_val = f'f"""{task.description}"""'
+            messages_init.append(f"    task_prompt = {desc_val}")
+            task_prompt_code = "HumanMessage(content=task_prompt)"
+
+        if agent and agent.backstory and task_prompt_code:
+            messages_init.append(f'    messages = [system_prompt] + state.get("messages", []) + [{task_prompt_code}]')
+        elif agent and agent.backstory:
+            messages_init.append(f'    messages = [system_prompt] + state.get("messages", [])')
+        elif task_prompt_code:
+            messages_init.append(f'    messages = state.get("messages", []) + [{task_prompt_code}]')
         else:
-            lines.append(f'    messages = state["messages"]')
+            messages_init.append(f'    messages = state.get("messages", [])')
+            
+        lines.extend(messages_init)
+
+        # Find associated task to get expected output
+        task = self._find_task_for_agent(agent)
+        return_dict = '{"messages": [response]}'
+        if task and task.expected_output:
+            keys = [k.strip() for k in task.expected_output.split(',')]
+            if keys:
+                ret_str = ", ".join([f'"{k}": response.content' for k in keys])
+                return_dict = f'{{{ret_str}}}'
 
         # Use appropriate model (with or without tools)
         model_var = self._get_model_var_for_agent(agent)
         lines.extend(
             [
                 f"    response = {model_var}.invoke(messages)",
-                '    return {"messages": [response]}',
+                f"    return {return_dict}",
                 "",
             ]
         )
@@ -358,7 +395,7 @@ class LangGraphGenerator(BaseCodeGenerator):
             escaped = agent.backstory.replace('"""', '\\"\\"\\"')
             lines.extend(
                 [
-                    f"    system_prompt = SystemMessage(content=",
+                    f"    system_prompt = SystemMessage, HumanMessage(content=",
                     f'        """{escaped}"""',
                     f"    )",
                     f'    messages = [system_prompt] + state["messages"]',
@@ -367,11 +404,19 @@ class LangGraphGenerator(BaseCodeGenerator):
         else:
             lines.append(f'    messages = state["messages"]')
 
+        task = self._find_task_for_agent(agent)
+        return_dict = '{"messages": [response]}'
+        if task and task.expected_output:
+            keys = [k.strip() for k in task.expected_output.split(',')]
+            if keys:
+                ret_str = ", ".join([f'"{k}": response.content' for k in keys])
+                return_dict = f'{{{ret_str}}}'
+
         model_var = self._get_model_var_for_agent(agent)
         lines.extend(
             [
                 f"    response = {model_var}.invoke(messages)",
-                '    return {"messages": [response]}',
+                f"    return {return_dict}",
                 "",
             ]
         )
@@ -563,6 +608,14 @@ class LangGraphGenerator(BaseCodeGenerator):
         # Try step.method_name directly
         if step.method_name in self.reader.agents:
             return self.reader.agents[step.method_name]
+        return None
+
+
+    def _find_task_for_agent(self, agent) -> object | None:
+        if not agent: return None
+        for task in self.reader.tasks.values():
+            if task.agent_key == agent.agent_key:
+                return task
         return None
 
     def _get_model_var_for_agent(self, agent) -> str:

@@ -8,14 +8,14 @@
 <http://example.org/instance> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
-ex:TechBlog a agentoscin:AgenticSystem ;
-    agentoscin:containsAgent ex:Agent_editor,
-        ex:Agent_researcher,
-        ex:Agent_writer ;
-    agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
-    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
-    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
-    agentoscin:hasTitle "TechBlog"^^xsd:string .
+ex:email_flow a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_email_action_agent,
+        ex:Agent_email_filter_agent,
+        ex:Agent_email_response_writer ;
+    agentoscin:containsOrchestration ex:Orchestration_EmailAutoResponderFlow ;
+    agentoscin:containsTeam ex:Team_EmailFilterCrew ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "email-flow"^^xsd:string .
 
 agentoscin:ChainOfThought a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
@@ -463,91 +463,119 @@ agentoscin:useLanguageModel a owl:ObjectProperty ;
     rdfs:range agentoscin:LanguageModel ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:AgentPrompt_editor a agentoscin:Prompt ;
+ex:AgentPrompt_email_action_agent a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "editor"^^xsd:string .
+    agentoscin:promptContext "As a seasoned executive assistant, you excel at understanding the context of business communications and determining the appropriate response and actions required for each email."^^xsd:string ;
+    agentoscin:promptInstruction "Email Action Specialist: For each email identified as action-required, determine the necessary steps and provide a brief summary of the required actions."^^xsd:string .
 
-ex:AgentPrompt_researcher a agentoscin:Prompt ;
+ex:AgentPrompt_email_filter_agent a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "researcher"^^xsd:string .
+    agentoscin:promptContext "With years of experience in email management and communication triage, you are adept at quickly identifying important emails that require immediate action from those that can be archived or ignored."^^xsd:string ;
+    agentoscin:promptInstruction "Senior Email Analyst: Filter out non-essential emails like newsletters and promotional content, and identify important action-required emails that need immediate attention."^^xsd:string .
 
-ex:AgentPrompt_writer a agentoscin:Prompt ;
+ex:AgentPrompt_email_response_writer a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "writer"^^xsd:string .
+    agentoscin:promptContext "You are a skilled communicator with a talent for crafting clear, professional, and context-appropriate email responses. You understand the nuances of business communication and can adapt your tone and style to match the situation."^^xsd:string ;
+    agentoscin:promptInstruction "Email Response Writer: Draft professional and appropriate responses to action-required emails based on the determined actions and context."^^xsd:string .
 
-ex:CrewStep_langgraph_team_0_task_researcher a agentoscin:StartStep ;
-    agentoscin:hasAssociatedTask ex:Task_task_researcher ;
-    agentoscin:hasTitle "task_researcher"^^xsd:string ;
-    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_writer ;
+ex:Config_allow_delegation_Agent_email_filter_agent a agentoscin:Config ;
+    agentoscin:configKey "allow_delegation"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_action_agent a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_filter_agent a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_response_writer a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_EmailFilterCrew a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:CrewStep_EmailFilterCrew_filter_emails_task a agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_filter_emails_task ;
+    agentoscin:hasTitle "filter_emails_task"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_EmailFilterCrew_action_required_emails_task ;
     agentoscin:stepOrder 1 .
 
-ex:FlowStep_editor a agentoscin:EndStep,
+ex:FlowStep_fetch_new_emails a agentoscin:StartStep,
         agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "editor"^^xsd:string ;
-    agentoscin:stepOrder 3 .
-
-ex:FlowStep_researcher a agentoscin:StartStep,
-        agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "researcher"^^xsd:string ;
-    agentoscin:nextStep ex:FlowStep_writer ;
+    agentoscin:hasTitle "fetch_new_emails"^^xsd:string ;
+    agentoscin:nextStep ex:FlowStep_generate_draft_responses ;
     agentoscin:stepOrder 1 .
 
-ex:FlowWorkflowPattern_StateGraph a agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:FlowStep_editor,
-        ex:FlowStep_researcher,
-        ex:FlowStep_writer .
+ex:FlowWorkflowPattern_EmailAutoResponderFlow a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_fetch_new_emails,
+        ex:FlowStep_generate_draft_responses .
 
-ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+ex:Goal_email_action_agent a agentoscin:Goal ;
+    agentoscin:hasDescription "For each email identified as action-required, determine the necessary steps and provide a brief summary of the required actions."^^xsd:string .
+
+ex:Goal_email_filter_agent a agentoscin:Goal ;
+    agentoscin:hasDescription "Filter out non-essential emails like newsletters and promotional content, and identify important action-required emails that need immediate attention."^^xsd:string .
+
+ex:Goal_email_response_writer a agentoscin:Goal ;
+    agentoscin:hasDescription "Draft professional and appropriate responses to action-required emails based on the determined actions and context."^^xsd:string .
+
+ex:Orchestration_EmailAutoResponderFlow a agentoscin:Orchestration ;
     agentoscin:employsCoordinationPattern agentoscin:Custom ;
-    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
-    agentoscin:hasTitle "StateGraph"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
+    agentoscin:hasTitle "EmailAutoResponderFlow"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_EmailAutoResponderFlow ;
+    agentoscin:orchestratesTeam ex:Team_EmailFilterCrew .
 
-ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
-
-ex:StateSchema_StateGraph a agentoscin:Schema ;
-    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], operator.add]\", \"research\": \"str\", \"draft\": \"str\", \"final_post\": \"str\", \"topic\": \"str\"}"^^xsd:string ;
-    agentoscin:hasTitle "TechBlogState"^^xsd:string .
-
-ex:TaskPrompt_task_editor a agentoscin:Prompt ;
+ex:TaskPrompt_action_required_emails_task a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "f'Review the following drafted blog post. Fix any grammatical errors, improve the flow, and return the final polished version ready for publishing:\\n\\n{draft}'"^^xsd:string ;
-    agentoscin:promptOutputIndicator "final_post"^^xsd:string .
+    agentoscin:promptInstruction "For each email classified as 'action_required', analyze the content and determine the specific actions that need to be taken. Consider the urgency, context, and any deadlines mentioned in the emails."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A detailed action plan for each action-required email, including the specific steps to take, priority level, and any relevant deadlines."^^xsd:string .
 
-ex:TaskPrompt_task_researcher a agentoscin:Prompt ;
+ex:TaskPrompt_draft_responses_task a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "f'Research the following topic and provide a comprehensive summary: {topic}'"^^xsd:string ;
-    agentoscin:promptOutputIndicator "research"^^xsd:string .
+    agentoscin:promptInstruction "Based on the action plans provided, draft professional email responses for each action-required email. Ensure the responses are clear, concise, and appropriate for the context."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A set of draft email responses ready to be reviewed and sent, each properly formatted with subject line, greeting, body, and closing."^^xsd:string .
 
-ex:TaskPrompt_task_writer a agentoscin:Prompt ;
+ex:TaskPrompt_filter_emails_task a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "f'Using the following research, write a 500-word engaging tech blog post:\\n\\n{research}'"^^xsd:string ;
-    agentoscin:promptOutputIndicator "draft"^^xsd:string .
+    agentoscin:promptInstruction """Analyze the list of emails provided and categorize each email as either 'action_required' or 'no_action_needed'. Use your expertise to filter out newsletters, promotional content, and spam.
+Here are the emails: {emails}"""^^xsd:string ;
+    agentoscin:promptOutputIndicator "A categorized list of emails with their classification as either 'action_required' or 'no_action_needed', along with a brief reason for each classification."^^xsd:string .
 
-ex:Task_task_editor a agentoscin:Task ;
-    agentoscin:dependsOn ex:Task_task_writer ;
-    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+ex:Task_draft_responses_task a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_action_required_emails_task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
     agentoscin:hasDependencyType "Sequential"^^xsd:string ;
-    agentoscin:hasExpectedOutput "final_post"^^xsd:string ;
-    agentoscin:performedByAgent ex:Agent_editor ;
-    agentoscin:taskPrompt ex:TaskPrompt_task_editor .
+    agentoscin:hasExpectedOutput "A set of draft email responses ready to be reviewed and sent, each properly formatted with subject line, greeting, body, and closing."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_email_response_writer ;
+    agentoscin:taskPrompt ex:TaskPrompt_draft_responses_task .
 
-ex:Team_langgraph_team_0 a agentoscin:Team ;
-    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
-    agentoscin:hasAgentMember ex:Agent_editor,
-        ex:Agent_researcher,
-        ex:Agent_writer ;
-    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
-    agentoscin:hasTitle "StateGraph"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+ex:Termination_EmailFilterCrew a agentoscin:TaskCompletionTermination .
 
-ex:WorkflowPattern_langgraph_team_0 a agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_editor,
-        ex:CrewStep_langgraph_team_0_task_researcher,
-        ex:CrewStep_langgraph_team_0_task_writer .
+ex:Tool_SerperDevTool a agentoscin:Tool ;
+    agentoscin:hasReference "external:SerperDevTool"^^xsd:string ;
+    agentoscin:hasTitle "SerperDevTool"^^xsd:string .
+
+ex:Tool_create_draft a agentoscin:Tool ;
+    agentoscin:hasDescription """Useful to create an email draft.
+The input to this tool should be a pipe (|) separated text
+of length 3 (three), representing who to send the email to,
+the subject of the email and the actual message.
+For example, `lorem@ipsum.com|Nice To Meet You|Hey it was great to meet you.`."""^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.create_draft.create_draft"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "Create Draft"^^xsd:string .
+
+ex:WorkflowPattern_EmailFilterCrew a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_EmailFilterCrew_action_required_emails_task,
+        ex:CrewStep_EmailFilterCrew_draft_responses_task,
+        ex:CrewStep_EmailFilterCrew_filter_emails_task .
 
 <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology .
 
@@ -563,14 +591,14 @@ agentoscin:HumanAgent a owl:Class ;
 agentoscin:Model a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
 
+agentoscin:RoutingTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
 agentoscin:Sequential a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
 
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
-
-agentoscin:TaskCompletionTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:hasCapability a owl:ObjectProperty ;
     rdfs:domain agentoscin:Tool ;
@@ -591,41 +619,59 @@ agentoscin:resourceUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Resource ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:CrewStep_langgraph_team_0_task_editor a agentoscin:EndStep ;
-    agentoscin:hasAssociatedTask ex:Task_task_editor ;
-    agentoscin:hasTitle "task_editor"^^xsd:string ;
+ex:CrewStep_EmailFilterCrew_action_required_emails_task a agentoscin:WorkflowStep ;
+    agentoscin:hasAssociatedTask ex:Task_action_required_emails_task ;
+    agentoscin:hasTitle "action_required_emails_task"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_EmailFilterCrew_draft_responses_task ;
+    agentoscin:stepOrder 2 .
+
+ex:CrewStep_EmailFilterCrew_draft_responses_task a agentoscin:EndStep ;
+    agentoscin:hasAssociatedTask ex:Task_draft_responses_task ;
+    agentoscin:hasTitle "draft_responses_task"^^xsd:string ;
     agentoscin:stepOrder 3 .
 
-ex:CrewStep_langgraph_team_0_task_writer a agentoscin:WorkflowStep ;
-    agentoscin:hasAssociatedTask ex:Task_task_writer ;
-    agentoscin:hasTitle "task_writer"^^xsd:string ;
-    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_editor ;
-    agentoscin:stepOrder 2 .
-
-ex:FlowStep_writer a agentoscin:EndStep,
+ex:FlowStep_generate_draft_responses a agentoscin:EndStep,
         agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "writer"^^xsd:string ;
+    agentoscin:hasTitle "generate_draft_responses"^^xsd:string ;
     agentoscin:stepOrder 2 .
 
-ex:Task_task_researcher a agentoscin:Task ;
-    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
-    agentoscin:hasExpectedOutput "research"^^xsd:string ;
-    agentoscin:performedByAgent ex:Agent_researcher ;
-    agentoscin:taskPrompt ex:TaskPrompt_task_researcher .
-
-ex:Task_task_writer a agentoscin:Task ;
-    agentoscin:dependsOn ex:Task_task_researcher ;
-    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+ex:Task_action_required_emails_task a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_filter_emails_task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
     agentoscin:hasDependencyType "Sequential"^^xsd:string ;
-    agentoscin:hasExpectedOutput "draft"^^xsd:string ;
-    agentoscin:performedByAgent ex:Agent_writer ;
-    agentoscin:taskPrompt ex:TaskPrompt_task_writer .
+    agentoscin:hasExpectedOutput "A detailed action plan for each action-required email, including the specific steps to take, priority level, and any relevant deadlines."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_email_action_agent ;
+    agentoscin:taskPrompt ex:TaskPrompt_action_required_emails_task .
+
+ex:Task_filter_emails_task a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A categorized list of emails with their classification as either 'action_required' or 'no_action_needed', along with a brief reason for each classification."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_email_filter_agent ;
+    agentoscin:taskPrompt ex:TaskPrompt_filter_emails_task .
+
+ex:Team_EmailFilterCrew a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasAgentMember ex:Agent_email_action_agent,
+        ex:Agent_email_filter_agent,
+        ex:Agent_email_response_writer ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_EmailFilterCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_EmailFilterCrew ;
+    agentoscin:hasTitle "EmailFilterCrew"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_EmailFilterCrew .
+
+ex:Tool_GmailGetThread a agentoscin:Tool ;
+    agentoscin:hasReference "external:GmailGetThread"^^xsd:string ;
+    agentoscin:hasTitle "GmailGetThread"^^xsd:string .
+
+ex:Tool_TavilySearchResults a agentoscin:Tool ;
+    agentoscin:hasReference "external:TavilySearchResults"^^xsd:string ;
+    agentoscin:hasTitle "TavilySearchResults"^^xsd:string .
+
+agentoscin:EndStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:EventBasedTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
-
-agentoscin:Goal a owl:Class ;
-    rdfs:subClassOf agentoscin:Context .
 
 agentoscin:Instance a owl:Class ;
     rdfs:subClassOf agentoscin:Resource .
@@ -638,15 +684,15 @@ agentoscin:Memory a owl:Class ;
 
 agentoscin:Plan a owl:Class .
 
-agentoscin:RoutingTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
-
 agentoscin:StartStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:Step a owl:Class .
 
 agentoscin:System a owl:Class .
+
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:TurnLimitTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
@@ -677,27 +723,40 @@ agentoscin:toolUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Tool ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:Agent_editor a agentoscin:LLMAgent ;
-    agentoscin:agentID "editor"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_editor ;
-    agentoscin:agentRole "editor"^^xsd:string ;
+ex:Agent_email_action_agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "Email Action Specialist"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_email_action_agent ;
+    agentoscin:agentRole "Email Action Specialist"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_GmailGetThread,
+        ex:Tool_TavilySearchResults ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_email_action_agent ;
+    agentoscin:hasAgentGoal ex:Goal_email_action_agent ;
     agentoscin:hasReasoningEnabled false ;
     agentoscin:useLanguageModel ex:LM_gpt_4o .
 
-ex:Agent_researcher a agentoscin:LLMAgent ;
-    agentoscin:agentID "researcher"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_researcher ;
-    agentoscin:agentRole "researcher"^^xsd:string ;
+ex:Agent_email_filter_agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "Senior Email Analyst"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_email_filter_agent ;
+    agentoscin:agentRole "Senior Email Analyst"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_SerperDevTool ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_allow_delegation_Agent_email_filter_agent,
+        ex:Config_verbose_Agent_email_filter_agent ;
+    agentoscin:hasAgentGoal ex:Goal_email_filter_agent ;
     agentoscin:hasReasoningEnabled false ;
     agentoscin:useLanguageModel ex:LM_gpt_4o .
 
-ex:Agent_writer a agentoscin:LLMAgent ;
-    agentoscin:agentID "writer"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_writer ;
-    agentoscin:agentRole "writer"^^xsd:string ;
+ex:Agent_email_response_writer a agentoscin:LLMAgent ;
+    agentoscin:agentID "Email Response Writer"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_email_response_writer ;
+    agentoscin:agentRole "Email Response Writer"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_GmailGetThread,
+        ex:Tool_TavilySearchResults,
+        ex:Tool_create_draft ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_email_response_writer ;
+    agentoscin:hasAgentGoal ex:Goal_email_response_writer ;
     agentoscin:hasReasoningEnabled false ;
     agentoscin:useLanguageModel ex:LM_gpt_4o .
 
@@ -709,9 +768,6 @@ agentoscin:Capability a owl:Class .
 agentoscin:CompositeTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
 
-agentoscin:EndStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
-
 agentoscin:Environment a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
@@ -721,13 +777,11 @@ agentoscin:KnowledgeBase a owl:Class ;
 agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
+agentoscin:Schema a owl:Class .
+
 agentoscin:Agent a owl:Class .
 
-agentoscin:Config a owl:Class .
-
 agentoscin:Context a owl:Class .
-
-agentoscin:Schema a owl:Class .
 
 agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:domain agentoscin:Agent,
@@ -753,6 +807,9 @@ agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:range agentoscin:Config ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+agentoscin:Goal a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
 agentoscin:Guardrail a owl:Class .
 
 agentoscin:HumanCheckpoint a owl:Class .
@@ -773,12 +830,14 @@ agentoscin:Resource a owl:Class .
 
 agentoscin:TerminationCondition a owl:Class .
 
-agentoscin:Tool a owl:Class .
+agentoscin:Config a owl:Class .
 
 agentoscin:CoordinationPattern a owl:Class .
 
 agentoscin:Team a owl:Class ;
     rdfs:subClassOf agentoscin:System .
+
+agentoscin:Tool a owl:Class .
 
 agentoscin:WorkflowStep a owl:Class ;
     rdfs:subClassOf agentoscin:Step .

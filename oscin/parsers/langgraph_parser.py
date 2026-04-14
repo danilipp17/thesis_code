@@ -363,21 +363,31 @@ class LangGraphParser(BaseSourceParser):
         # --- B1: Create tasks for each agent node ---
         for agent_key, agent in self.agents.items():
             task_desc = ""
-            # Try to extract HumanMessage content from node function
+            expected_output = ""
             node_name = agent.role
             for filepath, source, tree in sources:
-                task_desc = self._extract_human_message_from_function(
+                candidate_desc = self._extract_human_message_from_function(
                     tree, nodes.get(node_name)
                 )
-                if task_desc:
+                if candidate_desc and not task_desc:
+                    task_desc = candidate_desc
+                
+                candidate_keys = self._extract_returned_state_keys(
+                    tree, nodes.get(node_name)
+                )
+                if candidate_keys and not expected_output:
+                    expected_output = ",".join(candidate_keys)
+                
+                if task_desc and expected_output:
                     break
+            
             if not task_desc:
                 task_desc = f"Perform {agent.role} responsibilities"
 
             task = ExtractedTask(
                 task_key=f"task_{agent_key}",
                 description=task_desc,
-                expected_output="",
+                expected_output=expected_output,
                 agent_key=agent_key,
                 delegation_strategy="TopologyDetermined",  # B2
                 source_file=agent.source_file,
@@ -459,6 +469,25 @@ class LangGraphParser(BaseSourceParser):
     # -----------------------------------------------------------
     # B1: HumanMessage Extraction from Node Functions
     # -----------------------------------------------------------
+
+
+    def _extract_returned_state_keys(self, tree: ast.Module, node_info) -> list[str]:
+        if not node_info or not node_info.func_ref:
+            return []
+        for item in ast.iter_child_nodes(tree):
+            if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if item.name != node_info.func_ref:
+                continue
+            keys = []
+            for node in ast.walk(item):
+                if isinstance(node, ast.Return):
+                    if node.value and isinstance(node.value, ast.Dict):
+                        for key in node.value.keys:
+                            if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                                keys.append(key.value)
+            return keys
+        return []
 
     def _extract_human_message_from_function(
         self, tree: ast.Module, node_info: Optional[_NodeInfo]

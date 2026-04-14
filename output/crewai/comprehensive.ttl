@@ -8,23 +8,19 @@
 <http://example.org/instance> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
-ex:TechBlog a agentoscin:AgenticSystem ;
-    agentoscin:containsAgent ex:Agent_editor,
-        ex:Agent_researcher,
-        ex:Agent_writer ;
-    agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
-    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
-    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
-    agentoscin:hasTitle "TechBlog"^^xsd:string .
+ex:Comprehensive a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_primary_researcher,
+        ex:Agent_senior_analyst ;
+    agentoscin:containsOrchestration ex:Orchestration_MasterOrchestratorFlow ;
+    agentoscin:containsTeam ex:Team_ComprehensiveCrew ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "Comprehensive"^^xsd:string .
 
 agentoscin:ChainOfThought a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
 
 agentoscin:Constraint a owl:Class ;
     rdfs:subClassOf agentoscin:KnowledgeBase .
-
-agentoscin:Hierarchical a agentoscin:CoordinationPattern,
-        owl:NamedIndividual .
 
 agentoscin:Network a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
@@ -42,6 +38,9 @@ agentoscin:RoundRobin a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
 
 agentoscin:SelectorBased a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
+agentoscin:Sequential a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
 
 agentoscin:Swarm a agentoscin:CoordinationPattern,
@@ -463,98 +462,145 @@ agentoscin:useLanguageModel a owl:ObjectProperty ;
     rdfs:range agentoscin:LanguageModel ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:AgentPrompt_editor a agentoscin:Prompt ;
+ex:AgentPrompt_primary_researcher a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "editor"^^xsd:string .
+    agentoscin:promptContext "An expert web researcher."^^xsd:string ;
+    agentoscin:promptInstruction "Primary Researcher: Perform extensive web research."^^xsd:string .
 
-ex:AgentPrompt_researcher a agentoscin:Prompt ;
+ex:AgentPrompt_senior_analyst a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "researcher"^^xsd:string .
+    agentoscin:promptContext "A senior analyst specializing in large dataset processing."^^xsd:string ;
+    agentoscin:promptInstruction "Senior Data Analyst: Analyze the data provided by the researcher."^^xsd:string .
 
-ex:AgentPrompt_writer a agentoscin:Prompt ;
-    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
-    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "writer"^^xsd:string .
+ex:Config_allow_delegation_Agent_senior_analyst a agentoscin:Config ;
+    agentoscin:configKey "allow_delegation"^^xsd:string ;
+    agentoscin:configValue "false"^^xsd:string .
 
-ex:CrewStep_langgraph_team_0_task_researcher a agentoscin:StartStep ;
-    agentoscin:hasAssociatedTask ex:Task_task_researcher ;
-    agentoscin:hasTitle "task_researcher"^^xsd:string ;
-    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_writer ;
+ex:Config_verbose_Agent_primary_researcher a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_ComprehensiveCrew a agentoscin:Config ;
+    agentoscin:configKey "verbose"^^xsd:string ;
+    agentoscin:configValue "true"^^xsd:string .
+
+ex:CrewStep_ComprehensiveCrew_data_gathering a agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_data_gathering ;
+    agentoscin:hasTitle "data_gathering"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_ComprehensiveCrew_analysis_phase ;
     agentoscin:stepOrder 1 .
 
-ex:FlowStep_editor a agentoscin:EndStep,
+ex:FlowStep_initialize_system a agentoscin:EndStep,
+        agentoscin:StartStep,
         agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "editor"^^xsd:string ;
-    agentoscin:stepOrder 3 .
-
-ex:FlowStep_researcher a agentoscin:StartStep,
-        agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "researcher"^^xsd:string ;
-    agentoscin:nextStep ex:FlowStep_writer ;
+    agentoscin:hasTitle "initialize_system"^^xsd:string ;
     agentoscin:stepOrder 1 .
 
-ex:FlowWorkflowPattern_StateGraph a agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:FlowStep_editor,
-        ex:FlowStep_researcher,
-        ex:FlowStep_writer .
+ex:FlowStep_verification_router a agentoscin:ConditionalStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasRoutingLogic """        if self.state.topic:
+            return "execute_crew"
+        return "halt_system\""""^^xsd:string ;
+    agentoscin:hasTitle "verification_router"^^xsd:string ;
+    agentoscin:nextStep ex:FlowStep_run_crew_pipeline,
+        ex:FlowStep_terminate ;
+    agentoscin:stepOrder 2 .
 
-ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+ex:FlowWorkflowPattern_MasterOrchestratorFlow a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_initialize_system,
+        ex:FlowStep_run_crew_pipeline,
+        ex:FlowStep_terminate,
+        ex:FlowStep_verification_router .
+
+ex:Goal_primary_researcher a agentoscin:Goal ;
+    agentoscin:hasDescription "Perform extensive web research."^^xsd:string .
+
+ex:Goal_senior_analyst a agentoscin:Goal ;
+    agentoscin:hasDescription "Analyze the data provided by the researcher."^^xsd:string .
+
+ex:Guardrail_analysis_phase_0 a agentoscin:Guardrail ;
+    agentoscin:hasGuardrailType "FunctionBased"^^xsd:string ;
+    agentoscin:hasValidationLogic "unknown"^^xsd:string .
+
+ex:HumanCheckpoint_analysis_phase a agentoscin:HumanCheckpoint ;
+    agentoscin:hasCheckpointPosition "AfterExecution"^^xsd:string ;
+    agentoscin:hasCheckpointType "Review"^^xsd:string ;
+    agentoscin:isMandatory true .
+
+ex:KnowledgeBase_Research_Database a agentoscin:KnowledgeBase ;
+    agentoscin:hasTitle "Research_Database"^^xsd:string .
+
+ex:MemoryBinding_AgentPrivate_primary_researcher a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory ex:Memory_AgentPrivate_primary_researcher ;
+    agentoscin:hasMemoryScope "AgentPrivate"^^xsd:string .
+
+ex:MemoryBinding_GroupShared_ComprehensiveCrew a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory ex:Memory_GroupShared_ComprehensiveCrew ;
+    agentoscin:hasMemoryScope "GroupShared"^^xsd:string .
+
+ex:Memory_AgentPrivate_primary_researcher a agentoscin:Memory ;
+    agentoscin:hasPersistenceScope "Persistent"^^xsd:string .
+
+ex:Memory_GroupShared_ComprehensiveCrew a agentoscin:Memory ;
+    agentoscin:hasPersistenceScope "Persistent"^^xsd:string .
+
+ex:Orchestration_MasterOrchestratorFlow a agentoscin:Orchestration ;
     agentoscin:employsCoordinationPattern agentoscin:Custom ;
-    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
-    agentoscin:hasTitle "StateGraph"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
+    agentoscin:hasTitle "MasterOrchestratorFlow"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_MasterOrchestratorFlow .
 
-ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+ex:Schema_AnalysisOutput a agentoscin:Schema ;
+    agentoscin:hasSchemaDefinition "{\"type\":\"object\",\"properties\":{\"findings\":{\"type\":\"string\",\"description\":\"Key insights derived from data.\"},\"confidence_score\":{\"type\":\"number\",\"description\":\"Score between 0.0 and 1.0\"}},\"required\":[\"findings\",\"confidence_score\"]}"^^xsd:string .
 
-ex:StateSchema_StateGraph a agentoscin:Schema ;
-    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], operator.add]\", \"research\": \"str\", \"draft\": \"str\", \"final_post\": \"str\", \"topic\": \"str\"}"^^xsd:string ;
-    agentoscin:hasTitle "TechBlogState"^^xsd:string .
-
-ex:TaskPrompt_task_editor a agentoscin:Prompt ;
+ex:TaskPrompt_analysis_phase a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "f'Review the following drafted blog post. Fix any grammatical errors, improve the flow, and return the final polished version ready for publishing:\\n\\n{draft}'"^^xsd:string ;
-    agentoscin:promptOutputIndicator "final_post"^^xsd:string .
+    agentoscin:promptInstruction "Analyze the raw data report."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A final analysis report."^^xsd:string .
 
-ex:TaskPrompt_task_researcher a agentoscin:Prompt ;
+ex:TaskPrompt_data_gathering a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "f'Research the following topic and provide a comprehensive summary: {topic}'"^^xsd:string ;
-    agentoscin:promptOutputIndicator "research"^^xsd:string .
+    agentoscin:promptInstruction "Search the web for information."^^xsd:string ;
+    agentoscin:promptOutputIndicator "A detailed report of raw data."^^xsd:string .
 
-ex:TaskPrompt_task_writer a agentoscin:Prompt ;
-    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "f'Using the following research, write a 500-word engaging tech blog post:\\n\\n{research}'"^^xsd:string ;
-    agentoscin:promptOutputIndicator "draft"^^xsd:string .
+ex:Task_analysis_phase a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_data_gathering ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasDependencyType "ContextProviding"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A final analysis report."^^xsd:string ;
+    agentoscin:hasGuardrail ex:Guardrail_analysis_phase_0 ;
+    agentoscin:hasHumanCheckpoint ex:HumanCheckpoint_analysis_phase ;
+    agentoscin:hasOutputSchema ex:Schema_AnalysisOutput ;
+    agentoscin:performedByAgent ex:Agent_senior_analyst ;
+    agentoscin:taskPrompt ex:TaskPrompt_analysis_phase .
 
-ex:Task_task_editor a agentoscin:Task ;
-    agentoscin:dependsOn ex:Task_task_writer ;
-    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
-    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
-    agentoscin:hasExpectedOutput "final_post"^^xsd:string ;
-    agentoscin:performedByAgent ex:Agent_editor ;
-    agentoscin:taskPrompt ex:TaskPrompt_task_editor .
+ex:Team_ComprehensiveCrew a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasAgentMember ex:Agent_primary_researcher,
+        ex:Agent_senior_analyst ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_ComprehensiveCrew ;
+    agentoscin:hasTeamMemoryBinding ex:MemoryBinding_GroupShared_ComprehensiveCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_ComprehensiveCrew ;
+    agentoscin:hasTitle "ComprehensiveCrew"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_ComprehensiveCrew .
 
-ex:Team_langgraph_team_0 a agentoscin:Team ;
-    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
-    agentoscin:hasAgentMember ex:Agent_editor,
-        ex:Agent_researcher,
-        ex:Agent_writer ;
-    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
-    agentoscin:hasTitle "StateGraph"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+ex:Termination_ComprehensiveCrew a agentoscin:TaskCompletionTermination .
 
-ex:WorkflowPattern_langgraph_team_0 a agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_editor,
-        ex:CrewStep_langgraph_team_0_task_researcher,
-        ex:CrewStep_langgraph_team_0_task_writer .
+ex:Tool_DatabaseTool a agentoscin:Tool ;
+    agentoscin:hasReference "external:DatabaseTool"^^xsd:string ;
+    agentoscin:hasTitle "DatabaseTool"^^xsd:string .
+
+ex:WorkflowPattern_ComprehensiveCrew a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_ComprehensiveCrew_analysis_phase,
+        ex:CrewStep_ComprehensiveCrew_data_gathering .
 
 <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology .
 
-agentoscin:ConditionalStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
-
 agentoscin:Custom a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
+agentoscin:Hierarchical a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
 
 agentoscin:HumanAgent a owl:Class ;
@@ -563,14 +609,11 @@ agentoscin:HumanAgent a owl:Class ;
 agentoscin:Model a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
 
-agentoscin:Sequential a agentoscin:CoordinationPattern,
-        owl:NamedIndividual .
+agentoscin:RoutingTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
-
-agentoscin:TaskCompletionTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:hasCapability a owl:ObjectProperty ;
     rdfs:domain agentoscin:Tool ;
@@ -591,41 +634,40 @@ agentoscin:resourceUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Resource ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:CrewStep_langgraph_team_0_task_editor a agentoscin:EndStep ;
-    agentoscin:hasAssociatedTask ex:Task_task_editor ;
-    agentoscin:hasTitle "task_editor"^^xsd:string ;
+ex:CrewStep_ComprehensiveCrew_analysis_phase a agentoscin:EndStep ;
+    agentoscin:hasAssociatedTask ex:Task_analysis_phase ;
+    agentoscin:hasTitle "analysis_phase"^^xsd:string ;
+    agentoscin:stepOrder 2 .
+
+ex:FlowStep_run_crew_pipeline a agentoscin:EndStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "run_crew_pipeline"^^xsd:string ;
     agentoscin:stepOrder 3 .
 
-ex:CrewStep_langgraph_team_0_task_writer a agentoscin:WorkflowStep ;
-    agentoscin:hasAssociatedTask ex:Task_task_writer ;
-    agentoscin:hasTitle "task_writer"^^xsd:string ;
-    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_editor ;
-    agentoscin:stepOrder 2 .
-
-ex:FlowStep_writer a agentoscin:EndStep,
+ex:FlowStep_terminate a agentoscin:EndStep,
         agentoscin:WorkflowStep ;
-    agentoscin:hasTitle "writer"^^xsd:string ;
-    agentoscin:stepOrder 2 .
+    agentoscin:hasTitle "terminate"^^xsd:string ;
+    agentoscin:stepOrder 4 .
 
-ex:Task_task_researcher a agentoscin:Task ;
-    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
-    agentoscin:hasExpectedOutput "research"^^xsd:string ;
-    agentoscin:performedByAgent ex:Agent_researcher ;
-    agentoscin:taskPrompt ex:TaskPrompt_task_researcher .
+ex:LM_gpt_4_turbo a agentoscin:LanguageModel ;
+    agentoscin:hasTitle "gpt-4-turbo"^^xsd:string .
 
-ex:Task_task_writer a agentoscin:Task ;
-    agentoscin:dependsOn ex:Task_task_researcher ;
-    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
-    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
-    agentoscin:hasExpectedOutput "draft"^^xsd:string ;
-    agentoscin:performedByAgent ex:Agent_writer ;
-    agentoscin:taskPrompt ex:TaskPrompt_task_writer .
+ex:Task_data_gathering a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A detailed report of raw data."^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_primary_researcher ;
+    agentoscin:taskPrompt ex:TaskPrompt_data_gathering ;
+    agentoscin:taskToolUsage ex:Tool_web_search .
+
+ex:Tool_web_search a agentoscin:Tool ;
+    agentoscin:hasReference "external:web_search"^^xsd:string ;
+    agentoscin:hasTitle "web_search"^^xsd:string .
+
+agentoscin:ConditionalStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:EventBasedTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
-
-agentoscin:Goal a owl:Class ;
-    rdfs:subClassOf agentoscin:Context .
 
 agentoscin:Instance a owl:Class ;
     rdfs:subClassOf agentoscin:Resource .
@@ -633,13 +675,7 @@ agentoscin:Instance a owl:Class ;
 agentoscin:LanguageModel a owl:Class ;
     rdfs:subClassOf agentoscin:StatisticalModel .
 
-agentoscin:Memory a owl:Class ;
-    rdfs:subClassOf agentoscin:KnowledgeBase .
-
 agentoscin:Plan a owl:Class .
-
-agentoscin:RoutingTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:StartStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
@@ -647,6 +683,9 @@ agentoscin:StartStep a owl:Class ;
 agentoscin:Step a owl:Class .
 
 agentoscin:System a owl:Class .
+
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:TurnLimitTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
@@ -677,55 +716,56 @@ agentoscin:toolUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Tool ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:Agent_editor a agentoscin:LLMAgent ;
-    agentoscin:agentID "editor"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_editor ;
-    agentoscin:agentRole "editor"^^xsd:string ;
+ex:Agent_primary_researcher a agentoscin:LLMAgent ;
+    agentoscin:agentID "Primary Researcher"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_primary_researcher ;
+    agentoscin:agentRole "Primary Researcher"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_web_search ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_verbose_Agent_primary_researcher ;
+    agentoscin:hasAgentGoal ex:Goal_primary_researcher ;
+    agentoscin:hasKnowledge ex:KnowledgeBase_Research_Database ;
+    agentoscin:hasMemoryBinding ex:MemoryBinding_AgentPrivate_primary_researcher ;
     agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4o .
+    agentoscin:useLanguageModel ex:LM_gpt_4_turbo .
 
-ex:Agent_researcher a agentoscin:LLMAgent ;
-    agentoscin:agentID "researcher"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_researcher ;
-    agentoscin:agentRole "researcher"^^xsd:string ;
+ex:Agent_senior_analyst a agentoscin:LLMAgent ;
+    agentoscin:agentID "Senior Data Analyst"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_senior_analyst ;
+    agentoscin:agentRole "Senior Data Analyst"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_DatabaseTool ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentConfig ex:Config_allow_delegation_Agent_senior_analyst ;
+    agentoscin:hasAgentGoal ex:Goal_senior_analyst ;
     agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4o .
-
-ex:Agent_writer a agentoscin:LLMAgent ;
-    agentoscin:agentID "writer"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_writer ;
-    agentoscin:agentRole "writer"^^xsd:string ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4o .
-
-ex:LM_gpt_4o a agentoscin:LanguageModel ;
-    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+    agentoscin:useLanguageModel ex:LM_gpt_4_turbo .
 
 agentoscin:Capability a owl:Class .
 
 agentoscin:CompositeTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
 
-agentoscin:EndStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
-
 agentoscin:Environment a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
-
-agentoscin:KnowledgeBase a owl:Class ;
-    rdfs:subClassOf agentoscin:Instance .
 
 agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
 agentoscin:Agent a owl:Class .
 
-agentoscin:Config a owl:Class .
-
 agentoscin:Context a owl:Class .
+
+agentoscin:EndStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
+
+agentoscin:Goal a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
+agentoscin:KnowledgeBase a owl:Class ;
+    rdfs:subClassOf agentoscin:Instance .
+
+agentoscin:Memory a owl:Class ;
+    rdfs:subClassOf agentoscin:KnowledgeBase .
 
 agentoscin:Schema a owl:Class .
 
@@ -753,19 +793,19 @@ agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:range agentoscin:Config ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+agentoscin:Orchestration a owl:Class ;
+    rdfs:subClassOf agentoscin:Team .
+
 agentoscin:Guardrail a owl:Class .
 
 agentoscin:HumanCheckpoint a owl:Class .
-
-agentoscin:Orchestration a owl:Class ;
-    rdfs:subClassOf agentoscin:Team .
 
 agentoscin:WorkflowPattern a owl:Class ;
     rdfs:subClassOf agentoscin:Plan .
 
 agentoscin:AgenticSystem a owl:Class .
 
-agentoscin:MemoryBinding a owl:Class .
+agentoscin:Config a owl:Class .
 
 agentoscin:ReasoningPattern a owl:Class .
 
@@ -773,17 +813,19 @@ agentoscin:Resource a owl:Class .
 
 agentoscin:TerminationCondition a owl:Class .
 
-agentoscin:Tool a owl:Class .
+agentoscin:MemoryBinding a owl:Class .
 
 agentoscin:CoordinationPattern a owl:Class .
+
+agentoscin:Tool a owl:Class .
 
 agentoscin:Team a owl:Class ;
     rdfs:subClassOf agentoscin:System .
 
+agentoscin:Prompt a owl:Class .
+
 agentoscin:WorkflowStep a owl:Class ;
     rdfs:subClassOf agentoscin:Step .
-
-agentoscin:Prompt a owl:Class .
 
 agentoscin:Task a owl:Class .
 

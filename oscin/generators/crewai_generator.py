@@ -320,8 +320,11 @@ class {class_name}(BaseTool):
 
         # Compose imports block
         all_imports = [
+            "import dotenv",
             "from crewai import Agent, Crew, Process, Task",
             "from crewai.project import CrewBase, agent, crew, task",
+            "",
+            "dotenv.load_dotenv()",
         ]
         if tool_imports:
             all_imports.extend(tool_imports)
@@ -598,7 +601,7 @@ if __name__ == "__main__":
         self, step: ExtractedFlowStep, all_method_names: list[str]
     ) -> str:
         """Render a single flow method with the appropriate decorator."""
-        is_router = step.step_type == "router" or bool(
+        is_router = step.step_type in ("router", "conditional") or bool(
             step.return_values or step.edge_mapping
         )
         if step.step_type == "start":
