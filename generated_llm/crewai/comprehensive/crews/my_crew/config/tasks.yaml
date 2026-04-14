@@ -1,0 +1,37 @@
+tasks:
+  - id: "data_gathering"
+    delegation_strategy: "ExplicitAssignment"
+    expected_output: "A detailed report of raw data."
+    performed_by_agent: "Primary Researcher"
+    tools:
+      - web_search
+    prompt:
+      instruction: "Search the web for information."
+      output_indicator: "A detailed report of raw data."
+      source_attribute: "description, expected_output"
+  
+  - id: "analysis_phase"
+    depends_on: "data_gathering"
+    delegation_strategy: "ExplicitAssignment"
+    dependency_type: "ContextProviding"
+    expected_output: "A final analysis report."
+    guardrail_type: "FunctionBased"
+    human_checkpoint:
+      position: "AfterExecution"
+      type: "Review"
+      mandatory: true
+    output_schema:
+      type: "object"
+      properties:
+        findings:
+          type: "string"
+          description: "Key insights derived from data."
+        confidence_score:
+          type: "number"
+          description: "Score between 0.0 and 1.0"
+      required: ["findings", "confidence_score"]
+    performed_by_agent: "Senior Data Analyst"
+    prompt:
+      instruction: "Analyze the raw data report."
+      output_indicator: "A final analysis report."
+      source_attribute: "description, expected_output"

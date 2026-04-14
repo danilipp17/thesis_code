@@ -98,7 +98,7 @@ def main(argv: list[str] | None = None) -> None:
     # ---------------------------------------------------------------
     extract_p = subparsers.add_parser(
         "extract",
-        help="Extract source code → ontology TTL",
+        help="Extract source code into ontology TTL",
         description="Parse framework source code and produce a .ttl ontology instance.",
     )
     extract_p.add_argument(
@@ -107,23 +107,27 @@ def main(argv: list[str] | None = None) -> None:
         help="Path to the source files directory to extract from.",
     )
     extract_p.add_argument(
-        "--framework", "-f",
+        "--framework",
+        "-f",
         choices=PARSERS.keys(),
         required=True,
         help="The agentic AI framework used in the source code.",
     )
     extract_p.add_argument(
-        "--system-name", "-s",
+        "--system-name",
+        "-s",
         required=True,
         help="Human-readable name for the AgenticSystem individual.",
     )
     extract_p.add_argument(
-        "--namespace", "-n",
+        "--namespace",
+        "-n",
         default="http://example.org/instance#",
         help="Base URI for instance individuals.  Default: http://example.org/instance#",
     )
     extract_p.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=Path("output_ontology.ttl"),
         help="Output file path for the Turtle-serialized ontology.",
@@ -139,7 +143,7 @@ def main(argv: list[str] | None = None) -> None:
     # ---------------------------------------------------------------
     llm_p = subparsers.add_parser(
         "extract-llm",
-        help="Extract source code → ontology TTL using an LLM (baseline)",
+        help="Extract source code into ontology TTL using an LLM (baseline)",
         description=(
             "LLM-based extraction baseline. Sends the ontology schema and\n"
             "source code to an LLM and asks it to produce populated Turtle."
@@ -151,24 +155,28 @@ def main(argv: list[str] | None = None) -> None:
         help="Path to the source files directory to extract from.",
     )
     llm_p.add_argument(
-        "--namespace", "-n",
+        "--namespace",
+        "-n",
         default="http://example.org/instance#",
         help="Base URI for instance individuals.  Default: http://example.org/instance#",
     )
     llm_p.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=Path("output_llm_ontology.ttl"),
         help="Output file path for the Turtle-serialized ontology.",
     )
     llm_p.add_argument(
-        "--provider", "-p",
+        "--provider",
+        "-p",
         choices=["anthropic", "openai"],
         default="anthropic",
         help="LLM provider to use. Default: anthropic",
     )
     llm_p.add_argument(
-        "--model", "-m",
+        "--model",
+        "-m",
         default=None,
         help="Model name override (e.g. 'claude-sonnet-4-20250514', 'gpt-4o').",
     )
@@ -178,7 +186,7 @@ def main(argv: list[str] | None = None) -> None:
     # ---------------------------------------------------------------
     gen_p = subparsers.add_parser(
         "generate",
-        help="Generate framework source code ← ontology TTL",
+        help="Generate framework source code from ontology TTL",
         description="Read a .ttl ontology instance and produce framework source code.",
     )
     gen_p.add_argument(
@@ -187,16 +195,58 @@ def main(argv: list[str] | None = None) -> None:
         help="Path to the .ttl ontology instance file to read.",
     )
     gen_p.add_argument(
-        "--target-framework", "-t",
+        "--target-framework",
+        "-t",
         choices=GENERATORS.keys(),
         required=True,
         help="The target framework to generate source code for.",
     )
     gen_p.add_argument(
-        "--output-dir", "-d",
+        "--output-dir",
+        "-d",
         type=Path,
         default=Path("generated"),
         help="Output directory for the generated source files.",
+    )
+
+    # ---------------------------------------------------------------
+    # Subcommand: generate-llm
+    # ---------------------------------------------------------------
+    gen_llm_p = subparsers.add_parser(
+        "generate-llm",
+        help="Generate framework source code from ontology TTL using an LLM (baseline)",
+        description="LLM-based generation baseline. Sends the ontology instance to an LLM and asks it to produce source code.",
+    )
+    gen_llm_p.add_argument(
+        "ttl_file",
+        type=Path,
+        help="Path to the .ttl ontology instance file to read.",
+    )
+    gen_llm_p.add_argument(
+        "--target-framework",
+        "-t",
+        required=True,
+        help="The target framework to generate source code for (e.g. 'CrewAI', 'AutoGen').",
+    )
+    gen_llm_p.add_argument(
+        "--output-dir",
+        "-d",
+        type=Path,
+        default=Path("generated_llm"),
+        help="Output directory for the generated source files.",
+    )
+    gen_llm_p.add_argument(
+        "--provider",
+        "-p",
+        choices=["anthropic", "openai"],
+        default="anthropic",
+        help="LLM provider to use. Default: anthropic",
+    )
+    gen_llm_p.add_argument(
+        "--model",
+        "-m",
+        default=None,
+        help="Model name override (e.g. 'claude-sonnet-4-20250514', 'gpt-4o').",
     )
 
     # ---------------------------------------------------------------
@@ -222,7 +272,7 @@ def main(argv: list[str] | None = None) -> None:
         nargs="?",
         default=None,
         help="Candidate TTL file to compare against reference. "
-             "If omitted, only intrinsic metrics for the reference are shown.",
+        "If omitted, only intrinsic metrics for the reference are shown.",
     )
     eval_p.add_argument(
         "--json",
@@ -243,6 +293,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_extract_llm(args)
     elif args.command == "generate":
         _run_generate(args)
+    elif args.command == "generate-llm":
+        _run_generate_llm(args)
     elif args.command == "evaluate":
         _run_evaluate(args)
 
@@ -250,6 +302,7 @@ def main(argv: list[str] | None = None) -> None:
 # -------------------------------------------------------------------
 # Extract pipeline
 # -------------------------------------------------------------------
+
 
 def _run_extract(args: argparse.Namespace) -> None:
     """Execute the extract subcommand."""
@@ -293,6 +346,7 @@ def _run_extract(args: argparse.Namespace) -> None:
 # LLM Extract pipeline (baseline)
 # -------------------------------------------------------------------
 
+
 def _run_extract_llm(args: argparse.Namespace) -> None:
     """Execute the extract-llm subcommand."""
     from oscin.llm_extractor import run_llm_extraction
@@ -331,6 +385,7 @@ def _run_extract_llm(args: argparse.Namespace) -> None:
 # Generate pipeline
 # -------------------------------------------------------------------
 
+
 def _run_generate(args: argparse.Namespace) -> None:
     """Execute the generate subcommand."""
     ttl_path: Path = args.ttl_file.resolve()
@@ -356,8 +411,50 @@ def _run_generate(args: argparse.Namespace) -> None:
 
 
 # -------------------------------------------------------------------
+# Generate LLM pipeline
+# -------------------------------------------------------------------
+
+
+def _run_generate_llm(args: argparse.Namespace) -> None:
+    """Execute the generate-llm subcommand."""
+    from oscin.llm_generator import run_llm_generation
+
+    log = logging.getLogger("oscin")
+
+    ttl_file: Path = args.ttl_file.resolve()
+    if not ttl_file.is_file():
+        print(f"ERROR: TTL file does not exist: {ttl_file}", file=sys.stderr)
+        sys.exit(1)
+
+    log.info("")
+    log.info("=" * 60)
+    log.info("STARTING LLM-BASED GENERATION (BASELINE)")
+    log.info("TTL file: %s", ttl_file)
+    log.info("Target Framework: %s", args.target_framework)
+    log.info("Provider: %s", args.provider)
+    log.info("Model: %s", args.model or "(default)")
+    log.info("=" * 60)
+
+    output_dir = args.output_dir.resolve()
+    created_files = run_llm_generation(
+        ttl_file=ttl_file,
+        output_dir=output_dir,
+        target_framework=args.target_framework,
+        provider=args.provider,
+        model=args.model,
+    )
+
+    log.info("")
+    log.info("=" * 60)
+    log.info("LLM GENERATION COMPLETE")
+    log.info("Generated %d files in: %s", len(created_files), output_dir)
+    log.info("=" * 60)
+
+
+# -------------------------------------------------------------------
 # Evaluate pipeline
 # -------------------------------------------------------------------
+
 
 def _run_evaluate(args: argparse.Namespace) -> None:
     """Execute the evaluate subcommand."""
@@ -396,10 +493,16 @@ def _run_evaluate(args: argparse.Namespace) -> None:
     if args.json_output:
         print(format_json_report(intrinsic_ref, intrinsic_cand, pairwise))
     else:
-        print(format_intrinsic_report(intrinsic_ref, label=f"Reference ({ref_path.name})"))
+        print(
+            format_intrinsic_report(intrinsic_ref, label=f"Reference ({ref_path.name})")
+        )
         if intrinsic_cand and args.candidate:
             print()
-            print(format_intrinsic_report(intrinsic_cand, label=f"Candidate ({args.candidate.name})"))
+            print(
+                format_intrinsic_report(
+                    intrinsic_cand, label=f"Candidate ({args.candidate.name})"
+                )
+            )
         if pairwise:
             print()
             print(format_pairwise_report(pairwise))

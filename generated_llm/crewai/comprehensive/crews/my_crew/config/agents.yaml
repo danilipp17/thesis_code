@@ -1,0 +1,22 @@
+agents:
+  - id: "Primary Researcher"
+    role: "Primary Researcher"
+    type: "GeneralPurpose"
+    goal: "Perform extensive web research."
+    reasoning_enabled: false
+    config:
+      verbose: "true"
+    knowledge_base: "Research_Database"
+    private_memory_scope: "AgentPrivate"
+    tools:
+      - web_search
+
+  - id: "Senior Data Analyst"
+    role: "Senior Data Analyst"
+    type: "GeneralPurpose"
+    goal: "Analyze the data provided by the researcher."
+    reasoning_enabled: false
+    config:
+      allow_delegation: "false"
+    tools:
+      - DatabaseTool

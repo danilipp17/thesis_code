@@ -1,0 +1,8 @@
+tools:
+  - id: "web_search"
+    reference: "external:web_search"
+    title: "web_search"
+
+  - id: "DatabaseTool"
+    reference: "external:DatabaseTool"
+    title: "DatabaseTool"
