@@ -371,16 +371,16 @@ class LangGraphParser(BaseSourceParser):
                 )
                 if candidate_desc and not task_desc:
                     task_desc = candidate_desc
-                
+
                 candidate_keys = self._extract_returned_state_keys(
                     tree, nodes.get(node_name)
                 )
                 if candidate_keys and not expected_output:
                     expected_output = ",".join(candidate_keys)
-                
+
                 if task_desc and expected_output:
                     break
-            
+
             if not task_desc:
                 task_desc = f"Perform {agent.role} responsibilities"
 
@@ -464,12 +464,97 @@ class LangGraphParser(BaseSourceParser):
             )
             log.info("  [Flow] Built flow with %d steps", len(steps))
 
+        # --- Extract create_react_agent calls ---
+        for filepath, source, tree in sources:
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Call)
+                    and ast_utils.get_call_name(node) == "create_react_agent"
+                ):
+                    model = ""
+                    tools = []
+
+                    if node.args:
+                        if len(node.args) >= 1:
+                            if isinstance(node.args[0], ast.Name):
+                                model = node.args[0].id
+                                if model in self._module_llms:
+                                    model = self._module_llms[model]
+                        if len(node.args) >= 2:
+                            if isinstance(node.args[1], ast.List):
+                                for elt in node.args[1].elts:
+                                    if isinstance(elt, ast.Name):
+                                        tools.append(elt.id)
+                            elif isinstance(node.args[1], ast.Name):
+                                tools = list(
+                                    self._resolve_tool_list_variable(
+                                        tree, node.args[1].id
+                                    )
+                                )
+
+                    for kw in node.keywords:
+                        if kw.arg == "model" and isinstance(kw.value, ast.Name):
+                            model = kw.value.id
+                            if model in self._module_llms:
+                                model = self._module_llms[model]
+                        elif kw.arg == "tools":
+                            if isinstance(kw.value, ast.List):
+                                for elt in kw.value.elts:
+                                    if isinstance(elt, ast.Name):
+                                        tools.append(elt.id)
+                            elif isinstance(kw.value, ast.Name):
+                                tools = list(
+                                    self._resolve_tool_list_variable(tree, kw.value.id)
+                                )
+
+                    agent_key = f"react_agent_{len(self.agents)}"
+                    agent = ExtractedAgent(
+                        agent_key=agent_key,
+                        role="react_agent",
+                        goal="React Agent",
+                        backstory="",
+                        llm=model or next(iter(self._module_llms.values()), None)
+                        if not model and self._module_llms
+                        else model,
+                        tools=tools,
+                        source_file=str(filepath),
+                    )
+                    agent.reasoning = True
+                    agent.reasoning_origin = "FrameworkManaged"
+                    self.agents[agent_key] = agent
+
+                    task_key = f"task_{agent_key}"
+                    task = ExtractedTask(
+                        task_key=task_key,
+                        description="Execute React Agent tasks",
+                        expected_output="",
+                        agent_key=agent_key,
+                        delegation_strategy="TopologyDetermined",
+                        source_file=str(filepath),
+                    )
+                    self.tasks[task_key] = task
+
+                    team_key = f"langgraph_team_{len(self.teams)}"
+                    team = ExtractedTeam(
+                        team_class_name="ReactAgentTeam",
+                        agent_keys=[agent_key],
+                        task_keys=[task_key],
+                        process="sequential",
+                        coordination_pattern="ReActLoop",
+                        termination_conditions=[{"type": "Routing"}],
+                        source_file=str(filepath),
+                        memory=False,
+                    )
+                    self.teams[team_key] = team
+                    log.info(
+                        "  [ReAct] Extracted create_react_agent in %s", filepath.name
+                    )
+
         self.log_extraction_summary()
 
     # -----------------------------------------------------------
     # B1: HumanMessage Extraction from Node Functions
     # -----------------------------------------------------------
-
 
     def _extract_returned_state_keys(self, tree: ast.Module, node_info) -> list[str]:
         if not node_info or not node_info.func_ref:
@@ -484,7 +569,9 @@ class LangGraphParser(BaseSourceParser):
                 if isinstance(node, ast.Return):
                     if node.value and isinstance(node.value, ast.Dict):
                         for key in node.value.keys:
-                            if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                            if isinstance(key, ast.Constant) and isinstance(
+                                key.value, str
+                            ):
                                 keys.append(key.value)
             return keys
         return []
@@ -554,7 +641,40 @@ class LangGraphParser(BaseSourceParser):
                             # return the unparsed template
                             return ast.unparse(stmt.value)
                 # Variable not found locally → it's runtime input, skip
-                return ""
+                pass
+
+            # If no HumanMessage found or failed to parse, look for dictionary return with 'messages' key
+            for node in ast.walk(item):
+                if (
+                    isinstance(node, ast.Return)
+                    and node.value
+                    and isinstance(node.value, ast.Dict)
+                ):
+                    for key, val in zip(node.value.keys, node.value.values):
+                        if isinstance(key, ast.Constant) and key.value == "messages":
+                            if isinstance(val, ast.List):
+                                for elt in val.elts:
+                                    if (
+                                        isinstance(elt, ast.Tuple)
+                                        and len(elt.elts) >= 2
+                                    ):
+                                        first = elt.elts[0]
+                                        second = elt.elts[1]
+                                        if (
+                                            isinstance(first, ast.Constant)
+                                            and first.value == "user"
+                                        ):
+                                            if isinstance(
+                                                second, ast.Constant
+                                            ) and isinstance(second.value, str):
+                                                return second.value
+                                            elif isinstance(second, ast.JoinedStr):
+                                                return ast.unparse(second)
+
+            # Finally, check docstring
+            doc = ast.get_docstring(item)
+            if doc:
+                return doc.strip()
 
         return ""
 
@@ -983,7 +1103,9 @@ class LangGraphParser(BaseSourceParser):
         """
         for node in ast.iter_child_nodes(tree):
             # @tool decorated functions
-            if isinstance(node, ast.FunctionDef) and ast_utils.has_decorator(node, "tool"):
+            if isinstance(node, ast.FunctionDef) and ast_utils.has_decorator(
+                node, "tool"
+            ):
                 # Extract argument schema from function signature
                 args_schema = self._extract_tool_args_schema(node)
                 tool = ExtractedTool(
@@ -1077,8 +1199,6 @@ class LangGraphParser(BaseSourceParser):
                     len(fields),
                     filepath.name,
                 )
-
-
 
     # -----------------------------------------------------------
     # Router Target Inference
@@ -1263,7 +1383,6 @@ class LangGraphParser(BaseSourceParser):
     # AST Helper Methods
     # -----------------------------------------------------------
 
-
     @staticmethod
     def _extract_first_string_arg(node: ast.Call) -> Optional[str]:
         """Extract the first positional argument if it's a string constant."""
@@ -1372,7 +1491,6 @@ class LangGraphParser(BaseSourceParser):
                 return str(kw.value.value)
         return None
 
-
     @staticmethod
     def _extract_tool_args_schema(func_node: ast.FunctionDef) -> dict:
         """
@@ -1468,12 +1586,9 @@ class LangGraphParser(BaseSourceParser):
         return None
 
 
-
 # -----------------------------------------------------------
 # Module-level helpers
 # -----------------------------------------------------------
-
-
 
 
 # -----------------------------------------------------------
