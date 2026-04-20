@@ -1,9 +1,0 @@
-team:
-  title: "ComprehensiveCrew"
-  coordination_pattern: "Hierarchical"
-  verbose: "true"
-  memory_binding_scope: "GroupShared"
-  termination_condition: "TaskCompletionTermination"
-  members:
-    - "Primary Researcher"
-    - "Senior Data Analyst"

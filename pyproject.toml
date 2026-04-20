@@ -18,6 +18,11 @@ dependencies = [
     "nbformat>=5.0",
 ]
 
+[project.optional-dependencies]
+gui = [
+    "streamlit>=1.32",
+]
+
 [project.scripts]
 oscin = "oscin.cli:main"
 

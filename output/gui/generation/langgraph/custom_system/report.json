@@ -1,0 +1,239 @@
+{
+  "pipeline": "generation",
+  "example": "custom_system",
+  "framework": "langgraph",
+  "target_framework": "langgraph",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system",
+  "input_ttl": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl",
+  "steps": {
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/generated"
+    },
+    "reextract": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/reextracted.ttl"
+    }
+  },
+  "metrics": {
+    "ttl_intrinsic": {
+      "total_triples": 601,
+      "abox_triples": 118,
+      "individual_counts": {
+        "AgenticSystem": 1,
+        "EndStep": 3,
+        "Goal": 2,
+        "LLMAgent": 2,
+        "LanguageModel": 1,
+        "Orchestration": 1,
+        "Prompt": 4,
+        "StartStep": 2,
+        "Task": 2,
+        "TaskCompletionTermination": 1,
+        "Team": 1,
+        "Tool": 1,
+        "WorkflowPattern": 2,
+        "WorkflowStep": 3
+      },
+      "total_individuals": 26,
+      "properties_used": [
+        "agentID",
+        "agentPrompt",
+        "agentRole",
+        "agentToolUsage",
+        "agentType",
+        "containsAgent",
+        "containsOrchestration",
+        "containsTeam",
+        "dependsOn",
+        "employsCoordinationPattern",
+        "hasAgentGoal",
+        "hasAgentMember",
+        "hasAssociatedTask",
+        "hasDelegationStrategy",
+        "hasDependencyType",
+        "hasDescription",
+        "hasDirectiveFunction",
+        "hasExpectedOutput",
+        "hasImplementationReference",
+        "hasInputSchema",
+        "hasReasoningEnabled",
+        "hasSourceAttribute",
+        "hasSourceFramework",
+        "hasTerminationCondition",
+        "hasTitle",
+        "hasWorkflowPattern",
+        "hasWorkflowStep",
+        "nextStep",
+        "performedByAgent",
+        "promptContext",
+        "promptInstruction",
+        "promptOutputIndicator",
+        "stepOrder",
+        "taskPrompt",
+        "useLanguageModel"
+      ],
+      "property_count": 35,
+      "information_density": 4.538461538461538,
+      "literals_count": 48,
+      "object_links_count": 65,
+      "metric": "ttl_intrinsic",
+      "source": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl"
+    },
+    "syntax_validity": {
+      "metric": "syntax_validity",
+      "source": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/generated",
+      "files_checked": 2,
+      "syntax_ok": 2,
+      "syntax_rate": 1.0,
+      "syntax_errors": [],
+      "import_rate": 1.0,
+      "unresolved_imports": {}
+    },
+    "ttl_pairwise": {
+      "individual_precision": 0.7575757575757576,
+      "individual_recall": 0.9615384615384616,
+      "individual_f1": 0.8474576271186441,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "EndStep": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 2,
+          "candidate_count": 3,
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8
+        },
+        "LLMAgent": {
+          "reference_count": 2,
+          "candidate_count": 3,
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8
+        },
+        "LanguageModel": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 4,
+          "candidate_count": 6,
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8
+        },
+        "RoutingTermination": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Schema": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "StartStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 2,
+          "candidate_count": 3,
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8
+        },
+        "TaskCompletionTermination": {
+          "reference_count": 1,
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Team": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Tool": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 3,
+          "candidate_count": 4,
+          "precision": 0.75,
+          "recall": 1.0,
+          "f1": 0.857
+        }
+      },
+      "property_precision": 0.9428571428571428,
+      "property_recall": 0.9428571428571428,
+      "property_f1": 0.9428571428571428,
+      "triple_precision": 0.1118421052631579,
+      "triple_recall": 0.1440677966101695,
+      "triple_f1": 0.12592592592592594,
+      "literal_overlap": 0.3888888888888889,
+      "missing_individuals": [
+        "TaskCompletionTermination (1 missing)"
+      ],
+      "extra_individuals": [
+        "RoutingTermination (1 extra)",
+        "Schema (1 extra)"
+      ],
+      "missing_properties": [
+        "agentToolUsage",
+        "promptContext"
+      ],
+      "extra_properties": [
+        "hasOutputSchema",
+        "hasSchemaDefinition"
+      ],
+      "metric": "ttl_pairwise",
+      "reference": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl",
+      "candidate": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/reextracted.ttl"
+    }
+  }
+}

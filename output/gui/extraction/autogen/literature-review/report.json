@@ -1,0 +1,75 @@
+{
+  "pipeline": "extraction",
+  "example": "literature-review",
+  "framework": "autogen",
+  "target_framework": null,
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/autogen/literature-review/source_files",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/autogen/literature-review",
+  "ground_truth": null,
+  "steps": {
+    "extract": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/autogen/literature-review/extracted.ttl"
+    }
+  },
+  "metrics": {
+    "ttl_intrinsic": {
+      "total_triples": 609,
+      "abox_triples": 126,
+      "individual_counts": {
+        "AgenticSystem": 1,
+        "EndStep": 1,
+        "EventBasedTermination": 1,
+        "Goal": 3,
+        "LLMAgent": 3,
+        "LanguageModel": 1,
+        "Orchestration": 1,
+        "Prompt": 7,
+        "StartStep": 1,
+        "Task": 1,
+        "Team": 1,
+        "Tool": 3,
+        "WorkflowPattern": 2,
+        "WorkflowStep": 1
+      },
+      "total_individuals": 27,
+      "properties_used": [
+        "agentID",
+        "agentPrompt",
+        "agentRole",
+        "agentToolUsage",
+        "agentType",
+        "containsAgent",
+        "containsOrchestration",
+        "containsTeam",
+        "employsCoordinationPattern",
+        "hasAgentGoal",
+        "hasAgentMember",
+        "hasDelegationStrategy",
+        "hasDescription",
+        "hasDirectiveFunction",
+        "hasImplementationReference",
+        "hasInputSchema",
+        "hasReasoningEnabled",
+        "hasSourceAttribute",
+        "hasSourceFramework",
+        "hasTerminationCondition",
+        "hasTitle",
+        "hasTriggerExpression",
+        "hasWorkflowPattern",
+        "hasWorkflowStep",
+        "promptContext",
+        "promptInstruction",
+        "stepOrder",
+        "taskPrompt",
+        "useLanguageModel"
+      ],
+      "property_count": 29,
+      "information_density": 4.666666666666667,
+      "literals_count": 58,
+      "object_links_count": 63,
+      "metric": "ttl_intrinsic",
+      "source": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/autogen/literature-review/extracted.ttl"
+    }
+  }
+}
