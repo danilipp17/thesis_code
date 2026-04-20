@@ -133,7 +133,7 @@ def align(
     reference: Graph,
     candidate: Graph,
     threshold: float = 0.55,
-) -> dict[str, list[tuple[str, str, float]]]:
+) -> tuple[dict[str, list[tuple[str, str, float]]], dict[str, list[str]], dict[str, list[str]]]:
     """
     Compute per-class fuzzy alignment between reference and candidate.
 
@@ -141,13 +141,14 @@ def align(
     (ref, cand) pair whose score >= threshold; remove both from consideration;
     continue until no pair meets threshold.
 
-    Returns ``{class_name: [(ref_local, cand_local, score), ...]}``.
-    Unmatched individuals do not appear in the alignment.
+    Returns ``(alignment, missing_ref, extra_cand)``.
     """
     ref_by_class = _individuals_by_class(reference)
     cand_by_class = _individuals_by_class(candidate)
 
     alignment: dict[str, list[tuple[str, str, float]]] = {}
+    missing_ref: dict[str, list[str]] = {}
+    extra_cand: dict[str, list[str]] = {}
 
     for cls in sorted(set(ref_by_class) | set(cand_by_class)):
         refs = ref_by_class.get(cls, [])
@@ -183,7 +184,15 @@ def align(
         if class_alignment:
             alignment[cls] = class_alignment
 
-    return alignment
+        m_ref = [ref_info[i][1] for i in range(len(ref_info)) if i not in used_ref]
+        if m_ref:
+            missing_ref[cls] = m_ref
+            
+        e_cand = [cand_info[j][1] for j in range(len(cand_info)) if j not in used_cand]
+        if e_cand:
+            extra_cand[cls] = e_cand
+
+    return alignment, missing_ref, extra_cand
 
 
 def summary(alignment: dict[str, list[tuple[str, str, float]]]) -> dict:
@@ -212,12 +221,14 @@ def summary(alignment: dict[str, list[tuple[str, str, float]]]) -> dict:
 
 def compute(reference: Graph, candidate: Graph, threshold: float = 0.55) -> dict:
     """Top-level entry point for the metric harness."""
-    alignment = align(reference, candidate, threshold=threshold)
+    alignment, missing_ref, extra_cand = align(reference, candidate, threshold=threshold)
     return {
         "metric": NAME,
         "threshold": threshold,
         **summary(alignment),
         "alignment": alignment,  # kept for downstream P/R re-scoring
+        "missing_ref": missing_ref,
+        "extra_cand": extra_cand,
     }
 
 

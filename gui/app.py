@@ -34,6 +34,9 @@ from gui.components import (
     capture_logs,
     example_picker,
     framework_selector,
+    fuzzy_alignment_viewer,
+    ast_diff_viewer,
+    abox_viewer,
     iter_step_errors,
     list_fixtures,
     list_prior_extractions,
@@ -164,21 +167,41 @@ with tab_extract:
                 help="Average per-pair similarity across aligned individuals.",
             )
 
-        # TTL viewer + report markdown + logs
-        ttl_tab, md_tab, log_tab = st.tabs(
-            ["Extracted TTL", "Full report", "Logs"]
-        )
-        with ttl_tab:
-            ttl_path = Path(report["work_dir"]) / "extracted.ttl"
-            ttl_viewer(ttl_path, label=f"`{ttl_path}`")
-        with md_tab:
-            st.markdown(render_markdown(report))
-        with log_tab:
-            logs = st.session_state.get("extract_last_logs") or []
-            if logs:
-                st.code("\n".join(logs), language="log", height=420)
-            else:
-                st.caption("no captured logs")
+        # Side-by-side viewer
+        view_options = ["Source code", "Extracted ABox", "Extracted TTL", "Full report", "Logs"]
+        side_l, side_r = st.columns(2, gap="medium")
+
+        with side_l:
+            left_view = st.selectbox("Left pane", view_options, index=0, key="extract_left_view")
+        with side_r:
+            right_view = st.selectbox("Right pane", view_options, index=1, key="extract_right_view")
+
+        def _render_extraction_pane(view_name: str, col_key: str) -> None:
+            if view_name == "Source code":
+                src = report.get("source_dir")
+                if src:
+                    source_tree_viewer(Path(src), key_suffix=f"extract_{col_key}")
+                else:
+                    st.info("No source directory recorded.")
+            elif view_name == "Extracted ABox":
+                ttl_path = Path(report["work_dir"]) / "extracted.ttl"
+                abox_viewer(ttl_path, label="ABox individuals from extracted TTL", key_prefix=f"extract_abox_{col_key}")
+            elif view_name == "Extracted TTL":
+                ttl_path = Path(report["work_dir"]) / "extracted.ttl"
+                ttl_viewer(ttl_path, label=f"`{ttl_path}`")
+            elif view_name == "Full report":
+                st.markdown(render_markdown(report))
+            elif view_name == "Logs":
+                logs = st.session_state.get("extract_last_logs") or []
+                if logs:
+                    st.code("\n".join(logs), language="log", height=420)
+                else:
+                    st.caption("no captured logs")
+
+        with side_l:
+            _render_extraction_pane(left_view, "left")
+        with side_r:
+            _render_extraction_pane(right_view, "right")
 
 with tab_generate:
     st.header("TTL → Source")
@@ -218,12 +241,12 @@ with tab_generate:
             prior = list_prior_extractions()
             if not prior:
                 st.warning(
-                    "no prior extractions found at `output/extraction/*/*/extracted.ttl` "
+                    "No prior extractions found at `output/extraction/` or `output/gui/extraction/` "
                     "— run the Extract tab first."
                 )
             else:
                 labels = [
-                    f"{p.parent.parent.name}/{p.parent.name}" for p in prior
+                    f"{'[GUI]' if 'gui' in p.parts else '[CLI]'} {p.parent.parent.name}/{p.parent.name}" for p in prior
                 ]
                 choice = st.selectbox("Prior extraction", labels, key="gen_prior")
                 input_ttl_path = prior[labels.index(choice)]
@@ -339,26 +362,44 @@ with tab_generate:
                 st.metric("Execution", "✓" if ok_match else "✗",
                           help="Generated code exits with same status as reference.")
 
-        gen_tab, md_tab, log_tab = st.tabs(
-            ["Generated source", "Full report", "Logs"]
-        )
-        with gen_tab:
-            gen_dir = Path(report["work_dir"]) / "generated"
-            source_tree_viewer(gen_dir)
-            if gen_dir.is_dir():
-                zip_download_button(
-                    gen_dir,
-                    filename=f"{report['example']}_{target_fw}.zip",
-                    key="gen_download",
-                )
-        with md_tab:
-            st.markdown(render_markdown(report))
-        with log_tab:
-            logs = st.session_state.get("gen_last_logs") or []
-            if logs:
-                st.code("\n".join(logs), language="log", height=420)
-            else:
-                st.caption("no captured logs")
+        # Side-by-side viewer
+        gen_view_options = ["Generated source", "Input ABox", "Full report", "Logs"]
+        side_l, side_r = st.columns(2, gap="medium")
+
+        with side_l:
+            left_view = st.selectbox("Left pane", gen_view_options, index=0, key="gen_left_view")
+        with side_r:
+            right_view = st.selectbox("Right pane", gen_view_options, index=1, key="gen_right_view")
+
+        def _render_gen_pane(view_name: str, col_key: str) -> None:
+            if view_name == "Generated source":
+                gen_dir = Path(report["work_dir"]) / "generated"
+                source_tree_viewer(gen_dir, key_suffix=f"gen_{col_key}")
+                if gen_dir.is_dir():
+                    zip_download_button(
+                        gen_dir,
+                        filename=f"{report['example']}_{target_fw}.zip",
+                        key=f"gen_download_{col_key}",
+                    )
+            elif view_name == "Input ABox":
+                input_ttl = report.get("input_ttl")
+                if input_ttl:
+                    abox_viewer(Path(input_ttl), label=f"ABox individuals from `{Path(input_ttl).name}`", key_prefix=f"gen_abox_{col_key}")
+                else:
+                    st.info("No input TTL path recorded in report.")
+            elif view_name == "Full report":
+                st.markdown(render_markdown(report))
+            elif view_name == "Logs":
+                logs = st.session_state.get("gen_last_logs") or []
+                if logs:
+                    st.code("\n".join(logs), language="log", height=420)
+                else:
+                    st.caption("no captured logs")
+
+        with side_l:
+            _render_gen_pane(left_view, "left")
+        with side_r:
+            _render_gen_pane(right_view, "right")
 
 with tab_roundtrip:
     st.header("Source → TTL → Source")
@@ -489,31 +530,62 @@ with tab_roundtrip:
                 else:
                     st.metric("Execution", "✓" if ok_match else "✗")
 
-        # Per-metric detail tabs — one tab per metric that produced a result
-        metric_names = [n for n in metrics.keys() if n in ALL_METRICS]
-        if metric_names:
-            metric_tabs = st.tabs(
-                metric_names + ["TTL₁", "TTL₂", "Full report", "Logs"]
-            )
-            for i, name in enumerate(metric_names):
-                with metric_tabs[i]:
-                    mod = ALL_METRICS[name]
-                    try:
-                        st.markdown(mod.summarize_markdown(metrics[name]))
-                    except Exception as e:
-                        st.error(f"render error: {type(e).__name__}: {e}")
+        # Side-by-side viewer
+        work = Path(report["work_dir"])
+        rt_view_options = ["Original source", "TTL₁ ABox", "TTL₂ ABox", "Generated source", "TTL₁ raw", "TTL₂ raw", "Full report", "Logs"]
 
-            # TTL₁ / TTL₂ viewers + full report + logs
-            work = Path(report["work_dir"])
-            with metric_tabs[len(metric_names)]:
+        # Add metric-specific views
+        metric_names = [n for n in metrics.keys() if n in ALL_METRICS]
+        rt_view_options = metric_names + rt_view_options
+
+        side_l, side_r = st.columns(2, gap="medium")
+
+        with side_l:
+            left_view = st.selectbox("Left pane", rt_view_options, index=0, key="rt_left_view")
+        with side_r:
+            right_idx = min(1, len(rt_view_options) - 1)
+            right_view = st.selectbox("Right pane", rt_view_options, index=right_idx, key="rt_right_view")
+
+        def _render_rt_pane(view_name: str, col_key: str) -> None:
+            if view_name == "Original source":
+                src = report.get("source_dir")
+                if src:
+                    source_tree_viewer(Path(src), key_suffix=f"rt_orig_{col_key}")
+                else:
+                    st.info("No source directory recorded.")
+            elif view_name == "TTL₁ ABox":
+                abox_viewer(work / "ttl1.ttl", label="ABox from TTL₁ (first extraction)", key_prefix=f"rt_abox1_{col_key}")
+            elif view_name == "TTL₂ ABox":
+                abox_viewer(work / "ttl2.ttl", label="ABox from TTL₂ (re-extraction)", key_prefix=f"rt_abox2_{col_key}")
+            elif view_name == "Generated source":
+                gen_dir = work / "generated"
+                source_tree_viewer(gen_dir, key_suffix=f"rt_{col_key}")
+            elif view_name == "TTL₁ raw":
                 ttl_viewer(work / "ttl1.ttl", label="TTL₁ (first extraction)")
-            with metric_tabs[len(metric_names) + 1]:
+            elif view_name == "TTL₂ raw":
                 ttl_viewer(work / "ttl2.ttl", label="TTL₂ (re-extraction)")
-            with metric_tabs[len(metric_names) + 2]:
+            elif view_name == "Full report":
                 st.markdown(render_markdown(report))
-            with metric_tabs[len(metric_names) + 3]:
+            elif view_name == "Logs":
                 logs = st.session_state.get("rt_last_logs") or []
                 if logs:
                     st.code("\n".join(logs), language="log", height=420)
                 else:
                     st.caption("no captured logs")
+            elif view_name in metric_names:
+                # Render the metric-specific view
+                if view_name == "ttl_fuzzy_match":
+                    fuzzy_alignment_viewer(metrics[view_name])
+                elif view_name == "ast_diff":
+                    ast_diff_viewer(metrics[view_name])
+                else:
+                    mod = ALL_METRICS[view_name]
+                    try:
+                        st.markdown(mod.summarize_markdown(metrics[view_name]))
+                    except Exception as e:
+                        st.error(f"render error: {type(e).__name__}: {e}")
+
+        with side_l:
+            _render_rt_pane(left_view, "left")
+        with side_r:
+            _render_rt_pane(right_view, "right")

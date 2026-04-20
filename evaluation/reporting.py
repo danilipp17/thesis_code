@@ -110,6 +110,6 @@ def write_report(report: dict, work_dir: Path) -> None:
     """Persist report.json and report.md next to one another."""
     work_dir.mkdir(parents=True, exist_ok=True)
     (work_dir / "report.json").write_text(
-        json.dumps(report, indent=2, default=str)
+        json.dumps(report, indent=2, default=str), encoding="utf-8"
     )
-    (work_dir / "report.md").write_text(render_markdown(report))
+    (work_dir / "report.md").write_text(render_markdown(report), encoding="utf-8")

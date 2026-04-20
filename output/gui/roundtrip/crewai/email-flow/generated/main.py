@@ -1,64 +1,85 @@
 """
-Auto-generated LangGraph application: email_flow
+Auto-generated AutoGen application: email_flow
 """
 
+import asyncio
 import dotenv
-from typing import Annotated, TypedDict
-
-from langgraph.graph import END, START, StateGraph
 
 dotenv.load_dotenv()
-from langgraph.graph.message import add_messages
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.messages import SystemMessage, HumanMessage
 
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+from autogen_core.tools import FunctionTool
 from tools import serper_dev_tool, create_draft, gmail_get_thread, tavily_search_results
-from langgraph.prebuilt import ToolNode
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+# -- Tools --
+serper_dev_tool_tool = FunctionTool(
+    serper_dev_tool,
+    description="",
+)
+create_draft_tool = FunctionTool(
+    create_draft,
+    description="Useful to create an email draft. The input to this tool should be a pipe (|) separated text of length 3 (three), representing who to send the email to, the subject of the email and the actual message. For example, `lorem@ipsum.com|Nice To Meet You|Hey it was great to meet you.`.",
+)
+gmail_get_thread_tool = FunctionTool(
+    gmail_get_thread,
+    description="",
+)
+tavily_search_results_tool = FunctionTool(
+    tavily_search_results,
+    description="",
+)
+
+# -- Agents --
+email_action_agent = AssistantAgent(
+    name="Email_Action_Specialist",
+    model_client=model_client,
+    tools=[gmail_get_thread_tool, tavily_search_results_tool],
+    system_message=(
+        "For each email identified as action-required, determine the necessary steps and provide a brief summary of the required actions. As a seasoned executive assistant, you excel at understanding the context of business communications and determining the appropriate response and actions required for each email."
+    ),
+)
+
+email_filter_agent = AssistantAgent(
+    name="Senior_Email_Analyst",
+    model_client=model_client,
+    tools=[serper_dev_tool_tool],
+    system_message=(
+        "Filter out non-essential emails like newsletters and promotional content, and identify important action-required emails that need immediate attention. With years of experience in email management and communication triage, you are adept at quickly identifying important emails that require immediate action from those that can be archived or ignored."
+    ),
+)
+
+email_response_writer = AssistantAgent(
+    name="Email_Response_Writer",
+    model_client=model_client,
+    tools=[gmail_get_thread_tool, tavily_search_results_tool, create_draft_tool],
+    system_message=(
+        "Draft professional and appropriate responses to action-required emails based on the determined actions and context. You are a skilled communicator with a talent for crafting clear, professional, and context-appropriate email responses. You understand the nuances of business communication and can adapt your tone and style to match the situation."
+    ),
+)
+
+# -- Team --
+termination = MaxMessageTermination(10) | TextMentionTermination("TERMINATE")
+
+team = RoundRobinGroupChat(
+    participants=[email_action_agent, email_filter_agent, email_response_writer],
+    termination_condition=termination,
+)
 
 
-class State(TypedDict):
-    """Graph state."""
-    messages: Annotated[list, add_messages]
-    emails: List[Email]
-    checked_emails_ids: set[str]
-
-model = ChatOpenAI(model="gpt-4o")
-
-tools = [serper_dev_tool, create_draft, gmail_get_thread, tavily_search_results]
-tool_node = ToolNode(tools)
-
-model_with_tools = model.bind_tools(tools)
-
-
-def fetch_new_emails(state: State) -> dict:
-    """Node: fetch_new_emails"""
-    messages = state.get("messages", [])
-    response = model.invoke(messages)
-    return {"messages": [response]}
-
-
-def generate_draft_responses(state: State) -> dict:
-    """Node: generate_draft_responses"""
-    messages = state.get("messages", [])
-    response = model.invoke(messages)
-    return {"messages": [response]}
-
-
-# Build the graph
-graph = StateGraph(State)
-
-graph.add_node("fetch_new_emails", fetch_new_emails)
-graph.add_node("generate_draft_responses", generate_draft_responses)
-graph.add_node("tools", tool_node)
-
-graph.add_edge(START, "fetch_new_emails")
-graph.add_edge("fetch_new_emails", "generate_draft_responses")
-
-# Compile the graph
-app = graph.compile()
+async def main():
+    stream = team.run_stream(
+        task="Based on the action plans provided, draft professional email responses for each action-required email. Ensure the responses are clear, concise, and appropriate for the context."
+    )
+    await Console(stream)
+    await model_client.close()
 
 
 if __name__ == "__main__":
-    result = app.invoke({"messages": ["Start the task."]})
-    print(result["messages"][-1].content)
+    asyncio.run(main())

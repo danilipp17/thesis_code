@@ -3,17 +3,17 @@
   "example": "custom_system",
   "framework": "langgraph",
   "target_framework": "langgraph",
-  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl",
-  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system",
-  "input_ttl": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl",
+  "source_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\evaluation\\fixtures\\custom_system.ttl",
+  "work_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\generation\\langgraph\\custom_system",
+  "input_ttl": "C:\\Users\\Dani\\Thesis\\Extractor\\evaluation\\fixtures\\custom_system.ttl",
   "steps": {
     "generate": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/generated"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\generation\\langgraph\\custom_system\\generated"
     },
     "reextract": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/reextracted.ttl"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\generation\\langgraph\\custom_system\\reextracted.ttl"
     }
   },
   "metrics": {
@@ -79,11 +79,11 @@
       "literals_count": 48,
       "object_links_count": 65,
       "metric": "ttl_intrinsic",
-      "source": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl"
+      "source": "C:\\Users\\Dani\\Thesis\\Extractor\\evaluation\\fixtures\\custom_system.ttl"
     },
     "syntax_validity": {
       "metric": "syntax_validity",
-      "source": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/generated",
+      "source": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\generation\\langgraph\\custom_system\\generated",
       "files_checked": 2,
       "syntax_ok": 2,
       "syntax_rate": 1.0,
@@ -220,8 +220,8 @@
         "TaskCompletionTermination (1 missing)"
       ],
       "extra_individuals": [
-        "RoutingTermination (1 extra)",
-        "Schema (1 extra)"
+        "Schema (1 extra)",
+        "RoutingTermination (1 extra)"
       ],
       "missing_properties": [
         "agentToolUsage",
@@ -232,8 +232,8 @@
         "hasSchemaDefinition"
       ],
       "metric": "ttl_pairwise",
-      "reference": "/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl",
-      "candidate": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/langgraph/custom_system/reextracted.ttl"
+      "reference": "C:\\Users\\Dani\\Thesis\\Extractor\\evaluation\\fixtures\\custom_system.ttl",
+      "candidate": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\generation\\langgraph\\custom_system\\reextracted.ttl"
     }
   }
 }

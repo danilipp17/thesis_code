@@ -1,56 +1,108 @@
 """
-Auto-generated CrewAI Flow: AcademicResearchFlow
+Auto-generated LangGraph application: academic_research_flow
 """
 
 import dotenv
-from typing import Optional
+from typing import Annotated, TypedDict
 
-from crewai.flow.flow import Flow, listen, router, start
-from pydantic import BaseModel
+from langgraph.graph import END, START, StateGraph
 
 dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 
-from crews.academic_research_crew.academic_research_crew import AcademicResearchCrew
-
-
-class AcademicResearchFlowState(BaseModel):
-    """Flow state — customize fields as needed."""
-    id: str = ""
-    topic: str = ""
-    paper: str = ""
-    status: str = ""
+from tools import academic_search_tool
+from langgraph.prebuilt import ToolNode
 
 
-class AcademicResearchFlow(Flow[AcademicResearchFlowState]):
+class State(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+    id: str
+    topic: str
+    paper: str
+    status: str
 
-    @start()
-    def initialize_research(self):
-        pass  # TODO: implement step logic
+model = ChatOpenAI(model="gpt-4o")
 
-    @listen(initialize_research)
-    def conduct_research(self):
-        pass  # TODO: implement step logic
+tools = [academic_search_tool]
+tool_node = ToolNode(tools)
 
-    @router()
-    def review_outcome(self):
-        if self.state.status == "SUCCESS":
-            return "publish_paper"
-        elif self.state.status == "FAILED":
-            return "abort_research"
-
-    @listen(review_outcome)
-    def publish_paper(self):
-        pass  # TODO: implement step logic
-
-    @listen(review_outcome)
-    def abort_research(self):
-        pass  # TODO: implement step logic
+senior_researcher_model = model.bind_tools([academic_search_tool])
 
 
-def kickoff():
-    flow = AcademicResearchFlow()
-    flow.kickoff()
+def initialize_research(state: State) -> dict:
+    """Node: initialize_research"""
+    messages = state.get("messages", [])
+    response = model.invoke(messages)
+    return {"messages": [response]}
+
+
+def conduct_research(state: State) -> dict:
+    """Node: conduct_research"""
+    messages = state.get("messages", [])
+    response = model.invoke(messages)
+    return {"messages": [response]}
+
+
+def review_outcome(state: State) -> dict:
+    """Node: review_outcome"""
+    messages = state.get("messages", [])
+    response = model.invoke(messages)
+    return {"messages": [response]}
+
+
+def route_review_outcome(state: State) -> str:
+    """Router: review_outcome"""
+    if self.state.status == "SUCCESS":
+        return "publish_paper"
+    elif self.state.status == "FAILED":
+        return "abort_research"
+
+
+def publish_paper(state: State) -> dict:
+    """Node: publish_paper"""
+    messages = state.get("messages", [])
+    response = model.invoke(messages)
+    return {"messages": [response]}
+
+
+def abort_research(state: State) -> dict:
+    """Node: abort_research"""
+    messages = state.get("messages", [])
+    response = model.invoke(messages)
+    return {"messages": [response]}
+
+
+# Build the graph
+graph = StateGraph(State)
+
+graph.add_node("initialize_research", initialize_research)
+graph.add_node("conduct_research", conduct_research)
+graph.add_node("review_outcome", review_outcome)
+graph.add_node("publish_paper", publish_paper)
+graph.add_node("abort_research", abort_research)
+graph.add_node("tools", tool_node)
+
+graph.add_edge(START, "initialize_research")
+graph.add_edge("initialize_research", "conduct_research")
+graph.add_conditional_edges(
+    "review_outcome",
+    route_review_outcome,
+    {
+        "abort_research": "abort_research",
+        "publish_paper": "publish_paper"
+    },
+)
+graph.add_edge("review_outcome", "publish_paper")
+graph.add_edge("review_outcome", "abort_research")
+
+# Compile the graph
+app = graph.compile()
 
 
 if __name__ == "__main__":
-    kickoff()
+    result = app.invoke({"messages": ["Start the task."]})
+    print(result["messages"][-1].content)

@@ -1,13 +1,13 @@
 # Extraction — crewai/self-eval-loop-flow
 
-- source: `/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files`
-- work dir: `/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/crewai/self-eval-loop-flow`
+- source: `C:\Users\Dani\Thesis\Extractor\examples\crewai\self-eval-loop-flow\source_files`
+- work dir: `C:\Users\Dani\Thesis\Extractor\output\gui\extraction\crewai\self-eval-loop-flow`
 
 ## Pipeline
-- `extract` ✓ /Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/crewai/self-eval-loop-flow/extracted.ttl
+- `extract` ✓ C:\Users\Dani\Thesis\Extractor\output\gui\extraction\crewai\self-eval-loop-flow\extracted.ttl
 
 ## Intrinsic metrics (single TTL)
-- source: `/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/crewai/self-eval-loop-flow/extracted.ttl`
+- source: `C:\Users\Dani\Thesis\Extractor\output\gui\extraction\crewai\self-eval-loop-flow\extracted.ttl`
 - total triples: 634
 - ABox triples: 151
 - individuals: 37

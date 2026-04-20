@@ -4,20 +4,20 @@
   "example": "research-assistant",
   "framework": "langgraph",
   "target_framework": "langgraph",
-  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/research-assistant/source_files",
-  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/langgraph/research-assistant",
+  "source_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\examples\\langgraph\\research-assistant\\source_files",
+  "work_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\langgraph\\research-assistant",
   "steps": {
     "extract_1": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/langgraph/research-assistant/ttl1.ttl"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\langgraph\\research-assistant\\ttl1.ttl"
     },
     "generate": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/langgraph/research-assistant/generated"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\langgraph\\research-assistant\\generated"
     },
     "extract_2": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/langgraph/research-assistant/ttl2.ttl"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\langgraph\\research-assistant\\ttl2.ttl"
     }
   },
   "metrics": {
@@ -476,7 +476,9 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
@@ -486,31 +488,26 @@
         "f1": 0.581
       },
       "per_feature": {
-        "class_bases": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [
-            "ResearchState(TypedDict)"
-          ],
+        "imports": {
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8,
+          "ref_count": 4,
+          "cand_count": 6,
+          "missing": [],
           "extra": [
-            "State(TypedDict)"
+            "dotenv",
+            "tools"
           ]
         },
-        "classes": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [
-            "ResearchState"
-          ],
-          "extra": [
-            "State"
-          ]
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 3,
+          "cand_count": 3,
+          "missing": [],
+          "extra": []
         },
         "functions": {
           "precision": 0.4,
@@ -529,7 +526,29 @@
             "writer"
           ]
         },
-        "state_annotations": {
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": []
+        },
+        "classes": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [
+            "ResearchState"
+          ],
+          "extra": [
+            "State"
+          ]
+        },
+        "state_fields": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
@@ -609,35 +628,18 @@
             ]
           ]
         },
-        "imports": {
-          "precision": 0.667,
-          "recall": 1.0,
-          "f1": 0.8,
-          "ref_count": 4,
-          "cand_count": 6,
-          "missing": [],
-          "extra": [
-            "dotenv",
-            "tools"
-          ]
-        },
-        "decorators": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
+        "class_bases": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 3,
-          "cand_count": 3,
-          "missing": [],
-          "extra": []
+          "missing": [
+            "ResearchState(TypedDict)"
+          ],
+          "extra": [
+            "State(TypedDict)"
+          ]
         },
         "decorator_args": {
           "precision": 1.0,
@@ -650,11 +652,11 @@
         }
       },
       "ref_files": [
-        "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/research-assistant/source_files/research_assistant.py"
+        "C:\\Users\\Dani\\Thesis\\Extractor\\examples\\langgraph\\research-assistant\\source_files\\research_assistant.py"
       ],
       "cand_files": [
-        "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/langgraph/research-assistant/generated/main.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/langgraph/research-assistant/generated/tools.py"
+        "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\langgraph\\research-assistant\\generated\\main.py",
+        "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\langgraph\\research-assistant\\generated\\tools.py"
       ]
     },
     "execution_trace": {

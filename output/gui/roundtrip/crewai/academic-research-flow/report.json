@@ -1,30 +1,30 @@
 {
   "pipeline": "roundtrip",
-  "mode": "same_framework",
+  "mode": "cross_framework",
   "example": "academic-research-flow",
   "framework": "crewai",
-  "target_framework": "crewai",
-  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/academic-research-flow/source_files",
-  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow",
+  "target_framework": "langgraph",
+  "source_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\examples\\crewai\\academic-research-flow\\source_files",
+  "work_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\crewai\\academic-research-flow",
   "steps": {
     "extract_1": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/ttl1.ttl"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\crewai\\academic-research-flow\\ttl1.ttl"
     },
     "generate": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/generated"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\crewai\\academic-research-flow\\generated"
     },
     "extract_2": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/ttl2.ttl"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\crewai\\academic-research-flow\\ttl2.ttl"
     }
   },
   "metrics": {
     "ttl_pairwise": {
-      "individual_precision": 0.9772727272727273,
-      "individual_recall": 0.9555555555555556,
-      "individual_f1": 0.9662921348314608,
+      "individual_precision": 0.6326530612244898,
+      "individual_recall": 0.6888888888888889,
+      "individual_f1": 0.6595744680851063,
       "individual_detail": {
         "AgenticSystem": {
           "reference_count": 1,
@@ -42,10 +42,10 @@
         },
         "Config": {
           "reference_count": 5,
-          "candidate_count": 5,
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "EndStep": {
           "reference_count": 4,
@@ -56,24 +56,24 @@
         },
         "Goal": {
           "reference_count": 2,
-          "candidate_count": 2,
-          "precision": 1.0,
+          "candidate_count": 5,
+          "precision": 0.4,
           "recall": 1.0,
-          "f1": 1.0
+          "f1": 0.571
         },
         "HumanCheckpoint": {
           "reference_count": 1,
-          "candidate_count": 1,
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "LLMAgent": {
           "reference_count": 3,
-          "candidate_count": 3,
-          "precision": 1.0,
+          "candidate_count": 5,
+          "precision": 0.6,
           "recall": 1.0,
-          "f1": 1.0
+          "f1": 0.75
         },
         "LanguageModel": {
           "reference_count": 1,
@@ -84,17 +84,17 @@
         },
         "Memory": {
           "reference_count": 2,
-          "candidate_count": 1,
-          "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "MemoryBinding": {
           "reference_count": 2,
-          "candidate_count": 1,
-          "precision": 1.0,
-          "recall": 0.5,
-          "f1": 0.667
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "Orchestration": {
           "reference_count": 1,
@@ -105,17 +105,24 @@
         },
         "Prompt": {
           "reference_count": 4,
-          "candidate_count": 5,
-          "precision": 0.8,
+          "candidate_count": 10,
+          "precision": 0.4,
           "recall": 1.0,
-          "f1": 0.889
+          "f1": 0.571
+        },
+        "RoutingTermination": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "Schema": {
           "reference_count": 3,
-          "candidate_count": 3,
+          "candidate_count": 1,
           "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
+          "recall": 0.333,
+          "f1": 0.5
         },
         "StartStep": {
           "reference_count": 2,
@@ -126,17 +133,17 @@
         },
         "Task": {
           "reference_count": 2,
-          "candidate_count": 2,
-          "precision": 1.0,
+          "candidate_count": 5,
+          "precision": 0.4,
           "recall": 1.0,
-          "f1": 1.0
+          "f1": 0.571
         },
         "TaskCompletionTermination": {
           "reference_count": 1,
-          "candidate_count": 1,
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "Team": {
           "reference_count": 1,
@@ -154,10 +161,10 @@
         },
         "Unspecified": {
           "reference_count": 1,
-          "candidate_count": 1,
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
         },
         "WorkflowPattern": {
           "reference_count": 2,
@@ -168,35 +175,62 @@
         },
         "WorkflowStep": {
           "reference_count": 5,
-          "candidate_count": 5,
-          "precision": 1.0,
+          "candidate_count": 8,
+          "precision": 0.625,
           "recall": 1.0,
-          "f1": 1.0
+          "f1": 0.769
         }
       },
-      "property_precision": 1.0,
-      "property_recall": 0.9259259259259259,
-      "property_f1": 0.9615384615384615,
-      "triple_precision": 0.8378378378378378,
-      "triple_recall": 0.824468085106383,
-      "triple_f1": 0.8310991957104557,
-      "literal_overlap": 0.8727272727272727,
-      "missing_individuals": [],
-      "extra_individuals": [],
-      "missing_properties": [
-        "dependsOn",
-        "hasDependencyType",
-        "hasTeamMemoryBinding",
-        "orchestratesTeam"
+      "property_precision": 0.9459459459459459,
+      "property_recall": 0.6481481481481481,
+      "property_f1": 0.7692307692307693,
+      "triple_precision": 0.11206896551724138,
+      "triple_recall": 0.13829787234042554,
+      "triple_f1": 0.12380952380952381,
+      "literal_overlap": 0.2909090909090909,
+      "missing_individuals": [
+        "Memory (2 missing)",
+        "MemoryBinding (2 missing)",
+        "Unspecified (1 missing)",
+        "TaskCompletionTermination (1 missing)",
+        "HumanCheckpoint (1 missing)",
+        "Config (5 missing)"
       ],
-      "extra_properties": [],
+      "extra_individuals": [
+        "RoutingTermination (1 extra)"
+      ],
+      "missing_properties": [
+        "agentToolUsage",
+        "bindsMemory",
+        "configKey",
+        "configValue",
+        "employsReasoningPattern",
+        "hasAgentConfig",
+        "hasCheckpointPosition",
+        "hasCheckpointType",
+        "hasHumanCheckpoint",
+        "hasMaxReasoningAttempts",
+        "hasMemoryBinding",
+        "hasMemoryScope",
+        "hasPersistenceScope",
+        "hasReasoningOrigin",
+        "hasSystemConfig",
+        "hasTeamMemoryBinding",
+        "isMandatory",
+        "orchestratesTeam",
+        "promptContext"
+      ],
+      "extra_properties": [
+        "hasEdgeMapping",
+        "performedByAgent"
+      ],
       "metric": "ttl_pairwise"
     },
     "ttl_fuzzy_match": {
       "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
-      "total_matched_pairs": 27,
-      "avg_score": 0.993,
+      "total_matched_pairs": 20,
+      "avg_score": 0.863,
       "by_class": {
         "AgenticSystem": {
           "matched": 1,
@@ -221,7 +255,7 @@
           ]
         },
         "EndStep": {
-          "matched": 4,
+          "matched": 3,
           "avg_score": 1.0,
           "pairs": [
             {
@@ -238,127 +272,80 @@
               "ref": "FlowStep_abort_research",
               "cand": "FlowStep_abort_research",
               "score": 1.0
-            },
-            {
-              "ref": "CrewStep_AcademicResearchCrew_write_paper_task",
-              "cand": "CrewStep_AcademicResearchCrew_write_paper_task",
-              "score": 1.0
             }
           ]
         },
         "Goal": {
-          "matched": 2,
-          "avg_score": 1.0,
+          "matched": 1,
+          "avg_score": 0.78,
           "pairs": [
             {
               "ref": "Goal_senior_researcher",
-              "cand": "Goal_senior_researcher",
-              "score": 1.0
-            },
-            {
-              "ref": "Goal_prof_writer",
-              "cand": "Goal_prof_writer",
-              "score": 1.0
+              "cand": "Goal_abort_research",
+              "score": 0.78
             }
           ]
         },
         "LLMAgent": {
           "matched": 3,
-          "avg_score": 1.0,
+          "avg_score": 0.641,
           "pairs": [
             {
               "ref": "Agent_senior_researcher",
-              "cand": "Agent_senior_researcher",
-              "score": 1.0
-            },
-            {
-              "ref": "Agent_prof_writer",
-              "cand": "Agent_prof_writer",
-              "score": 1.0
+              "cand": "Agent_abort_research",
+              "score": 0.791
             },
             {
               "ref": "Agent_manager_AcademicResearchCrew",
-              "cand": "Agent_manager_AcademicResearchCrew",
-              "score": 1.0
+              "cand": "Agent_initialize_research",
+              "score": 0.576
+            },
+            {
+              "ref": "Agent_prof_writer",
+              "cand": "Agent_publish_paper",
+              "score": 0.556
             }
           ]
         },
         "Orchestration": {
           "matched": 1,
-          "avg_score": 1.0,
+          "avg_score": 0.586,
           "pairs": [
             {
               "ref": "Orchestration_AcademicResearchFlow",
-              "cand": "Orchestration_AcademicResearchFlow",
-              "score": 1.0
+              "cand": "Orchestration_StateGraph",
+              "score": 0.586
             }
           ]
         },
         "Prompt": {
-          "matched": 4,
-          "avg_score": 1.0,
+          "matched": 3,
+          "avg_score": 0.715,
           "pairs": [
             {
-              "ref": "TaskPrompt_write_paper_task",
-              "cand": "TaskPrompt_write_paper_task",
-              "score": 1.0
-            },
-            {
-              "ref": "TaskPrompt_gather_literature_task",
-              "cand": "TaskPrompt_gather_literature_task",
-              "score": 1.0
-            },
-            {
               "ref": "AgentPrompt_senior_researcher",
-              "cand": "AgentPrompt_senior_researcher",
-              "score": 1.0
+              "cand": "AgentPrompt_abort_research",
+              "score": 0.836
             },
             {
               "ref": "AgentPrompt_prof_writer",
-              "cand": "AgentPrompt_prof_writer",
-              "score": 1.0
+              "cand": "AgentPrompt_publish_paper",
+              "score": 0.667
+            },
+            {
+              "ref": "TaskPrompt_write_paper_task",
+              "cand": "TaskPrompt_task_publish_paper",
+              "score": 0.643
             }
           ]
         },
         "StartStep": {
-          "matched": 2,
+          "matched": 1,
           "avg_score": 1.0,
           "pairs": [
             {
               "ref": "FlowStep_initialize_research",
               "cand": "FlowStep_initialize_research",
-              "score": 1.0
-            },
-            {
-              "ref": "CrewStep_AcademicResearchCrew_gather_literature_task",
-              "cand": "CrewStep_AcademicResearchCrew_gather_literature_task",
-              "score": 1.0
-            }
-          ]
-        },
-        "Task": {
-          "matched": 2,
-          "avg_score": 1.0,
-          "pairs": [
-            {
-              "ref": "Task_gather_literature_task",
-              "cand": "Task_gather_literature_task",
-              "score": 1.0
-            },
-            {
-              "ref": "Task_write_paper_task",
-              "cand": "Task_write_paper_task",
-              "score": 1.0
-            }
-          ]
-        },
-        "Team": {
-          "matched": 1,
-          "avg_score": 1.0,
-          "pairs": [
-            {
-              "ref": "Team_AcademicResearchCrew",
-              "cand": "Team_AcademicResearchCrew",
               "score": 1.0
             }
           ]
@@ -369,7 +356,7 @@
           "pairs": [
             {
               "ref": "Tool_AcademicSearchTool",
-              "cand": "Tool_AcademicSearchTool",
+              "cand": "Tool_academic_search_tool",
               "score": 1.0
             }
           ]
@@ -436,69 +423,54 @@
             "FlowStep_abort_research",
             "FlowStep_abort_research",
             1.0
-          ],
-          [
-            "CrewStep_AcademicResearchCrew_write_paper_task",
-            "CrewStep_AcademicResearchCrew_write_paper_task",
-            1.0
           ]
         ],
         "Goal": [
           [
             "Goal_senior_researcher",
-            "Goal_senior_researcher",
-            1.0
-          ],
-          [
-            "Goal_prof_writer",
-            "Goal_prof_writer",
-            1.0
+            "Goal_abort_research",
+            0.78
           ]
         ],
         "LLMAgent": [
           [
             "Agent_senior_researcher",
-            "Agent_senior_researcher",
-            1.0
-          ],
-          [
-            "Agent_prof_writer",
-            "Agent_prof_writer",
-            1.0
+            "Agent_abort_research",
+            0.791
           ],
           [
             "Agent_manager_AcademicResearchCrew",
-            "Agent_manager_AcademicResearchCrew",
-            1.0
+            "Agent_initialize_research",
+            0.576
+          ],
+          [
+            "Agent_prof_writer",
+            "Agent_publish_paper",
+            0.556
           ]
         ],
         "Orchestration": [
           [
             "Orchestration_AcademicResearchFlow",
-            "Orchestration_AcademicResearchFlow",
-            1.0
+            "Orchestration_StateGraph",
+            0.586
           ]
         ],
         "Prompt": [
           [
-            "TaskPrompt_write_paper_task",
-            "TaskPrompt_write_paper_task",
-            1.0
-          ],
-          [
-            "TaskPrompt_gather_literature_task",
-            "TaskPrompt_gather_literature_task",
-            1.0
-          ],
-          [
             "AgentPrompt_senior_researcher",
-            "AgentPrompt_senior_researcher",
-            1.0
+            "AgentPrompt_abort_research",
+            0.836
           ],
           [
             "AgentPrompt_prof_writer",
-            "AgentPrompt_prof_writer",
-            1.0
+            "AgentPrompt_publish_paper",
+            0.667
+          ],
+          [
+            "TaskPrompt_write_paper_task",
+            "TaskPrompt_task_publish_paper",
+            0.643
           ]
         ],
         "StartStep": [
@@ -506,36 +478,12 @@
             "FlowStep_initialize_research",
             "FlowStep_initialize_research",
             1.0
-          ],
-          [
-            "CrewStep_AcademicResearchCrew_gather_literature_task",
-            "CrewStep_AcademicResearchCrew_gather_literature_task",
-            1.0
-          ]
-        ],
-        "Task": [
-          [
-            "Task_gather_literature_task",
-            "Task_gather_literature_task",
-            1.0
-          ],
-          [
-            "Task_write_paper_task",
-            "Task_write_paper_task",
-            1.0
-          ]
-        ],
-        "Team": [
-          [
-            "Team_AcademicResearchCrew",
-            "Team_AcademicResearchCrew",
-            1.0
           ]
         ],
         "Tool": [
           [
             "Tool_AcademicSearchTool",
-            "Tool_AcademicSearchTool",
+            "Tool_academic_search_tool",
             1.0
           ]
         ],
@@ -566,173 +514,136 @@
             1.0
           ]
         ]
+      },
+      "missing_ref": {
+        "EndStep": [
+          "CrewStep_AcademicResearchCrew_write_paper_task"
+        ],
+        "Goal": [
+          "Goal_prof_writer"
+        ],
+        "Prompt": [
+          "TaskPrompt_gather_literature_task"
+        ],
+        "StartStep": [
+          "CrewStep_AcademicResearchCrew_gather_literature_task"
+        ],
+        "Task": [
+          "Task_write_paper_task",
+          "Task_gather_literature_task"
+        ],
+        "Team": [
+          "Team_AcademicResearchCrew"
+        ]
+      },
+      "extra_cand": {
+        "EndStep": [
+          "CrewStep_langgraph_team_0_task_abort_research"
+        ],
+        "Goal": [
+          "Goal_conduct_research",
+          "Goal_initialize_research",
+          "Goal_publish_paper",
+          "Goal_review_outcome"
+        ],
+        "LLMAgent": [
+          "Agent_conduct_research",
+          "Agent_review_outcome"
+        ],
+        "Prompt": [
+          "AgentPrompt_conduct_research",
+          "AgentPrompt_initialize_research",
+          "AgentPrompt_review_outcome",
+          "TaskPrompt_task_abort_research",
+          "TaskPrompt_task_conduct_research",
+          "TaskPrompt_task_initialize_research",
+          "TaskPrompt_task_review_outcome"
+        ],
+        "StartStep": [
+          "CrewStep_langgraph_team_0_task_initialize_research"
+        ],
+        "Task": [
+          "Task_task_abort_research",
+          "Task_task_conduct_research",
+          "Task_task_initialize_research",
+          "Task_task_publish_paper",
+          "Task_task_review_outcome"
+        ],
+        "Team": [
+          "Team_langgraph_team_0"
+        ],
+        "WorkflowStep": [
+          "CrewStep_langgraph_team_0_task_conduct_research",
+          "CrewStep_langgraph_team_0_task_publish_paper",
+          "CrewStep_langgraph_team_0_task_review_outcome"
+        ]
       }
     },
-    "ast_diff": {
-      "metric": "ast_diff",
-      "overall": {
-        "precision": 0.746,
-        "recall": 0.739,
-        "f1": 0.742
-      },
-      "per_feature": {
-        "class_bases": {
-          "precision": 0.714,
-          "recall": 0.714,
-          "f1": 0.714,
-          "ref_count": 7,
-          "cand_count": 7,
-          "missing": [
-            "AcademicState(BaseModel)",
-            "SearchInput(BaseModel)"
-          ],
-          "extra": [
-            "AcademicResearchFlowState(BaseModel)",
-            "AcademicSearchToolSchema(BaseModel)"
-          ]
+    "mapping_conformance": {
+      "metric": "mapping_conformance",
+      "direction": "cf_to_lg",
+      "lg_root": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\roundtrip\\crewai\\academic-research-flow\\generated",
+      "cf_root": "C:\\Users\\Dani\\Thesis\\Extractor\\examples\\crewai\\academic-research-flow\\source_files",
+      "applicable_rules": 7,
+      "overall_score": 0.775,
+      "per_rule": [
+        {
+          "id": "graph_class",
+          "description": "StateGraph(S) \u00e2\u2021\u201d class X(Flow[S])",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
         },
-        "classes": {
-          "precision": 0.714,
-          "recall": 0.714,
-          "f1": 0.714,
-          "ref_count": 7,
-          "cand_count": 7,
-          "missing": [
-            "AcademicState",
-            "SearchInput"
-          ],
-          "extra": [
-            "AcademicResearchFlowState",
-            "AcademicSearchToolSchema"
-          ]
+        {
+          "id": "node_to_decorated",
+          "description": "add_node(...) \u00e2\u2021\u201d method decorated @start or @listen or @router",
+          "lg_count": 6,
+          "cf_count": 5,
+          "score": 0.833,
+          "bidirectional": true
         },
-        "functions": {
-          "precision": 0.846,
-          "recall": 1.0,
-          "f1": 0.917,
-          "ref_count": 11,
-          "cand_count": 13,
-          "missing": [],
-          "extra": [
-            "kickoff",
-            "manager_AcademicResearchCrew"
-          ]
+        {
+          "id": "entry_point",
+          "description": "add_edge(START, n) \u00e2\u2021\u201d @start() method",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
         },
-        "state_annotations": {
-          "precision": 0.727,
-          "recall": 0.727,
-          "f1": 0.727,
-          "ref_count": 11,
-          "cand_count": 11,
-          "missing": [
-            [
-              "body_paragraphs",
-              "List[str]"
-            ],
-            [
-              "key_claims",
-              "List[str]"
-            ],
-            [
-              "sources",
-              "List[str]"
-            ]
-          ],
-          "extra": [
-            [
-              "body_paragraphs",
-              "str"
-            ],
-            [
-              "key_claims",
-              "str"
-            ],
-            [
-              "sources",
-              "str"
-            ]
-          ]
+        {
+          "id": "sequential_edge",
+          "description": "add_edge('a', 'b') \u00e2\u2021\u201d @listen(a) on method b",
+          "lg_count": 3,
+          "cf_count": 3,
+          "score": 1.0,
+          "bidirectional": true
         },
-        "graph_calls": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
+        {
+          "id": "conditional",
+          "description": "add_conditional_edges(...) \u00e2\u2021\u201d @router(...) method",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
         },
-        "imports": {
-          "precision": 1.0,
-          "recall": 0.875,
-          "f1": 0.933,
-          "ref_count": 8,
-          "cand_count": 7,
-          "missing": [
-            "uuid"
-          ],
-          "extra": []
+        {
+          "id": "state_reducer",
+          "description": "TypedDict field with Annotated[..., reducer] \u00e2\u2021\u201d Pydantic BaseModel field with default",
+          "lg_count": 1,
+          "cf_count": 11,
+          "score": 0.091,
+          "bidirectional": true
         },
-        "decorators": {
-          "precision": 0.714,
-          "recall": 0.625,
-          "f1": 0.667,
-          "ref_count": 8,
-          "cand_count": 7,
-          "missing": [
-            "@listen(\"abort_research\")",
-            "@listen(\"publish_paper\")",
-            "@router(conduct_research)"
-          ],
-          "extra": [
-            "@listen(review_outcome)",
-            "@router()"
-          ]
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 11,
-          "cand_count": 11,
-          "missing": [],
-          "extra": []
-        },
-        "decorator_args": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "ref_count": 2,
-          "cand_count": 0,
-          "missing": [
-            [
-              "listen",
-              "abort_research"
-            ],
-            [
-              "listen",
-              "publish_paper"
-            ]
-          ],
-          "extra": []
+        {
+          "id": "kickoff",
+          "description": "graph.compile() + invoke \u00e2\u2021\u201d flow.kickoff()",
+          "lg_count": 1,
+          "cf_count": 2,
+          "score": 0.5,
+          "bidirectional": true
         }
-      },
-      "ref_files": [
-        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/academic-research-flow/source_files/crews/research_crew/research_crew.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/academic-research-flow/source_files/main.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/academic-research-flow/source_files/models.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/academic-research-flow/source_files/tools/custom_tools.py"
-      ],
-      "cand_files": [
-        "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/generated/crews/academic_research_crew/academic_research_crew.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/generated/main.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/generated/models.py",
-        "/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/generated/tools/AcademicSearchTool.py"
       ]
-    },
-    "execution_trace": {
-      "metric": "execution_trace",
-      "skipped": true
     }
   }
 }

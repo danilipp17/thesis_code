@@ -8,13 +8,22 @@
 <http://example.org/academic_research_flow> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
+ex:Tool_academic_search_tool a agentoscin:Tool ;
+    agentoscin:hasDescription """Academic Search Tool
+Search academic papers and journals to find relevant literature."""^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.academic_search_tool"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}"^^xsd:string ;
+    agentoscin:hasTitle "academic_search_tool"^^xsd:string .
+
 ex:academic_research_flow_roundtrip a agentoscin:AgenticSystem ;
-    agentoscin:containsAgent ex:Agent_manager_AcademicResearchCrew,
-        ex:Agent_prof_writer,
-        ex:Agent_senior_researcher ;
-    agentoscin:containsOrchestration ex:Orchestration_AcademicResearchFlow ;
-    agentoscin:containsTeam ex:Team_AcademicResearchCrew ;
-    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_abort_research,
+        ex:Agent_conduct_research,
+        ex:Agent_initialize_research,
+        ex:Agent_publish_paper,
+        ex:Agent_review_outcome ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
     agentoscin:hasTitle "academic_research_flow_roundtrip"^^xsd:string .
 
 agentoscin:ChainOfThought a owl:Class ;
@@ -48,6 +57,9 @@ agentoscin:Swarm a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
 
 agentoscin:TreeOfThoughts a owl:Class ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:Unspecified a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .
 
 agentoscin:agentID a owl:DatatypeProperty ;
@@ -466,47 +478,35 @@ agentoscin:useLanguageModel a owl:ObjectProperty ;
     rdfs:range agentoscin:LanguageModel ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:AgentPrompt_manager_AcademicResearchCrew a agentoscin:Prompt ;
+ex:AgentPrompt_abort_research a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "Manager"^^xsd:string .
+    agentoscin:promptInstruction "abort_research: Node: abort_research"^^xsd:string .
 
-ex:AgentPrompt_prof_writer a agentoscin:Prompt ;
+ex:AgentPrompt_conduct_research a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptContext "You have published in top-tier journals and know exactly how to structure an academic paper for maximum impact and clarity."^^xsd:string ;
-    agentoscin:promptInstruction "Academic Writer and Editor: Take rough notes and outlines to produce a formal, peer-review-ready academic paper."^^xsd:string .
+    agentoscin:promptInstruction "conduct_research: Node: conduct_research"^^xsd:string .
 
-ex:AgentPrompt_senior_researcher a agentoscin:Prompt ;
+ex:AgentPrompt_initialize_research a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptContext "You are a tenured professor with years of experience navigating complex academic databases and synthesizing information."^^xsd:string ;
-    agentoscin:promptInstruction "Senior Academic Researcher: Conduct extensive literature reviews and gather empirical data on the chosen topic."^^xsd:string .
+    agentoscin:promptInstruction "initialize_research: Node: initialize_research"^^xsd:string .
 
-ex:Config_allow_delegation_Agent_prof_writer a agentoscin:Config ;
-    agentoscin:configKey "allow_delegation"^^xsd:string ;
-    agentoscin:configValue "false"^^xsd:string .
+ex:AgentPrompt_publish_paper a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptInstruction "publish_paper: Node: publish_paper"^^xsd:string .
 
-ex:Config_allow_delegation_Agent_senior_researcher a agentoscin:Config ;
-    agentoscin:configKey "allow_delegation"^^xsd:string ;
-    agentoscin:configValue "true"^^xsd:string .
+ex:AgentPrompt_review_outcome a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptInstruction "review_outcome: Node: review_outcome"^^xsd:string .
 
-ex:Config_verbose_Agent_prof_writer a agentoscin:Config ;
-    agentoscin:configKey "verbose"^^xsd:string ;
-    agentoscin:configValue "false"^^xsd:string .
-
-ex:Config_verbose_Agent_senior_researcher a agentoscin:Config ;
-    agentoscin:configKey "verbose"^^xsd:string ;
-    agentoscin:configValue "true"^^xsd:string .
-
-ex:Config_verbose_Team_AcademicResearchCrew a agentoscin:Config ;
-    agentoscin:configKey "verbose"^^xsd:string ;
-    agentoscin:configValue "true"^^xsd:string .
-
-ex:CrewStep_AcademicResearchCrew_gather_literature_task a agentoscin:StartStep ;
-    agentoscin:hasAssociatedTask ex:Task_gather_literature_task ;
-    agentoscin:hasTitle "gather_literature_task"^^xsd:string ;
-    agentoscin:nextStep ex:CrewStep_AcademicResearchCrew_write_paper_task ;
+ex:CrewStep_langgraph_team_0_task_initialize_research a agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_task_initialize_research ;
+    agentoscin:hasTitle "task_initialize_research"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_conduct_research ;
     agentoscin:stepOrder 1 .
 
 ex:FlowStep_initialize_research a agentoscin:StartStep,
@@ -517,102 +517,100 @@ ex:FlowStep_initialize_research a agentoscin:StartStep,
 
 ex:FlowStep_review_outcome a agentoscin:ConditionalStep,
         agentoscin:WorkflowStep ;
-    agentoscin:hasRoutingLogic """        if self.state.status == "SUCCESS":
-            return "publish_paper"
-        elif self.state.status == "FAILED":
-            return "abort_research\""""^^xsd:string ;
+    agentoscin:hasEdgeMapping "{\"abort_research\": \"abort_research\", \"publish_paper\": \"publish_paper\"}"^^xsd:string ;
+    agentoscin:hasRoutingLogic """if self.state.status == 'SUCCESS':
+    return 'publish_paper'
+elif self.state.status == 'FAILED':
+    return 'abort_research'"""^^xsd:string ;
     agentoscin:hasTitle "review_outcome"^^xsd:string ;
     agentoscin:nextStep ex:FlowStep_abort_research,
         ex:FlowStep_publish_paper ;
     agentoscin:stepOrder 3 .
 
-ex:FlowWorkflowPattern_AcademicResearchFlow a agentoscin:WorkflowPattern ;
+ex:FlowWorkflowPattern_StateGraph a agentoscin:WorkflowPattern ;
     agentoscin:hasWorkflowStep ex:FlowStep_abort_research,
         ex:FlowStep_conduct_research,
         ex:FlowStep_initialize_research,
         ex:FlowStep_publish_paper,
         ex:FlowStep_review_outcome .
 
-ex:Goal_prof_writer a agentoscin:Goal ;
-    agentoscin:hasDescription "Take rough notes and outlines to produce a formal, peer-review-ready academic paper."^^xsd:string .
+ex:Goal_abort_research a agentoscin:Goal ;
+    agentoscin:hasDescription "Node: abort_research"^^xsd:string .
 
-ex:Goal_senior_researcher a agentoscin:Goal ;
-    agentoscin:hasDescription "Conduct extensive literature reviews and gather empirical data on the chosen topic."^^xsd:string .
+ex:Goal_conduct_research a agentoscin:Goal ;
+    agentoscin:hasDescription "Node: conduct_research"^^xsd:string .
 
-ex:HumanCheckpoint_gather_literature_task a agentoscin:HumanCheckpoint ;
-    agentoscin:hasCheckpointPosition "AfterExecution"^^xsd:string ;
-    agentoscin:hasCheckpointType "Review"^^xsd:string ;
-    agentoscin:isMandatory true .
+ex:Goal_initialize_research a agentoscin:Goal ;
+    agentoscin:hasDescription "Node: initialize_research"^^xsd:string .
 
-ex:MemoryBinding_AgentPrivate_senior_researcher a agentoscin:MemoryBinding ;
-    agentoscin:bindsMemory ex:Memory_AgentPrivate_senior_researcher ;
-    agentoscin:hasMemoryScope "AgentPrivate"^^xsd:string .
+ex:Goal_publish_paper a agentoscin:Goal ;
+    agentoscin:hasDescription "Node: publish_paper"^^xsd:string .
 
-ex:Memory_AgentPrivate_senior_researcher a agentoscin:Memory ;
-    agentoscin:hasPersistenceScope "Persistent"^^xsd:string .
+ex:Goal_review_outcome a agentoscin:Goal ;
+    agentoscin:hasDescription "Node: review_outcome"^^xsd:string .
 
-ex:Orchestration_AcademicResearchFlow a agentoscin:Orchestration ;
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
     agentoscin:employsCoordinationPattern agentoscin:Custom ;
-    agentoscin:hasOutputSchema ex:StateSchema_AcademicResearchFlow ;
-    agentoscin:hasTitle "AcademicResearchFlow"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_AcademicResearchFlow .
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
 
-ex:ReasoningPattern_Unspecified a agentoscin:Unspecified .
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
 
-ex:Schema_FinalPaper a agentoscin:Schema ;
-    agentoscin:hasSchemaDefinition "{\"type\":\"object\",\"properties\":{\"abstract\":{\"type\":\"string\"},\"body_paragraphs\":{\"type\":\"string\"},\"conclusion\":{\"type\":\"string\"}},\"required\":[\"abstract\",\"body_paragraphs\",\"conclusion\"]}"^^xsd:string .
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[list, add_messages]\", \"id\": \"str\", \"topic\": \"str\", \"paper\": \"str\", \"status\": \"str\"}"^^xsd:string ;
+    agentoscin:hasTitle "State"^^xsd:string .
 
-ex:Schema_ResearchOutline a agentoscin:Schema ;
-    agentoscin:hasSchemaDefinition "{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"key_claims\":{\"type\":\"string\"},\"sources\":{\"type\":\"string\"}},\"required\":[\"title\",\"key_claims\",\"sources\"]}"^^xsd:string .
-
-ex:StateSchema_AcademicResearchFlow a agentoscin:Schema ;
-    agentoscin:hasSchemaDefinition "{\"id\": \"str\", \"topic\": \"str\", \"paper\": \"str\", \"status\": \"str\"}"^^xsd:string ;
-    agentoscin:hasTitle "AcademicResearchFlowState"^^xsd:string .
-
-ex:TaskPrompt_gather_literature_task a agentoscin:Prompt ;
+ex:TaskPrompt_task_abort_research a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "Use the search tools to gather literature on the topic. Extract key claims and references."^^xsd:string ;
-    agentoscin:promptOutputIndicator "A well-structured outline containing the title, key claims, and academic sources."^^xsd:string .
+    agentoscin:promptInstruction "Perform abort_research responsibilities"^^xsd:string ;
+    agentoscin:promptOutputIndicator "messages"^^xsd:string .
 
-ex:TaskPrompt_write_paper_task a agentoscin:Prompt ;
+ex:TaskPrompt_task_conduct_research a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agentoscin:promptInstruction "Take the outline and draft the final academic paper."^^xsd:string ;
-    agentoscin:promptOutputIndicator "A complete paper with an abstract, body paragraphs, and conclusion."^^xsd:string .
+    agentoscin:promptInstruction "Perform conduct_research responsibilities"^^xsd:string ;
+    agentoscin:promptOutputIndicator "messages"^^xsd:string .
 
-ex:Task_gather_literature_task a agentoscin:Task ;
-    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
-    agentoscin:hasExpectedOutput "A well-structured outline containing the title, key claims, and academic sources."^^xsd:string ;
-    agentoscin:hasHumanCheckpoint ex:HumanCheckpoint_gather_literature_task ;
-    agentoscin:hasOutputSchema ex:Schema_ResearchOutline ;
-    agentoscin:taskPrompt ex:TaskPrompt_gather_literature_task .
+ex:TaskPrompt_task_initialize_research a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Perform initialize_research responsibilities"^^xsd:string ;
+    agentoscin:promptOutputIndicator "messages"^^xsd:string .
 
-ex:Task_write_paper_task a agentoscin:Task ;
-    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
-    agentoscin:hasExpectedOutput "A complete paper with an abstract, body paragraphs, and conclusion."^^xsd:string ;
-    agentoscin:hasOutputSchema ex:Schema_FinalPaper ;
-    agentoscin:taskPrompt ex:TaskPrompt_write_paper_task .
+ex:TaskPrompt_task_publish_paper a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Perform publish_paper responsibilities"^^xsd:string ;
+    agentoscin:promptOutputIndicator "messages"^^xsd:string .
 
-ex:Team_AcademicResearchCrew a agentoscin:Team ;
+ex:TaskPrompt_task_review_outcome a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Perform review_outcome responsibilities"^^xsd:string ;
+    agentoscin:promptOutputIndicator "messages"^^xsd:string .
+
+ex:Task_task_abort_research a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_task_publish_paper ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_abort_research ;
+    agentoscin:taskPrompt ex:TaskPrompt_task_abort_research .
+
+ex:Team_langgraph_team_0 a agentoscin:Team ;
     agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
-    agentoscin:hasAgentMember ex:Agent_manager_AcademicResearchCrew,
-        ex:Agent_prof_writer,
-        ex:Agent_senior_researcher ;
-    agentoscin:hasSystemConfig ex:Config_verbose_Team_AcademicResearchCrew ;
-    agentoscin:hasTerminationCondition ex:Termination_AcademicResearchCrew ;
-    agentoscin:hasTitle "AcademicResearchCrew"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:WorkflowPattern_AcademicResearchCrew .
+    agentoscin:hasAgentMember ex:Agent_abort_research,
+        ex:Agent_conduct_research,
+        ex:Agent_initialize_research,
+        ex:Agent_publish_paper,
+        ex:Agent_review_outcome ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
 
-ex:Termination_AcademicResearchCrew a agentoscin:TaskCompletionTermination .
-
-ex:Tool_AcademicSearchTool a agentoscin:Tool ;
-    agentoscin:hasDescription "Search academic papers and journals to find relevant literature."^^xsd:string ;
-    agentoscin:hasImplementationReference "tools.AcademicSearchTool.AcademicSearchTool._run"^^xsd:string ;
-    agentoscin:hasInputSchema "{\"type\":\"object\",\"properties\":{\"query\":{\"type\":\"string\",\"description\":\"The query to search the academic database for.\"}},\"required\":[\"query\"]}"^^xsd:string ;
-    agentoscin:hasTitle "Academic Search Tool"^^xsd:string .
-
-ex:WorkflowPattern_AcademicResearchCrew a agentoscin:WorkflowPattern ;
-    agentoscin:hasWorkflowStep ex:CrewStep_AcademicResearchCrew_gather_literature_task,
-        ex:CrewStep_AcademicResearchCrew_write_paper_task .
+ex:WorkflowPattern_langgraph_team_0 a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_abort_research,
+        ex:CrewStep_langgraph_team_0_task_conduct_research,
+        ex:CrewStep_langgraph_team_0_task_initialize_research,
+        ex:CrewStep_langgraph_team_0_task_publish_paper,
+        ex:CrewStep_langgraph_team_0_task_review_outcome .
 
 <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology .
 
@@ -628,14 +626,11 @@ agentoscin:HumanAgent a owl:Class ;
 agentoscin:Model a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
 
-agentoscin:RoutingTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
-
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
 
-agentoscin:Unspecified a owl:Class ;
-    rdfs:subClassOf agentoscin:ReasoningPattern .
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:hasCapability a owl:ObjectProperty ;
     rdfs:domain agentoscin:Tool ;
@@ -656,45 +651,28 @@ agentoscin:resourceUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Resource ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:Agent_manager_AcademicResearchCrew a agentoscin:LLMAgent ;
-    agentoscin:agentID "Manager"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_manager_AcademicResearchCrew ;
-    agentoscin:agentRole "Manager"^^xsd:string ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4o .
+ex:CrewStep_langgraph_team_0_task_abort_research a agentoscin:EndStep ;
+    agentoscin:hasAssociatedTask ex:Task_task_abort_research ;
+    agentoscin:hasTitle "task_abort_research"^^xsd:string ;
+    agentoscin:stepOrder 5 .
 
-ex:Agent_prof_writer a agentoscin:LLMAgent ;
-    agentoscin:agentID "Academic Writer and Editor"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_prof_writer ;
-    agentoscin:agentRole "Academic Writer and Editor"^^xsd:string ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:hasAgentConfig ex:Config_allow_delegation_Agent_prof_writer,
-        ex:Config_verbose_Agent_prof_writer ;
-    agentoscin:hasAgentGoal ex:Goal_prof_writer ;
-    agentoscin:hasReasoningEnabled false ;
-    agentoscin:useLanguageModel ex:LM_gpt_4o .
-
-ex:Agent_senior_researcher a agentoscin:LLMAgent ;
-    agentoscin:agentID "Senior Academic Researcher"^^xsd:string ;
-    agentoscin:agentPrompt ex:AgentPrompt_senior_researcher ;
-    agentoscin:agentRole "Senior Academic Researcher"^^xsd:string ;
-    agentoscin:agentToolUsage ex:Tool_AcademicSearchTool ;
-    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
-    agentoscin:employsReasoningPattern ex:ReasoningPattern_Unspecified ;
-    agentoscin:hasAgentConfig ex:Config_allow_delegation_Agent_senior_researcher,
-        ex:Config_verbose_Agent_senior_researcher ;
-    agentoscin:hasAgentGoal ex:Goal_senior_researcher ;
-    agentoscin:hasMaxReasoningAttempts 3 ;
-    agentoscin:hasMemoryBinding ex:MemoryBinding_AgentPrivate_senior_researcher ;
-    agentoscin:hasReasoningEnabled true ;
-    agentoscin:hasReasoningOrigin "FrameworkManaged"^^xsd:string ;
-    agentoscin:useLanguageModel ex:LM_gpt_4o .
-
-ex:CrewStep_AcademicResearchCrew_write_paper_task a agentoscin:EndStep ;
-    agentoscin:hasAssociatedTask ex:Task_write_paper_task ;
-    agentoscin:hasTitle "write_paper_task"^^xsd:string ;
+ex:CrewStep_langgraph_team_0_task_conduct_research a agentoscin:WorkflowStep ;
+    agentoscin:hasAssociatedTask ex:Task_task_conduct_research ;
+    agentoscin:hasTitle "task_conduct_research"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_review_outcome ;
     agentoscin:stepOrder 2 .
+
+ex:CrewStep_langgraph_team_0_task_publish_paper a agentoscin:WorkflowStep ;
+    agentoscin:hasAssociatedTask ex:Task_task_publish_paper ;
+    agentoscin:hasTitle "task_publish_paper"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_abort_research ;
+    agentoscin:stepOrder 4 .
+
+ex:CrewStep_langgraph_team_0_task_review_outcome a agentoscin:WorkflowStep ;
+    agentoscin:hasAssociatedTask ex:Task_task_review_outcome ;
+    agentoscin:hasTitle "task_review_outcome"^^xsd:string ;
+    agentoscin:nextStep ex:CrewStep_langgraph_team_0_task_publish_paper ;
+    agentoscin:stepOrder 3 .
 
 ex:FlowStep_abort_research a agentoscin:EndStep,
         agentoscin:WorkflowStep ;
@@ -711,6 +689,36 @@ ex:FlowStep_publish_paper a agentoscin:EndStep,
     agentoscin:hasTitle "publish_paper"^^xsd:string ;
     agentoscin:stepOrder 4 .
 
+ex:Task_task_conduct_research a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_task_initialize_research ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_conduct_research ;
+    agentoscin:taskPrompt ex:TaskPrompt_task_conduct_research .
+
+ex:Task_task_initialize_research a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_initialize_research ;
+    agentoscin:taskPrompt ex:TaskPrompt_task_initialize_research .
+
+ex:Task_task_publish_paper a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_task_review_outcome ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_publish_paper ;
+    agentoscin:taskPrompt ex:TaskPrompt_task_publish_paper .
+
+ex:Task_task_review_outcome a agentoscin:Task ;
+    agentoscin:dependsOn ex:Task_task_conduct_research ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_review_outcome ;
+    agentoscin:taskPrompt ex:TaskPrompt_task_review_outcome .
+
 agentoscin:ConditionalStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
 
@@ -723,7 +731,13 @@ agentoscin:Instance a owl:Class ;
 agentoscin:LanguageModel a owl:Class ;
     rdfs:subClassOf agentoscin:StatisticalModel .
 
+agentoscin:Memory a owl:Class ;
+    rdfs:subClassOf agentoscin:KnowledgeBase .
+
 agentoscin:Plan a owl:Class .
+
+agentoscin:RoutingTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:StartStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
@@ -731,9 +745,6 @@ agentoscin:StartStep a owl:Class ;
 agentoscin:Step a owl:Class .
 
 agentoscin:System a owl:Class .
-
-agentoscin:TaskCompletionTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:TurnLimitTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
@@ -764,8 +775,50 @@ agentoscin:toolUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Tool ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-ex:LM_gpt_4o a agentoscin:LanguageModel ;
-    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+ex:Agent_abort_research a agentoscin:LLMAgent ;
+    agentoscin:agentID "abort_research"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_abort_research ;
+    agentoscin:agentRole "abort_research"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_abort_research ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:Agent_conduct_research a agentoscin:LLMAgent ;
+    agentoscin:agentID "conduct_research"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_conduct_research ;
+    agentoscin:agentRole "conduct_research"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_conduct_research ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:Agent_initialize_research a agentoscin:LLMAgent ;
+    agentoscin:agentID "initialize_research"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_initialize_research ;
+    agentoscin:agentRole "initialize_research"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_initialize_research ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:Agent_publish_paper a agentoscin:LLMAgent ;
+    agentoscin:agentID "publish_paper"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_publish_paper ;
+    agentoscin:agentRole "publish_paper"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_publish_paper ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
+ex:Agent_review_outcome a agentoscin:LLMAgent ;
+    agentoscin:agentID "review_outcome"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_review_outcome ;
+    agentoscin:agentRole "review_outcome"^^xsd:string ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_review_outcome ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
 
 agentoscin:Capability a owl:Class .
 
@@ -778,21 +831,19 @@ agentoscin:Environment a owl:Class ;
 agentoscin:KnowledgeBase a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
 
-agentoscin:Memory a owl:Class ;
-    rdfs:subClassOf agentoscin:KnowledgeBase .
-
 agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
 agentoscin:Agent a owl:Class .
+
+agentoscin:Config a owl:Class .
 
 agentoscin:Context a owl:Class .
 
 agentoscin:EndStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
 
-agentoscin:Goal a owl:Class ;
-    rdfs:subClassOf agentoscin:Context .
+agentoscin:Schema a owl:Class .
 
 agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:domain agentoscin:Agent,
@@ -818,29 +869,31 @@ agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:range agentoscin:Config ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
-agentoscin:Guardrail a owl:Class .
+ex:LM_gpt_4o a agentoscin:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
 
-agentoscin:Orchestration a owl:Class ;
-    rdfs:subClassOf agentoscin:Team .
+agentoscin:Guardrail a owl:Class .
 
 agentoscin:HumanCheckpoint a owl:Class .
 
-agentoscin:Schema a owl:Class .
+agentoscin:Orchestration a owl:Class ;
+    rdfs:subClassOf agentoscin:Team .
 
 agentoscin:WorkflowPattern a owl:Class ;
     rdfs:subClassOf agentoscin:Plan .
 
 agentoscin:AgenticSystem a owl:Class .
 
+agentoscin:Goal a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
+agentoscin:MemoryBinding a owl:Class .
+
 agentoscin:ReasoningPattern a owl:Class .
 
 agentoscin:Resource a owl:Class .
 
-agentoscin:MemoryBinding a owl:Class .
-
 agentoscin:TerminationCondition a owl:Class .
-
-agentoscin:Config a owl:Class .
 
 agentoscin:Tool a owl:Class .
 

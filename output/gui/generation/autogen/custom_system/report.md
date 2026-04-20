@@ -1,14 +1,14 @@
 # Generation — autogen/custom_system
 
-- source: `/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl`
-- work dir: `/Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/autogen/custom_system`
+- source: `C:\Users\Dani\Thesis\Extractor\evaluation\fixtures\custom_system.ttl`
+- work dir: `C:\Users\Dani\Thesis\Extractor\output\gui\generation\autogen\custom_system`
 
 ## Pipeline
-- `generate` ✓ /Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/autogen/custom_system/generated
-- `reextract` ✓ /Users/danilippmann/Documents/Work/thesis_code/output/gui/generation/autogen/custom_system/reextracted.ttl
+- `generate` ✓ C:\Users\Dani\Thesis\Extractor\output\gui\generation\autogen\custom_system\generated
+- `reextract` ✓ C:\Users\Dani\Thesis\Extractor\output\gui\generation\autogen\custom_system\reextracted.ttl
 
 ## Intrinsic metrics (single TTL)
-- source: `/Users/danilippmann/Documents/Work/thesis_code/evaluation/fixtures/custom_system.ttl`
+- source: `C:\Users\Dani\Thesis\Extractor\evaluation\fixtures\custom_system.ttl`
 - total triples: 601
 - ABox triples: 118
 - individuals: 26

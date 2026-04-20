@@ -3,13 +3,13 @@
   "example": "self-eval-loop-flow",
   "framework": "crewai",
   "target_framework": null,
-  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files",
-  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/crewai/self-eval-loop-flow",
+  "source_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\examples\\crewai\\self-eval-loop-flow\\source_files",
+  "work_dir": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\extraction\\crewai\\self-eval-loop-flow",
   "ground_truth": null,
   "steps": {
     "extract": {
       "ok": true,
-      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/crewai/self-eval-loop-flow/extracted.ttl"
+      "output": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\extraction\\crewai\\self-eval-loop-flow\\extracted.ttl"
     }
   },
   "metrics": {
@@ -82,7 +82,7 @@
       "literals_count": 60,
       "object_links_count": 86,
       "metric": "ttl_intrinsic",
-      "source": "/Users/danilippmann/Documents/Work/thesis_code/output/gui/extraction/crewai/self-eval-loop-flow/extracted.ttl"
+      "source": "C:\\Users\\Dani\\Thesis\\Extractor\\output\\gui\\extraction\\crewai\\self-eval-loop-flow\\extracted.ttl"
     }
   }
 }

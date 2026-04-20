@@ -1,48 +1,45 @@
 # Roundtrip — crewai/academic-research-flow
 
-- source: `/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/academic-research-flow/source_files`
-- work dir: `/Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow`
+- source: `C:\Users\Dani\Thesis\Extractor\examples\crewai\academic-research-flow\source_files`
+- target framework: `langgraph`
+- work dir: `C:\Users\Dani\Thesis\Extractor\output\gui\roundtrip\crewai\academic-research-flow`
 
 ## Pipeline
-- `extract_1` ✓ /Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/ttl1.ttl
-- `generate` ✓ /Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/generated
-- `extract_2` ✓ /Users/danilippmann/Documents/Work/thesis_code/output/gui/roundtrip/crewai/academic-research-flow/ttl2.ttl
+- `extract_1` ✓ C:\Users\Dani\Thesis\Extractor\output\gui\roundtrip\crewai\academic-research-flow\ttl1.ttl
+- `generate` ✓ C:\Users\Dani\Thesis\Extractor\output\gui\roundtrip\crewai\academic-research-flow\generated
+- `extract_2` ✓ C:\Users\Dani\Thesis\Extractor\output\gui\roundtrip\crewai\academic-research-flow\ttl2.ttl
 
 ## TTL pairwise (reference vs candidate)
-- **individual**: P=0.977 R=0.956 F1=0.966
-- **property**: P=1.000 R=0.926 F1=0.962
-- **triple**: P=0.838 R=0.824 F1=0.831
-- **literal_overlap**: 0.873
-- missing properties (4): dependsOn, hasDependencyType, hasTeamMemoryBinding, orchestratesTeam
+- **individual**: P=0.633 R=0.689 F1=0.660
+- **property**: P=0.946 R=0.648 F1=0.769
+- **triple**: P=0.112 R=0.138 F1=0.124
+- **literal_overlap**: 0.291
+- missing properties (19): agentToolUsage, bindsMemory, configKey, configValue, employsReasoningPattern, hasAgentConfig, hasCheckpointPosition, hasCheckpointType, hasHumanCheckpoint, hasMaxReasoningAttempts…
+- extra properties (2): hasEdgeMapping, performedByAgent
 
 ## Fuzzy alignment (TTL₁ ↔ TTL₂)
-- matched pairs: 27
-- avg score: 0.993
+- matched pairs: 20
+- avg score: 0.863
   - AgenticSystem: 1 matched, avg=0.815
   - ConditionalStep: 1 matched, avg=1.0
-  - EndStep: 4 matched, avg=1.0
-  - Goal: 2 matched, avg=1.0
-  - LLMAgent: 3 matched, avg=1.0
-  - Orchestration: 1 matched, avg=1.0
-  - Prompt: 4 matched, avg=1.0
-  - StartStep: 2 matched, avg=1.0
-  - Task: 2 matched, avg=1.0
-  - Team: 1 matched, avg=1.0
+  - EndStep: 3 matched, avg=1.0
+  - Goal: 1 matched, avg=0.78
+  - LLMAgent: 3 matched, avg=0.641
+  - Orchestration: 1 matched, avg=0.586
+  - Prompt: 3 matched, avg=0.715
+  - StartStep: 1 matched, avg=1.0
   - Tool: 1 matched, avg=1.0
   - WorkflowStep: 5 matched, avg=1.0
 
-## AST diff (source vs generated)
-- overall: P=0.746 R=0.739 F1=0.742
-  - class_bases: ref=7 cand=7 F1=0.714
-  - classes: ref=7 cand=7 F1=0.714
-  - functions: ref=11 cand=13 F1=0.917
-  - state_annotations: ref=11 cand=11 F1=0.727
-  - graph_calls: ref=0 cand=0 F1=1.0
-  - imports: ref=8 cand=7 F1=0.933
-  - decorators: ref=8 cand=7 F1=0.667
-  - state_fields: ref=11 cand=11 F1=1.0
-  - decorator_args: ref=2 cand=0 F1=0.0
-
-## Execution trace
-- skipped
+## Mapping conformance (CrewAI Flow ↔ LangGraph)
+- direction: cf_to_lg
+- overall: 0.775
+- applicable rules: 7
+  - graph_class: lg=1 cf=1 score=1.0
+  - node_to_decorated: lg=6 cf=5 score=0.833
+  - entry_point: lg=1 cf=1 score=1.0
+  - sequential_edge: lg=3 cf=3 score=1.0
+  - conditional: lg=1 cf=1 score=1.0
+  - state_reducer: lg=1 cf=11 score=0.091
+  - kickoff: lg=1 cf=2 score=0.5
 

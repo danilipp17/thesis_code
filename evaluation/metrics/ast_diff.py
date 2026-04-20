@@ -265,10 +265,13 @@ def compare(ref_paths: list[Path], cand_paths: list[Path]) -> dict:
             "cand_count": len(c_set),
             "missing": sorted(
                 _serializable(x) for x in r_set - c_set
-            )[:20],
+            ),
             "extra": sorted(
                 _serializable(x) for x in c_set - r_set
-            )[:20],
+            ),
+            "matched": sorted(
+                _serializable(x) for x in r_set & c_set
+            ),
         }
         prs.append(p)
         rrs.append(r)
