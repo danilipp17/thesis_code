@@ -1,0 +1,8 @@
+data_gathering:
+  description: Search the web for information.
+  expected_output: A detailed report of raw data.
+  agent: primary_researcher
+analysis_phase:
+  description: Analyze the raw data report.
+  expected_output: A final analysis report.
+  agent: senior_analyst

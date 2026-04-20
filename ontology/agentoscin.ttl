@@ -599,6 +599,14 @@
                 rdfs:range xsd:string .
 
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDecoratorArgument
+:hasDecoratorArgument rdf:type owl:DatatypeProperty ;
+                      rdfs:subPropertyOf owl:topDataProperty ;
+                      rdfs:domain :WorkflowStep ;
+                      rdfs:range xsd:string ;
+                      rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." .
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasRoutingLogic
 :hasRoutingLogic rdf:type owl:DatatypeProperty ;
                  rdfs:subPropertyOf owl:topDataProperty ;

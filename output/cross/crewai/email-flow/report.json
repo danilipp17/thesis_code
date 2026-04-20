@@ -1,0 +1,717 @@
+{
+  "example": "email-flow",
+  "framework": "crewai",
+  "target_framework": "langgraph",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/email-flow/source_files",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow",
+  "steps": {
+    "extract_1": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow/ttl1.ttl"
+    },
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow/generated"
+    },
+    "extract_2": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow/ttl2.ttl"
+    }
+  },
+  "metrics": {
+    "ontology_pairwise": {
+      "individual_precision": 0.9642857142857143,
+      "individual_recall": 0.6923076923076923,
+      "individual_f1": 0.8059701492537313,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Config": {
+          "reference_count": 5,
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "EndStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 3,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8
+        },
+        "LLMAgent": {
+          "reference_count": 3,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8
+        },
+        "LanguageModel": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 6,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8
+        },
+        "RoutingTermination": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Schema": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "StartStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 3,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8
+        },
+        "TaskCompletionTermination": {
+          "reference_count": 1,
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Team": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Tool": {
+          "reference_count": 4,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 3,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8
+        }
+      },
+      "property_precision": 1.0,
+      "property_recall": 0.7954545454545454,
+      "property_f1": 0.8860759493670886,
+      "triple_precision": 0.10852713178294573,
+      "triple_recall": 0.0748663101604278,
+      "triple_f1": 0.08860759493670886,
+      "literal_overlap": 0.2777777777777778,
+      "missing_individuals": [
+        "TaskCompletionTermination (1 missing)",
+        "Config (5 missing)"
+      ],
+      "extra_individuals": [
+        "RoutingTermination (1 extra)"
+      ],
+      "missing_properties": [
+        "agentToolUsage",
+        "configKey",
+        "configValue",
+        "hasAgentConfig",
+        "hasDecoratorArgument",
+        "hasReference",
+        "hasSystemConfig",
+        "orchestratesTeam",
+        "promptContext"
+      ],
+      "extra_properties": []
+    },
+    "fuzzy_match": {
+      "metric": "fuzzy_match",
+      "threshold": 0.55,
+      "total_matched_pairs": 19,
+      "avg_score": 0.803,
+      "by_class": {
+        "AgenticSystem": {
+          "matched": 1,
+          "avg_score": 0.667,
+          "pairs": [
+            {
+              "ref": "email_flow",
+              "cand": "email_flow_roundtrip",
+              "score": 0.667
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 2,
+          "avg_score": 0.875,
+          "pairs": [
+            {
+              "ref": "FlowStep_generate_draft_responses",
+              "cand": "FlowStep_generate_draft_responses",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_EmailFilterCrew_draft_responses_task",
+              "cand": "CrewStep_langgraph_team_0_task_generate_draft_responses",
+              "score": 0.75
+            }
+          ]
+        },
+        "Goal": {
+          "matched": 1,
+          "avg_score": 0.582,
+          "pairs": [
+            {
+              "ref": "Goal_email_response_writer",
+              "cand": "Goal_generate_draft_responses",
+              "score": 0.582
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 1,
+          "avg_score": 0.596,
+          "pairs": [
+            {
+              "ref": "Agent_email_response_writer",
+              "cand": "Agent_generate_draft_responses",
+              "score": 0.596
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 0.567,
+          "pairs": [
+            {
+              "ref": "Orchestration_EmailAutoResponderFlow",
+              "cand": "Orchestration_StateGraph",
+              "score": 0.567
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 4,
+          "avg_score": 0.685,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_draft_responses_task",
+              "cand": "TaskPrompt_task_generate_draft_responses",
+              "score": 0.8
+            },
+            {
+              "ref": "TaskPrompt_filter_emails_task",
+              "cand": "TaskPrompt_task_fetch_new_emails",
+              "score": 0.689
+            },
+            {
+              "ref": "AgentPrompt_email_response_writer",
+              "cand": "AgentPrompt_generate_draft_responses",
+              "score": 0.667
+            },
+            {
+              "ref": "AgentPrompt_email_filter_agent",
+              "cand": "AgentPrompt_fetch_new_emails",
+              "score": 0.586
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_fetch_new_emails",
+              "cand": "FlowStep_fetch_new_emails",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 2,
+          "avg_score": 0.681,
+          "pairs": [
+            {
+              "ref": "Task_draft_responses_task",
+              "cand": "Task_task_generate_draft_responses",
+              "score": 0.75
+            },
+            {
+              "ref": "Task_filter_emails_task",
+              "cand": "Task_task_fetch_new_emails",
+              "score": 0.612
+            }
+          ]
+        },
+        "Tool": {
+          "matched": 4,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Tool_TavilySearchResults",
+              "cand": "Tool_tavily_search_results",
+              "score": 1.0
+            },
+            {
+              "ref": "Tool_GmailGetThread",
+              "cand": "Tool_gmail_get_thread",
+              "score": 1.0
+            },
+            {
+              "ref": "Tool_create_draft",
+              "cand": "Tool_create_draft",
+              "score": 1.0
+            },
+            {
+              "ref": "Tool_SerperDevTool",
+              "cand": "Tool_serper_dev_tool",
+              "score": 1.0
+            }
+          ]
+        },
+        "WorkflowStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_generate_draft_responses",
+              "cand": "FlowStep_generate_draft_responses",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_fetch_new_emails",
+              "cand": "FlowStep_fetch_new_emails",
+              "score": 1.0
+            }
+          ]
+        }
+      },
+      "alignment": {
+        "AgenticSystem": [
+          [
+            "email_flow",
+            "email_flow_roundtrip",
+            0.667
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_generate_draft_responses",
+            "FlowStep_generate_draft_responses",
+            1.0
+          ],
+          [
+            "CrewStep_EmailFilterCrew_draft_responses_task",
+            "CrewStep_langgraph_team_0_task_generate_draft_responses",
+            0.75
+          ]
+        ],
+        "Goal": [
+          [
+            "Goal_email_response_writer",
+            "Goal_generate_draft_responses",
+            0.582
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_email_response_writer",
+            "Agent_generate_draft_responses",
+            0.596
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_EmailAutoResponderFlow",
+            "Orchestration_StateGraph",
+            0.567
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_draft_responses_task",
+            "TaskPrompt_task_generate_draft_responses",
+            0.8
+          ],
+          [
+            "TaskPrompt_filter_emails_task",
+            "TaskPrompt_task_fetch_new_emails",
+            0.689
+          ],
+          [
+            "AgentPrompt_email_response_writer",
+            "AgentPrompt_generate_draft_responses",
+            0.667
+          ],
+          [
+            "AgentPrompt_email_filter_agent",
+            "AgentPrompt_fetch_new_emails",
+            0.586
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_fetch_new_emails",
+            "FlowStep_fetch_new_emails",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_draft_responses_task",
+            "Task_task_generate_draft_responses",
+            0.75
+          ],
+          [
+            "Task_filter_emails_task",
+            "Task_task_fetch_new_emails",
+            0.612
+          ]
+        ],
+        "Tool": [
+          [
+            "Tool_TavilySearchResults",
+            "Tool_tavily_search_results",
+            1.0
+          ],
+          [
+            "Tool_GmailGetThread",
+            "Tool_gmail_get_thread",
+            1.0
+          ],
+          [
+            "Tool_create_draft",
+            "Tool_create_draft",
+            1.0
+          ],
+          [
+            "Tool_SerperDevTool",
+            "Tool_serper_dev_tool",
+            1.0
+          ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_generate_draft_responses",
+            "FlowStep_generate_draft_responses",
+            1.0
+          ],
+          [
+            "FlowStep_fetch_new_emails",
+            "FlowStep_fetch_new_emails",
+            1.0
+          ]
+        ]
+      }
+    },
+    "ast_diff": {
+      "metric": "ast_diff",
+      "overall": {
+        "precision": 0.241,
+        "recall": 0.272,
+        "f1": 0.256
+      },
+      "per_feature": {
+        "imports": {
+          "precision": 0.333,
+          "recall": 0.2,
+          "f1": 0.25,
+          "ref_count": 10,
+          "cand_count": 6,
+          "missing": [
+            "crewai",
+            "crewai_tools",
+            "crews",
+            "email_auto_responder_flow",
+            "langchain",
+            "langchain_community",
+            "pydantic",
+            "time"
+          ],
+          "extra": [
+            "dotenv",
+            "langchain_core",
+            "langgraph",
+            "tools"
+          ]
+        },
+        "graph_calls": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 0,
+          "cand_count": 5,
+          "missing": [],
+          "extra": [
+            [
+              "graph",
+              "add_edge",
+              "START"
+            ],
+            [
+              "graph",
+              "add_edge",
+              "fetch_new_emails"
+            ],
+            [
+              "graph",
+              "add_node",
+              "fetch_new_emails"
+            ],
+            [
+              "graph",
+              "add_node",
+              "generate_draft_responses"
+            ],
+            [
+              "graph",
+              "add_node",
+              "tools"
+            ]
+          ]
+        },
+        "decorators": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 6,
+          "cand_count": 1,
+          "missing": [
+            "@agent",
+            "@crew",
+            "@listen(fetch_new_emails)",
+            "@start(\"wait_next_run\")",
+            "@task",
+            "@tool(\"Create Draft\")"
+          ],
+          "extra": [
+            "@tool"
+          ]
+        },
+        "class_bases": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 4,
+          "cand_count": 1,
+          "missing": [
+            "AutoResponderState(BaseModel)",
+            "CreateDraftTool()",
+            "EmailAutoResponderFlow(?)",
+            "EmailFilterCrew()"
+          ],
+          "extra": [
+            "State(TypedDict)"
+          ]
+        },
+        "functions": {
+          "precision": 0.5,
+          "recall": 0.25,
+          "f1": 0.333,
+          "ref_count": 12,
+          "cand_count": 6,
+          "missing": [
+            "action_required_emails_task",
+            "crew",
+            "draft_responses_task",
+            "email_action_agent",
+            "email_filter_agent",
+            "email_response_writer",
+            "filter_emails_task",
+            "kickoff",
+            "plot_flow"
+          ],
+          "extra": [
+            "gmail_get_thread",
+            "serper_dev_tool",
+            "tavily_search_results"
+          ]
+        },
+        "decorator_args": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 2,
+          "cand_count": 0,
+          "missing": [
+            [
+              "start",
+              "wait_next_run"
+            ],
+            [
+              "tool",
+              "Create Draft"
+            ]
+          ],
+          "extra": []
+        },
+        "state_fields": {
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8,
+          "ref_count": 2,
+          "cand_count": 3,
+          "missing": [],
+          "extra": [
+            "messages"
+          ]
+        },
+        "state_annotations": {
+          "precision": 0.667,
+          "recall": 1.0,
+          "f1": 0.8,
+          "ref_count": 2,
+          "cand_count": 3,
+          "missing": [],
+          "extra": [
+            [
+              "messages",
+              "Annotated[list, add_messages]"
+            ]
+          ]
+        },
+        "classes": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 4,
+          "cand_count": 1,
+          "missing": [
+            "AutoResponderState",
+            "CreateDraftTool",
+            "EmailAutoResponderFlow",
+            "EmailFilterCrew"
+          ],
+          "extra": [
+            "State"
+          ]
+        }
+      },
+      "ref_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/email-flow/source_files/crews/email_filter_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/email-flow/source_files/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/email-flow/source_files/tools/create_draft.py"
+      ],
+      "cand_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow/generated/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow/generated/tools.py"
+      ]
+    },
+    "execution_trace": {
+      "skipped": true
+    },
+    "mapping_conformance": {
+      "metric": "mapping_conformance",
+      "direction": "cf_to_lg",
+      "lg_root": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/crewai/email-flow/generated",
+      "cf_root": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/email-flow/source_files",
+      "applicable_rules": 6,
+      "overall_score": 0.75,
+      "per_rule": [
+        {
+          "id": "graph_class",
+          "description": "StateGraph(S) \u21d4 class X(Flow[S])",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
+        },
+        {
+          "id": "node_to_decorated",
+          "description": "add_node(...) \u21d4 method decorated @start or @listen or @router",
+          "lg_count": 3,
+          "cf_count": 2,
+          "score": 0.667,
+          "bidirectional": true
+        },
+        {
+          "id": "entry_point",
+          "description": "add_edge(START, n) \u21d4 @start() method",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
+        },
+        {
+          "id": "sequential_edge",
+          "description": "add_edge('a', 'b') \u21d4 @listen(a) on method b",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
+        },
+        {
+          "id": "conditional",
+          "description": "add_conditional_edges(...) \u21d4 @router(...) method",
+          "lg_count": 0,
+          "cf_count": 0,
+          "score": null,
+          "bidirectional": true
+        },
+        {
+          "id": "state_reducer",
+          "description": "TypedDict field with Annotated[..., reducer] \u21d4 Pydantic BaseModel field with default",
+          "lg_count": 1,
+          "cf_count": 2,
+          "score": 0.5,
+          "bidirectional": true
+        },
+        {
+          "id": "kickoff",
+          "description": "graph.compile() + invoke \u21d4 flow.kickoff()",
+          "lg_count": 1,
+          "cf_count": 3,
+          "score": 0.333,
+          "bidirectional": true
+        }
+      ]
+    }
+  }
+}

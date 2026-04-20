@@ -1,0 +1,12 @@
+research_topic:
+  description: 'Conduct thorough research on the topic: ''{topic}''. Identify key trends, benefits, challenges, and future outlook.'
+  expected_output: A detailed summary of research findings.
+  agent: researcher
+write_draft:
+  description: Using the research provided, write a comprehensive 500-word blog post about '{topic}'.
+  expected_output: A complete blog post draft.
+  agent: writer
+edit_post:
+  description: Review the drafted blog post. Check for clarity, tone, spelling, and grammar. Ensure it is engaging.
+  expected_output: A polished, final version of the blog post, ready for publication.
+  agent: editor

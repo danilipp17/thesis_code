@@ -1,0 +1,670 @@
+{
+  "example": "self-eval-loop-flow",
+  "framework": "crewai",
+  "target_framework": "crewai",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow",
+  "steps": {
+    "extract_1": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/ttl1.ttl"
+    },
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/generated"
+    },
+    "extract_2": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/ttl2.ttl"
+    }
+  },
+  "metrics": {
+    "ontology_pairwise": {
+      "individual_precision": 1.0,
+      "individual_recall": 1.0,
+      "individual_f1": 1.0,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "ConditionalStep": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Config": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "EndStep": {
+          "reference_count": 5,
+          "candidate_count": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LLMAgent": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 4,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Schema": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "StartStep": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "TaskCompletionTermination": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Team": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Tool": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 4,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "property_precision": 1.0,
+      "property_recall": 1.0,
+      "property_f1": 1.0,
+      "triple_precision": 0.86,
+      "triple_recall": 0.8543046357615894,
+      "triple_f1": 0.8571428571428571,
+      "literal_overlap": 0.9565217391304348,
+      "missing_individuals": [],
+      "extra_individuals": [],
+      "missing_properties": [],
+      "extra_properties": []
+    },
+    "fuzzy_match": {
+      "metric": "fuzzy_match",
+      "threshold": 0.55,
+      "total_matched_pairs": 28,
+      "avg_score": 0.993,
+      "by_class": {
+        "AgenticSystem": {
+          "matched": 1,
+          "avg_score": 0.8,
+          "pairs": [
+            {
+              "ref": "self_eval_loop_flow",
+              "cand": "self_eval_loop_flow_roundtrip",
+              "score": 0.8
+            }
+          ]
+        },
+        "ConditionalStep": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_evaluate_x_post",
+              "cand": "FlowStep_evaluate_x_post",
+              "score": 1.0
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 5,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_save_result",
+              "cand": "FlowStep_save_result",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_max_retry_exceeded_exit",
+              "cand": "FlowStep_max_retry_exceeded_exit",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_generate_shakespeare_x_post",
+              "cand": "FlowStep_generate_shakespeare_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_XPostReviewCrew_verify_x_post",
+              "cand": "CrewStep_XPostReviewCrew_verify_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_ShakespeareanXPostCrew_write_x_post",
+              "cand": "CrewStep_ShakespeareanXPostCrew_write_x_post",
+              "score": 1.0
+            }
+          ]
+        },
+        "Goal": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Goal_x_post_verifier",
+              "cand": "Goal_x_post_verifier",
+              "score": 1.0
+            },
+            {
+              "ref": "Goal_shakespearean_bard",
+              "cand": "Goal_shakespearean_bard",
+              "score": 1.0
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Agent_x_post_verifier",
+              "cand": "Agent_x_post_verifier",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_shakespearean_bard",
+              "cand": "Agent_shakespearean_bard",
+              "score": 1.0
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Orchestration_ShakespeareXPostFlow",
+              "cand": "Orchestration_ShakespeareXPostFlow",
+              "score": 1.0
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 4,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_write_x_post",
+              "cand": "TaskPrompt_write_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_verify_x_post",
+              "cand": "TaskPrompt_verify_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_x_post_verifier",
+              "cand": "AgentPrompt_x_post_verifier",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_shakespearean_bard",
+              "cand": "AgentPrompt_shakespearean_bard",
+              "score": 1.0
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_generate_shakespeare_x_post",
+              "cand": "FlowStep_generate_shakespeare_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_XPostReviewCrew_verify_x_post",
+              "cand": "CrewStep_XPostReviewCrew_verify_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_ShakespeareanXPostCrew_write_x_post",
+              "cand": "CrewStep_ShakespeareanXPostCrew_write_x_post",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Task_write_x_post",
+              "cand": "Task_write_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_verify_x_post",
+              "cand": "Task_verify_x_post",
+              "score": 1.0
+            }
+          ]
+        },
+        "Team": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Team_XPostReviewCrew",
+              "cand": "Team_XPostReviewCrew",
+              "score": 1.0
+            },
+            {
+              "ref": "Team_ShakespeareanXPostCrew",
+              "cand": "Team_ShakespeareanXPostCrew",
+              "score": 1.0
+            }
+          ]
+        },
+        "Tool": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Tool_CharacterCounterTool",
+              "cand": "Tool_CharacterCounterTool",
+              "score": 1.0
+            }
+          ]
+        },
+        "WorkflowStep": {
+          "matched": 4,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_save_result",
+              "cand": "FlowStep_save_result",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_max_retry_exceeded_exit",
+              "cand": "FlowStep_max_retry_exceeded_exit",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_generate_shakespeare_x_post",
+              "cand": "FlowStep_generate_shakespeare_x_post",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_evaluate_x_post",
+              "cand": "FlowStep_evaluate_x_post",
+              "score": 1.0
+            }
+          ]
+        }
+      },
+      "alignment": {
+        "AgenticSystem": [
+          [
+            "self_eval_loop_flow",
+            "self_eval_loop_flow_roundtrip",
+            0.8
+          ]
+        ],
+        "ConditionalStep": [
+          [
+            "FlowStep_evaluate_x_post",
+            "FlowStep_evaluate_x_post",
+            1.0
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_save_result",
+            "FlowStep_save_result",
+            1.0
+          ],
+          [
+            "FlowStep_max_retry_exceeded_exit",
+            "FlowStep_max_retry_exceeded_exit",
+            1.0
+          ],
+          [
+            "FlowStep_generate_shakespeare_x_post",
+            "FlowStep_generate_shakespeare_x_post",
+            1.0
+          ],
+          [
+            "CrewStep_XPostReviewCrew_verify_x_post",
+            "CrewStep_XPostReviewCrew_verify_x_post",
+            1.0
+          ],
+          [
+            "CrewStep_ShakespeareanXPostCrew_write_x_post",
+            "CrewStep_ShakespeareanXPostCrew_write_x_post",
+            1.0
+          ]
+        ],
+        "Goal": [
+          [
+            "Goal_x_post_verifier",
+            "Goal_x_post_verifier",
+            1.0
+          ],
+          [
+            "Goal_shakespearean_bard",
+            "Goal_shakespearean_bard",
+            1.0
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_x_post_verifier",
+            "Agent_x_post_verifier",
+            1.0
+          ],
+          [
+            "Agent_shakespearean_bard",
+            "Agent_shakespearean_bard",
+            1.0
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_ShakespeareXPostFlow",
+            "Orchestration_ShakespeareXPostFlow",
+            1.0
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_write_x_post",
+            "TaskPrompt_write_x_post",
+            1.0
+          ],
+          [
+            "TaskPrompt_verify_x_post",
+            "TaskPrompt_verify_x_post",
+            1.0
+          ],
+          [
+            "AgentPrompt_x_post_verifier",
+            "AgentPrompt_x_post_verifier",
+            1.0
+          ],
+          [
+            "AgentPrompt_shakespearean_bard",
+            "AgentPrompt_shakespearean_bard",
+            1.0
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_generate_shakespeare_x_post",
+            "FlowStep_generate_shakespeare_x_post",
+            1.0
+          ],
+          [
+            "CrewStep_XPostReviewCrew_verify_x_post",
+            "CrewStep_XPostReviewCrew_verify_x_post",
+            1.0
+          ],
+          [
+            "CrewStep_ShakespeareanXPostCrew_write_x_post",
+            "CrewStep_ShakespeareanXPostCrew_write_x_post",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_write_x_post",
+            "Task_write_x_post",
+            1.0
+          ],
+          [
+            "Task_verify_x_post",
+            "Task_verify_x_post",
+            1.0
+          ]
+        ],
+        "Team": [
+          [
+            "Team_XPostReviewCrew",
+            "Team_XPostReviewCrew",
+            1.0
+          ],
+          [
+            "Team_ShakespeareanXPostCrew",
+            "Team_ShakespeareanXPostCrew",
+            1.0
+          ]
+        ],
+        "Tool": [
+          [
+            "Tool_CharacterCounterTool",
+            "Tool_CharacterCounterTool",
+            1.0
+          ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_save_result",
+            "FlowStep_save_result",
+            1.0
+          ],
+          [
+            "FlowStep_max_retry_exceeded_exit",
+            "FlowStep_max_retry_exceeded_exit",
+            1.0
+          ],
+          [
+            "FlowStep_generate_shakespeare_x_post",
+            "FlowStep_generate_shakespeare_x_post",
+            1.0
+          ],
+          [
+            "FlowStep_evaluate_x_post",
+            "FlowStep_evaluate_x_post",
+            1.0
+          ]
+        ]
+      }
+    },
+    "ast_diff": {
+      "metric": "ast_diff",
+      "overall": {
+        "precision": 0.921,
+        "recall": 0.927,
+        "f1": 0.924
+      },
+      "per_feature": {
+        "decorators": {
+          "precision": 0.857,
+          "recall": 0.857,
+          "f1": 0.857,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "@router(generate_shakespeare_x_post)"
+          ],
+          "extra": [
+            "@router()"
+          ]
+        },
+        "functions": {
+          "precision": 1.0,
+          "recall": 0.917,
+          "f1": 0.957,
+          "ref_count": 12,
+          "cand_count": 11,
+          "missing": [
+            "plot"
+          ],
+          "extra": []
+        },
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 3,
+          "cand_count": 3,
+          "missing": [],
+          "extra": []
+        },
+        "class_bases": {
+          "precision": 0.857,
+          "recall": 0.857,
+          "f1": 0.857,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "CharacterCounterInput(BaseModel)"
+          ],
+          "extra": [
+            "CharacterCounterToolSchema(BaseModel)"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 6,
+          "cand_count": 6,
+          "missing": [],
+          "extra": []
+        },
+        "state_annotations": {
+          "precision": 0.857,
+          "recall": 1.0,
+          "f1": 0.923,
+          "ref_count": 6,
+          "cand_count": 7,
+          "missing": [],
+          "extra": [
+            [
+              "feedback",
+              "str"
+            ]
+          ]
+        },
+        "graph_calls": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": []
+        },
+        "imports": {
+          "precision": 0.857,
+          "recall": 0.857,
+          "f1": 0.857,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "uuid"
+          ],
+          "extra": [
+            "models"
+          ]
+        },
+        "classes": {
+          "precision": 0.857,
+          "recall": 0.857,
+          "f1": 0.857,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "CharacterCounterInput"
+          ],
+          "extra": [
+            "CharacterCounterToolSchema"
+          ]
+        }
+      },
+      "ref_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files/crews/shakespeare_crew/shakespeare_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files/crews/x_post_review_crew/x_post_review_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files/tools/CharacterCounterTool.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/self-eval-loop-flow/source_files/tools/__init__.py"
+      ],
+      "cand_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/generated/crews/shakespearean_xpost_crew/shakespearean_xpost_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/generated/crews/xpost_review_crew/xpost_review_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/generated/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/generated/models.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/self-eval-loop-flow/generated/tools/CharacterCounterTool.py"
+      ]
+    },
+    "execution_trace": {
+      "skipped": true
+    }
+  }
+}

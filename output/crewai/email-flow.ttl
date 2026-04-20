@@ -1,11 +1,11 @@
 @prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
-@prefix ex: <http://example.org/instance#> .
+@prefix ex: <http://example.org/email_flow#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://example.org/instance> a owl:Ontology ;
+<http://example.org/email_flow> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
 ex:email_flow a agentoscin:AgenticSystem ;
@@ -176,6 +176,12 @@ agentoscin:hasCheckpointPosition a owl:DatatypeProperty ;
 
 agentoscin:hasCheckpointType a owl:DatatypeProperty ;
     rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:string ;
+    rdfs:subPropertyOf owl:topDataProperty .
+
+agentoscin:hasDecoratorArgument a owl:DatatypeProperty ;
+    rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." ;
+    rdfs:domain agentoscin:WorkflowStep ;
     rdfs:range xsd:string ;
     rdfs:subPropertyOf owl:topDataProperty .
 
@@ -509,6 +515,7 @@ ex:CrewStep_EmailFilterCrew_filter_emails_task a agentoscin:StartStep ;
 
 ex:FlowStep_fetch_new_emails a agentoscin:StartStep,
         agentoscin:WorkflowStep ;
+    agentoscin:hasDecoratorArgument "wait_next_run"^^xsd:string ;
     agentoscin:hasTitle "fetch_new_emails"^^xsd:string ;
     agentoscin:nextStep ex:FlowStep_generate_draft_responses ;
     agentoscin:stepOrder 1 .
@@ -528,9 +535,14 @@ ex:Goal_email_response_writer a agentoscin:Goal ;
 
 ex:Orchestration_EmailAutoResponderFlow a agentoscin:Orchestration ;
     agentoscin:employsCoordinationPattern agentoscin:Custom ;
+    agentoscin:hasOutputSchema ex:StateSchema_EmailAutoResponderFlow ;
     agentoscin:hasTitle "EmailAutoResponderFlow"^^xsd:string ;
     agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_EmailAutoResponderFlow ;
     agentoscin:orchestratesTeam ex:Team_EmailFilterCrew .
+
+ex:StateSchema_EmailAutoResponderFlow a agentoscin:Schema ;
+    agentoscin:hasSchemaDefinition "{\"emails\": \"List[Email]\", \"checked_emails_ids\": \"set[str]\"}"^^xsd:string ;
+    agentoscin:hasTitle "AutoResponderState"^^xsd:string .
 
 ex:TaskPrompt_action_required_emails_task a agentoscin:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
@@ -777,11 +789,11 @@ agentoscin:KnowledgeBase a owl:Class ;
 agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
-agentoscin:Schema a owl:Class .
-
 agentoscin:Agent a owl:Class .
 
 agentoscin:Context a owl:Class .
+
+agentoscin:Schema a owl:Class .
 
 agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:domain agentoscin:Agent,

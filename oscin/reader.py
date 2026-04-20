@@ -524,6 +524,14 @@ class OntologyReader:
             for next_uri in self.g.objects(step_uri, AGENTOSCIN.nextStep):
                 next_names.append(str(next_uri))
 
+            # Original literal decorator arguments (e.g. CrewAI
+            # @start("wait_next_run")) preserved by the populator. These
+            # are restored ahead of the inferred dependency list.
+            decorator_args: list[str] = []
+            for lit in self.g.objects(step_uri, AGENTOSCIN.hasDecoratorArgument):
+                if isinstance(lit, Literal):
+                    decorator_args.append(str(lit))
+
             step_uri_to_name[str(step_uri)] = name
             step_info[str(step_uri)] = {
                 "order": order,
@@ -532,6 +540,7 @@ class OntologyReader:
                 "routing_logic": routing_logic,
                 "edge_mapping": edge_mapping,
                 "next_uris": next_names,
+                "decorator_args": decorator_args,
             }
 
         # Phase 2: Resolve next_uris to method names
@@ -559,11 +568,15 @@ class OntologyReader:
             info = step_info[uri_str]
             name = info["name"]
 
-            # For regular and conditional steps, dependencies = the method
-            # names they listen to / are routed from
-            dec_args = []
+            # Dependencies = literal decorator arguments preserved from the
+            # source (e.g. CrewAI @start("wait_next_run")) followed by the
+            # inferred predecessors from inverse nextStep edges. The literal
+            # arguments come first so the generator emits them as-written.
+            dec_args = list(info.get("decorator_args") or [])
             if info["step_type"] in ("regular", "conditional"):
-                dec_args = listened_by.get(name, [])
+                for pred in listened_by.get(name, []):
+                    if pred not in dec_args:
+                        dec_args.append(pred)
 
             # For conditional steps and start steps with routing logic,
             # return_values = the next step names or edge_mapping keys

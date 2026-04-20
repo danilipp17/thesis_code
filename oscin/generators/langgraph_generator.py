@@ -262,35 +262,41 @@ class LangGraphGenerator(BaseCodeGenerator):
 
     def _generate_state_class(self) -> list[str]:
         """Generate the State TypedDict from semantic layer state fields."""
+        state_fields: dict[str, str] = {}
+        if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
+            state_fields = self.reader.flow.state_fields or {}
+
+        # Default LangGraph state always carries a `messages` reducer field.
+        # If the source already declared it (with whatever type/reducer), we
+        # honor that exact annotation; otherwise we fall back to the standard
+        # Annotated[list, add_messages] reducer.
         lines = [
             "",
             "class State(TypedDict):",
             '    """Graph state."""',
-            "    messages: Annotated[list, add_messages]",
         ]
-
-        state_fields = {}
-        if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
-            state_fields = self.reader.flow.state_fields or {}
+        if "messages" in state_fields:
+            lines.append(f"    messages: {state_fields['messages']}")
+        else:
+            lines.append("    messages: Annotated[list, add_messages]")
 
         for field_name, field_type in state_fields.items():
             if field_name == "messages":
-                continue  # Handled above
-            # Handle standard python types from JSON types
-            py_type = "str"
-            if field_type == "integer":
-                py_type = "int"
-            elif field_type == "boolean":
-                py_type = "bool"
-            elif field_type == "number":
-                py_type = "float"
-            elif field_type == "array":
-                py_type = "list"
-            elif field_type == "object":
-                py_type = "dict"
-            elif field_type in ("str", "int", "float", "bool", "list", "dict"):
-                py_type = field_type
-
+                continue
+            ft = (field_type or "").strip()
+            # Preserve the source annotation verbatim when it's an actual
+            # Python type expression (handles Annotated[..., reducer],
+            # generics like list[X], custom classes, etc.). Only rewrite
+            # bare JSON-schema names.
+            json_map = {
+                "integer": "int",
+                "boolean": "bool",
+                "number": "float",
+                "array": "list",
+                "object": "dict",
+                "string": "str",
+            }
+            py_type = json_map.get(ft, ft or "str")
             lines.append(f"    {field_name}: {py_type}")
 
         lines.append("")

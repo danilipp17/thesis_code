@@ -1,0 +1,735 @@
+{
+  "example": "code-review",
+  "framework": "crewai",
+  "target_framework": "crewai",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/code-review/source_files",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review",
+  "steps": {
+    "extract_1": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/ttl1.ttl"
+    },
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/generated"
+    },
+    "extract_2": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/ttl2.ttl"
+    }
+  },
+  "metrics": {
+    "ontology_pairwise": {
+      "individual_precision": 1.0,
+      "individual_recall": 1.0,
+      "individual_f1": 1.0,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "ConditionalStep": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Config": {
+          "reference_count": 4,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "EndStep": {
+          "reference_count": 5,
+          "candidate_count": 5,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LLMAgent": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LanguageModel": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 6,
+          "candidate_count": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Schema": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "StartStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "TaskCompletionTermination": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Team": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Tool": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 6,
+          "candidate_count": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "property_precision": 1.0,
+      "property_recall": 0.9772727272727273,
+      "property_f1": 0.9885057471264368,
+      "triple_precision": 0.8756476683937824,
+      "triple_recall": 0.8666666666666667,
+      "triple_f1": 0.8711340206185567,
+      "literal_overlap": 0.9285714285714286,
+      "missing_individuals": [],
+      "extra_individuals": [],
+      "missing_properties": [
+        "orchestratesTeam"
+      ],
+      "extra_properties": []
+    },
+    "fuzzy_match": {
+      "metric": "fuzzy_match",
+      "threshold": 0.55,
+      "total_matched_pairs": 33,
+      "avg_score": 0.991,
+      "by_class": {
+        "AgenticSystem": {
+          "matched": 1,
+          "avg_score": 0.688,
+          "pairs": [
+            {
+              "ref": "code_review",
+              "cand": "code_review_roundtrip",
+              "score": 0.688
+            }
+          ]
+        },
+        "ConditionalStep": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_check_quality_gate",
+              "cand": "FlowStep_check_quality_gate",
+              "score": 1.0
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 5,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_handle_revision_needed",
+              "cand": "FlowStep_handle_revision_needed",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_handle_max_retries",
+              "cand": "FlowStep_handle_max_retries",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_handle_approved",
+              "cand": "FlowStep_handle_approved",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_CodeReviewCrew_compile_review",
+              "cand": "CrewStep_CodeReviewCrew_compile_review",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_run_review",
+              "cand": "FlowStep_run_review",
+              "score": 1.0
+            }
+          ]
+        },
+        "Goal": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Goal_security_auditor",
+              "cand": "Goal_security_auditor",
+              "score": 1.0
+            },
+            {
+              "ref": "Goal_review_summarizer",
+              "cand": "Goal_review_summarizer",
+              "score": 1.0
+            },
+            {
+              "ref": "Goal_code_reviewer",
+              "cand": "Goal_code_reviewer",
+              "score": 1.0
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Agent_security_auditor",
+              "cand": "Agent_security_auditor",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_review_summarizer",
+              "cand": "Agent_review_summarizer",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_code_reviewer",
+              "cand": "Agent_code_reviewer",
+              "score": 1.0
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Orchestration_CodeReviewFlow",
+              "cand": "Orchestration_CodeReviewFlow",
+              "score": 1.0
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 6,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_review_code",
+              "cand": "TaskPrompt_review_code",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_compile_review",
+              "cand": "TaskPrompt_compile_review",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_audit_security",
+              "cand": "TaskPrompt_audit_security",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_security_auditor",
+              "cand": "AgentPrompt_security_auditor",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_review_summarizer",
+              "cand": "AgentPrompt_review_summarizer",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_code_reviewer",
+              "cand": "AgentPrompt_code_reviewer",
+              "score": 1.0
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_run_review",
+              "cand": "FlowStep_run_review",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_CodeReviewCrew_review_code",
+              "cand": "CrewStep_CodeReviewCrew_review_code",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Task_review_code",
+              "cand": "Task_review_code",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_audit_security",
+              "cand": "Task_audit_security",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_compile_review",
+              "cand": "Task_compile_review",
+              "score": 1.0
+            }
+          ]
+        },
+        "Team": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Team_CodeReviewCrew",
+              "cand": "Team_CodeReviewCrew",
+              "score": 1.0
+            }
+          ]
+        },
+        "Tool": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Tool_CodeAnalyzerTool",
+              "cand": "Tool_CodeAnalyzerTool",
+              "score": 1.0
+            }
+          ]
+        },
+        "WorkflowStep": {
+          "matched": 6,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_handle_revision_needed",
+              "cand": "FlowStep_handle_revision_needed",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_handle_max_retries",
+              "cand": "FlowStep_handle_max_retries",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_handle_approved",
+              "cand": "FlowStep_handle_approved",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_CodeReviewCrew_audit_security",
+              "cand": "CrewStep_CodeReviewCrew_audit_security",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_run_review",
+              "cand": "FlowStep_run_review",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_check_quality_gate",
+              "cand": "FlowStep_check_quality_gate",
+              "score": 1.0
+            }
+          ]
+        }
+      },
+      "alignment": {
+        "AgenticSystem": [
+          [
+            "code_review",
+            "code_review_roundtrip",
+            0.688
+          ]
+        ],
+        "ConditionalStep": [
+          [
+            "FlowStep_check_quality_gate",
+            "FlowStep_check_quality_gate",
+            1.0
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_handle_revision_needed",
+            "FlowStep_handle_revision_needed",
+            1.0
+          ],
+          [
+            "FlowStep_handle_max_retries",
+            "FlowStep_handle_max_retries",
+            1.0
+          ],
+          [
+            "FlowStep_handle_approved",
+            "FlowStep_handle_approved",
+            1.0
+          ],
+          [
+            "CrewStep_CodeReviewCrew_compile_review",
+            "CrewStep_CodeReviewCrew_compile_review",
+            1.0
+          ],
+          [
+            "FlowStep_run_review",
+            "FlowStep_run_review",
+            1.0
+          ]
+        ],
+        "Goal": [
+          [
+            "Goal_security_auditor",
+            "Goal_security_auditor",
+            1.0
+          ],
+          [
+            "Goal_review_summarizer",
+            "Goal_review_summarizer",
+            1.0
+          ],
+          [
+            "Goal_code_reviewer",
+            "Goal_code_reviewer",
+            1.0
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_security_auditor",
+            "Agent_security_auditor",
+            1.0
+          ],
+          [
+            "Agent_review_summarizer",
+            "Agent_review_summarizer",
+            1.0
+          ],
+          [
+            "Agent_code_reviewer",
+            "Agent_code_reviewer",
+            1.0
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_CodeReviewFlow",
+            "Orchestration_CodeReviewFlow",
+            1.0
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_review_code",
+            "TaskPrompt_review_code",
+            1.0
+          ],
+          [
+            "TaskPrompt_compile_review",
+            "TaskPrompt_compile_review",
+            1.0
+          ],
+          [
+            "TaskPrompt_audit_security",
+            "TaskPrompt_audit_security",
+            1.0
+          ],
+          [
+            "AgentPrompt_security_auditor",
+            "AgentPrompt_security_auditor",
+            1.0
+          ],
+          [
+            "AgentPrompt_review_summarizer",
+            "AgentPrompt_review_summarizer",
+            1.0
+          ],
+          [
+            "AgentPrompt_code_reviewer",
+            "AgentPrompt_code_reviewer",
+            1.0
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_run_review",
+            "FlowStep_run_review",
+            1.0
+          ],
+          [
+            "CrewStep_CodeReviewCrew_review_code",
+            "CrewStep_CodeReviewCrew_review_code",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_review_code",
+            "Task_review_code",
+            1.0
+          ],
+          [
+            "Task_audit_security",
+            "Task_audit_security",
+            1.0
+          ],
+          [
+            "Task_compile_review",
+            "Task_compile_review",
+            1.0
+          ]
+        ],
+        "Team": [
+          [
+            "Team_CodeReviewCrew",
+            "Team_CodeReviewCrew",
+            1.0
+          ]
+        ],
+        "Tool": [
+          [
+            "Tool_CodeAnalyzerTool",
+            "Tool_CodeAnalyzerTool",
+            1.0
+          ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_handle_revision_needed",
+            "FlowStep_handle_revision_needed",
+            1.0
+          ],
+          [
+            "FlowStep_handle_max_retries",
+            "FlowStep_handle_max_retries",
+            1.0
+          ],
+          [
+            "FlowStep_handle_approved",
+            "FlowStep_handle_approved",
+            1.0
+          ],
+          [
+            "CrewStep_CodeReviewCrew_audit_security",
+            "CrewStep_CodeReviewCrew_audit_security",
+            1.0
+          ],
+          [
+            "FlowStep_run_review",
+            "FlowStep_run_review",
+            1.0
+          ],
+          [
+            "FlowStep_check_quality_gate",
+            "FlowStep_check_quality_gate",
+            1.0
+          ]
+        ]
+      }
+    },
+    "ast_diff": {
+      "metric": "ast_diff",
+      "overall": {
+        "precision": 0.884,
+        "recall": 0.863,
+        "f1": 0.873
+      },
+      "per_feature": {
+        "decorators": {
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1": 0.875,
+          "ref_count": 8,
+          "cand_count": 8,
+          "missing": [
+            "@router(run_review)"
+          ],
+          "extra": [
+            "@router()"
+          ]
+        },
+        "functions": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 14,
+          "cand_count": 14,
+          "missing": [],
+          "extra": []
+        },
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 3,
+          "cand_count": 3,
+          "missing": [],
+          "extra": []
+        },
+        "class_bases": {
+          "precision": 0.667,
+          "recall": 0.667,
+          "f1": 0.667,
+          "ref_count": 6,
+          "cand_count": 6,
+          "missing": [
+            "CodeAnalyzerSchema(BaseModel)",
+            "CodeReviewState(BaseModel)"
+          ],
+          "extra": [
+            "CodeAnalyzerToolSchema(BaseModel)",
+            "CodeReviewFlowState(BaseModel)"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 9,
+          "cand_count": 9,
+          "missing": [],
+          "extra": []
+        },
+        "state_annotations": {
+          "precision": 0.889,
+          "recall": 0.889,
+          "f1": 0.889,
+          "ref_count": 9,
+          "cand_count": 9,
+          "missing": [
+            [
+              "action_items",
+              "list[str]"
+            ]
+          ],
+          "extra": [
+            [
+              "action_items",
+              "str"
+            ]
+          ]
+        },
+        "graph_calls": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": []
+        },
+        "imports": {
+          "precision": 0.857,
+          "recall": 0.667,
+          "f1": 0.75,
+          "ref_count": 9,
+          "cand_count": 7,
+          "missing": [
+            "ast",
+            "langchain_openai",
+            "uuid"
+          ],
+          "extra": [
+            "models"
+          ]
+        },
+        "classes": {
+          "precision": 0.667,
+          "recall": 0.667,
+          "f1": 0.667,
+          "ref_count": 6,
+          "cand_count": 6,
+          "missing": [
+            "CodeAnalyzerSchema",
+            "CodeReviewState"
+          ],
+          "extra": [
+            "CodeAnalyzerToolSchema",
+            "CodeReviewFlowState"
+          ]
+        }
+      },
+      "ref_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/code-review/source_files/crews/code_review_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/code-review/source_files/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/code-review/source_files/tools/code_analyzer.py"
+      ],
+      "cand_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/generated/crews/code_review_crew/code_review_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/generated/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/generated/models.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/code-review/generated/tools/CodeAnalyzerTool.py"
+      ]
+    },
+    "execution_trace": {
+      "skipped": true
+    }
+  }
+}

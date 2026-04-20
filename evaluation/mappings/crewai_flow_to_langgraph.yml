@@ -1,0 +1,115 @@
+# Canonical CrewAI Flow ↔ LangGraph mapping rules
+#
+# Source: CrewAI guide "Moving from LangGraph to CrewAI: A Practical Guide
+# for Engineers" (https://docs.crewai.com/llms.txt referenced article).
+#
+# Each rule is a bidirectional equivalence between a LangGraph construct
+# and a CrewAI Flow construct. The mapping_conformance metric counts
+# instances of each side in the source files and reports how many
+# successfully match across the translation.
+#
+# Pattern keys:
+#   - lg_pattern.kind   : ast feature kind to count on the LangGraph side
+#   - lg_pattern.match  : structural matcher
+#   - cf_pattern.kind   : ast feature kind to count on the CrewAI side
+#   - cf_pattern.match  : structural matcher
+#
+# kind values understood by the conformance checker:
+#   class_base       — class with given base in its bases tuple (e.g. StateGraph, Flow)
+#   call_method      — call to <attr> method on any object (e.g. .add_node, .compile, .kickoff)
+#   call_with_const  — like call_method, but first positional arg must be a string literal
+#   decorator        — function decorated with given decorator name
+#   decorator_arg    — function decorated with @name(arg) where arg is a string literal
+#   reducer_field    — class field annotated with Annotated[..., reducer_name]
+#   pydantic_default — class field with a default value on a BaseModel subclass
+
+rules:
+  - id: graph_class
+    description: "StateGraph(S) ⇔ class X(Flow[S])"
+    lg:
+      kind: call_method
+      match: { method: "StateGraph" }   # constructor call counts as a method-style call
+    cf:
+      kind: class_base
+      match: { base: "Flow" }
+    bidirectional: true
+
+  - id: node_to_decorated
+    description: "add_node(...) ⇔ method decorated @start or @listen or @router"
+    lg:
+      kind: call_method
+      match: { method: "add_node" }
+    cf:
+      kind: any_decorator
+      match: { decorators: ["start", "listen", "router"] }
+    bidirectional: true
+
+  - id: entry_point
+    description: "add_edge(START, n) ⇔ @start() method"
+    lg:
+      kind: call_method
+      match: { method: "add_edge", first_name: "START" }
+    cf:
+      kind: decorator
+      match: { decorator: "start" }
+    bidirectional: true
+
+  - id: sequential_edge
+    description: "add_edge('a', 'b') ⇔ @listen(a) on method b"
+    lg:
+      kind: call_with_const
+      match: { method: "add_edge" }
+    cf:
+      kind: decorator
+      match: { decorator: "listen" }
+    bidirectional: true
+
+  - id: conditional
+    description: "add_conditional_edges(...) ⇔ @router(...) method"
+    lg:
+      kind: call_method
+      match: { method: "add_conditional_edges" }
+    cf:
+      kind: decorator
+      match: { decorator: "router" }
+    bidirectional: true
+
+  - id: state_reducer
+    description: "TypedDict field with Annotated[..., reducer] ⇔ Pydantic BaseModel field with default"
+    lg:
+      kind: reducer_field
+      match: {}
+    cf:
+      kind: pydantic_default
+      match: {}
+    bidirectional: true
+
+  - id: kickoff
+    description: "graph.compile() + invoke ⇔ flow.kickoff()"
+    lg:
+      kind: call_method
+      match: { method: "compile" }
+    cf:
+      kind: call_method
+      match: { method: "kickoff" }
+    bidirectional: true
+
+  - id: fan_in
+    description: "Synchronization node (join) ⇔ @listen(and_(...))"
+    lg:
+      kind: call_method
+      match: { method: "add_conditional_edges" }   # weak proxy; LangGraph fan-in usually appears as a sync node with multiple incoming add_edge calls
+    cf:
+      kind: decorator_call_name
+      match: { decorator: "listen", inner_call: "and_" }
+    bidirectional: false
+
+  - id: fan_in_or
+    description: "Either-branch merge ⇔ @listen(or_(...))"
+    lg:
+      kind: call_method
+      match: { method: "add_conditional_edges" }
+    cf:
+      kind: decorator_call_name
+      match: { decorator: "listen", inner_call: "or_" }
+    bidirectional: false

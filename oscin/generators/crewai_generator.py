@@ -524,19 +524,20 @@ class {crew_class}:
         if flow.state_fields:
             lines = []
             for field_name, field_type in flow.state_fields.items():
-                py_type = (
-                    self._json_type_to_python(field_type)
-                    if field_type not in ("str", "int", "float", "bool", "list", "dict")
-                    else field_type
-                )
-                if py_type == "str":
-                    lines.append(f'    {field_name}: {py_type} = ""')
-                elif py_type == "list":
-                    lines.append(f"    {field_name}: {py_type} = []")
-                elif py_type == "dict":
-                    lines.append(f"    {field_name}: {py_type} = {{}}")
+                # Preserve the source-level type annotation when it's already
+                # a Python type expression (e.g. "List[Email]", "set[str]",
+                # "Annotated[list, add_messages]"). Only fall through to the
+                # JSON-schema mapping for primitive JSON-style names.
+                ft = (field_type or "").strip()
+                if ft in ("string", "integer", "boolean", "number", "array", "object"):
+                    py_type = self._json_type_to_python(ft)
                 else:
+                    py_type = ft or "Any"
+                default = self._default_for_type(py_type)
+                if default is None:
                     lines.append(f"    {field_name}: {py_type} = None")
+                else:
+                    lines.append(f"    {field_name}: {py_type} = {default}")
             state_fields_code = "\n".join(lines)
         else:
             state_fields_code = "    pass"
@@ -545,10 +546,13 @@ class {crew_class}:
 Auto-generated CrewAI Flow: {flow_class}
 """
 
+import dotenv
 from typing import Optional
 
 from crewai.flow.flow import Flow, listen, router, start
 from pydantic import BaseModel
+
+dotenv.load_dotenv()
 
 {imports_str}
 
@@ -583,6 +587,10 @@ if __name__ == "__main__":
         code = f'''"""
 Auto-generated CrewAI entry point.
 """
+
+import dotenv
+
+dotenv.load_dotenv()
 
 from crews.{snake}.{snake} import {team.team_class_name}
 
@@ -702,3 +710,33 @@ if __name__ == "__main__":
             "object": "dict",
         }
         return mapping.get(json_type, "str")
+
+    @staticmethod
+    def _default_for_type(py_type: str) -> Optional[str]:
+        """
+        Pick a sensible Pydantic field default literal for a Python type.
+
+        Heuristic on the textual form of the annotation: collection-like
+        types get an empty-collection literal, scalars get their zero-value,
+        anything else (including ``Annotated[...]``, custom classes, or
+        ``Optional[X]``) returns ``None`` so the caller emits ``= None``.
+        """
+        t = (py_type or "").strip()
+        low = t.lower()
+        if low.startswith(("list", "list[", "list[")) or low.startswith("typing.list"):
+            return "[]"
+        if low.startswith(("dict", "dict[")) or low.startswith("typing.dict"):
+            return "{}"
+        if low.startswith(("set", "set[", "frozenset")) or low.startswith("typing.set"):
+            return "set()"
+        if low.startswith(("tuple", "tuple[")) or low.startswith("typing.tuple"):
+            return "()"
+        if low == "str":
+            return '""'
+        if low == "int":
+            return "0"
+        if low == "float":
+            return "0.0"
+        if low == "bool":
+            return "False"
+        return None

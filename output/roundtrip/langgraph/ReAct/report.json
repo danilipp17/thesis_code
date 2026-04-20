@@ -1,0 +1,529 @@
+{
+  "example": "ReAct",
+  "framework": "langgraph",
+  "target_framework": "langgraph",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/ReAct",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/langgraph/ReAct",
+  "steps": {
+    "extract_1": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/langgraph/ReAct/ttl1.ttl"
+    },
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/langgraph/ReAct/generated"
+    },
+    "extract_2": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/langgraph/ReAct/ttl2.ttl"
+    }
+  },
+  "metrics": {
+    "ontology_pairwise": {
+      "individual_precision": 0.9090909090909091,
+      "individual_recall": 1.0,
+      "individual_f1": 0.9523809523809523,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "ConditionalStep": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "EndStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "LLMAgent": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LanguageModel": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "RoutingTermination": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Schema": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "StartStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Team": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Tool": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "property_precision": 0.9444444444444444,
+      "property_recall": 1.0,
+      "property_f1": 0.9714285714285714,
+      "triple_precision": 0.6702127659574468,
+      "triple_recall": 0.7159090909090909,
+      "triple_f1": 0.6923076923076923,
+      "literal_overlap": 0.7241379310344828,
+      "missing_individuals": [],
+      "extra_individuals": [
+        "LanguageModel (1 extra)",
+        "Goal (1 extra)"
+      ],
+      "missing_properties": [],
+      "extra_properties": [
+        "hasAgentGoal",
+        "useLanguageModel"
+      ]
+    },
+    "fuzzy_match": {
+      "metric": "fuzzy_match",
+      "threshold": 0.55,
+      "total_matched_pairs": 15,
+      "avg_score": 1.0,
+      "by_class": {
+        "ConditionalStep": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_our_agent",
+              "cand": "FlowStep_our_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_our_agent",
+              "cand": "FlowStep_our_agent",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_our_agent",
+              "cand": "CrewStep_langgraph_team_0_task_our_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Agent_our_agent",
+              "cand": "Agent_our_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Orchestration_StateGraph",
+              "cand": "Orchestration_StateGraph",
+              "score": 1.0
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_task_our_agent",
+              "cand": "TaskPrompt_task_our_agent",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_our_agent",
+              "cand": "AgentPrompt_our_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_our_agent",
+              "cand": "FlowStep_our_agent",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_our_agent",
+              "cand": "CrewStep_langgraph_team_0_task_our_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Task_task_our_agent",
+              "cand": "Task_task_our_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "Team": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Team_langgraph_team_0",
+              "cand": "Team_langgraph_team_0",
+              "score": 1.0
+            }
+          ]
+        },
+        "Tool": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Tool_subtract",
+              "cand": "Tool_subtract",
+              "score": 1.0
+            },
+            {
+              "ref": "Tool_multiply",
+              "cand": "Tool_multiply",
+              "score": 1.0
+            },
+            {
+              "ref": "Tool_add",
+              "cand": "Tool_add",
+              "score": 1.0
+            }
+          ]
+        },
+        "WorkflowStep": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_our_agent",
+              "cand": "FlowStep_our_agent",
+              "score": 1.0
+            }
+          ]
+        }
+      },
+      "alignment": {
+        "ConditionalStep": [
+          [
+            "FlowStep_our_agent",
+            "FlowStep_our_agent",
+            1.0
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_our_agent",
+            "FlowStep_our_agent",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_our_agent",
+            "CrewStep_langgraph_team_0_task_our_agent",
+            1.0
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_our_agent",
+            "Agent_our_agent",
+            1.0
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_StateGraph",
+            "Orchestration_StateGraph",
+            1.0
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_task_our_agent",
+            "TaskPrompt_task_our_agent",
+            1.0
+          ],
+          [
+            "AgentPrompt_our_agent",
+            "AgentPrompt_our_agent",
+            1.0
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_our_agent",
+            "FlowStep_our_agent",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_our_agent",
+            "CrewStep_langgraph_team_0_task_our_agent",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_task_our_agent",
+            "Task_task_our_agent",
+            1.0
+          ]
+        ],
+        "Team": [
+          [
+            "Team_langgraph_team_0",
+            "Team_langgraph_team_0",
+            1.0
+          ]
+        ],
+        "Tool": [
+          [
+            "Tool_subtract",
+            "Tool_subtract",
+            1.0
+          ],
+          [
+            "Tool_multiply",
+            "Tool_multiply",
+            1.0
+          ],
+          [
+            "Tool_add",
+            "Tool_add",
+            1.0
+          ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_our_agent",
+            "FlowStep_our_agent",
+            1.0
+          ]
+        ]
+      }
+    },
+    "ast_diff": {
+      "metric": "ast_diff",
+      "overall": {
+        "precision": 0.693,
+        "recall": 0.7,
+        "f1": 0.696
+      },
+      "per_feature": {
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": []
+        },
+        "functions": {
+          "precision": 0.6,
+          "recall": 0.5,
+          "f1": 0.545,
+          "ref_count": 6,
+          "cand_count": 5,
+          "missing": [
+            "model_call",
+            "print_stream",
+            "should_continue"
+          ],
+          "extra": [
+            "our_agent",
+            "route_our_agent"
+          ]
+        },
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": []
+        },
+        "class_bases": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [
+            "AgentState(TypedDict)"
+          ],
+          "extra": [
+            "State(TypedDict)"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": []
+        },
+        "graph_calls": {
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [
+            [
+              "graph",
+              "set_entry_point",
+              "our_agent"
+            ]
+          ],
+          "extra": [
+            [
+              "graph",
+              "add_edge",
+              "START"
+            ]
+          ]
+        },
+        "imports": {
+          "precision": 0.833,
+          "recall": 1.0,
+          "f1": 0.909,
+          "ref_count": 5,
+          "cand_count": 6,
+          "missing": [],
+          "extra": [
+            "tools"
+          ]
+        },
+        "classes": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [
+            "AgentState"
+          ],
+          "extra": [
+            "State"
+          ]
+        }
+      },
+      "ref_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/ReAct/ReAct.py"
+      ],
+      "cand_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/langgraph/ReAct/generated/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/langgraph/ReAct/generated/tools.py"
+      ]
+    },
+    "execution_trace": {
+      "skipped": true
+    }
+  }
+}

@@ -642,12 +642,25 @@ class CrewAIParser(BaseSourceParser):
                         f" → calls {step.calls_crew}" if step.calls_crew else "",
                     )
 
+            # Copy Pydantic state-model fields onto the Flow so the
+            # populator can persist them as :hasSchemaDefinition. Without
+            # this the state_fields dict stays empty and the reader has to
+            # synthesize fake fields from task outputs.
+            state_fields: dict[str, str] = {}
+            if state_model and state_model in self.pydantic_models:
+                for fname, finfo in self.pydantic_models[state_model].fields.items():
+                    if isinstance(finfo, dict):
+                        state_fields[fname] = finfo.get("type") or "Any"
+                    else:
+                        state_fields[fname] = str(finfo)
+
             self.flow = ExtractedFlow(
                 class_name=flow_class_name,
                 state_model=state_model,
                 steps=steps,
                 crew_references=list(crew_references),
                 source_file=str(main_py),
+                state_fields=state_fields,
             )
 
     def _extract_flow_step(

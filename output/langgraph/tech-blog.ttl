@@ -1,21 +1,21 @@
 @prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
-@prefix ex: <http://example.org/instance#> .
+@prefix ex: <http://example.org/tech_blog#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://example.org/instance> a owl:Ontology ;
+<http://example.org/tech_blog> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
-ex:TechBlog a agentoscin:AgenticSystem ;
+ex:tech_blog a agentoscin:AgenticSystem ;
     agentoscin:containsAgent ex:Agent_editor,
         ex:Agent_researcher,
         ex:Agent_writer ;
     agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
     agentoscin:containsTeam ex:Team_langgraph_team_0 ;
     agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
-    agentoscin:hasTitle "TechBlog"^^xsd:string .
+    agentoscin:hasTitle "tech-blog"^^xsd:string .
 
 agentoscin:ChainOfThought a owl:Class ;
     rdfs:subClassOf agentoscin:ReasoningPattern .

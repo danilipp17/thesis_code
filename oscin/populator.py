@@ -811,6 +811,17 @@ class OntologyPopulator:
             self._add_int(uri, AGENTOSCIN.stepOrder, idx + 1)
             self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, uri))
 
+        # Persist literal decorator arguments (e.g. CrewAI @start("wait_next_run"))
+        # as :hasDecoratorArgument so they survive the round-trip. Method-name
+        # references are already captured by the nextStep edge structure, so
+        # we don't duplicate them.
+        method_names = {s.method_name for s in flow.steps}
+        for step in flow.steps:
+            uri = step_uris[step.method_name]
+            for dep in step.dependencies:
+                if dep and dep not in method_names:
+                    self._add_str(uri, AGENTOSCIN.hasDecoratorArgument, dep)
+
         return step_uris, outgoing_edges
 
     def _resolve_flow_edges(

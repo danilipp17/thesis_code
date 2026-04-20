@@ -1,0 +1,649 @@
+{
+  "example": "content-pipeline",
+  "framework": "crewai",
+  "target_framework": "crewai",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/content-pipeline/source_files",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline",
+  "steps": {
+    "extract_1": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/ttl1.ttl"
+    },
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/generated"
+    },
+    "extract_2": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/ttl2.ttl"
+    }
+  },
+  "metrics": {
+    "ontology_pairwise": {
+      "individual_precision": 1.0,
+      "individual_recall": 1.0,
+      "individual_f1": 1.0,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Config": {
+          "reference_count": 4,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "EndStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LLMAgent": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LanguageModel": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 6,
+          "candidate_count": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Schema": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "StartStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "TaskCompletionTermination": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Team": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Tool": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "property_precision": 1.0,
+      "property_recall": 0.9761904761904762,
+      "property_f1": 0.9879518072289156,
+      "triple_precision": 0.867816091954023,
+      "triple_recall": 0.8628571428571429,
+      "triple_f1": 0.8653295128939829,
+      "literal_overlap": 0.92,
+      "missing_individuals": [],
+      "extra_individuals": [],
+      "missing_properties": [
+        "orchestratesTeam"
+      ],
+      "extra_properties": []
+    },
+    "fuzzy_match": {
+      "metric": "fuzzy_match",
+      "threshold": 0.55,
+      "total_matched_pairs": 27,
+      "avg_score": 0.991,
+      "by_class": {
+        "AgenticSystem": {
+          "matched": 1,
+          "avg_score": 0.762,
+          "pairs": [
+            {
+              "ref": "content_pipeline",
+              "cand": "content_pipeline_roundtrip",
+              "score": 0.762
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_save_article",
+              "cand": "FlowStep_save_article",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_ContentPipelineCrew_review_content",
+              "cand": "CrewStep_ContentPipelineCrew_review_content",
+              "score": 1.0
+            }
+          ]
+        },
+        "Goal": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Goal_research_analyst",
+              "cand": "Goal_research_analyst",
+              "score": 1.0
+            },
+            {
+              "ref": "Goal_quality_reviewer",
+              "cand": "Goal_quality_reviewer",
+              "score": 1.0
+            },
+            {
+              "ref": "Goal_content_writer",
+              "cand": "Goal_content_writer",
+              "score": 1.0
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Agent_research_analyst",
+              "cand": "Agent_research_analyst",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_quality_reviewer",
+              "cand": "Agent_quality_reviewer",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_content_writer",
+              "cand": "Agent_content_writer",
+              "score": 1.0
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Orchestration_ContentPipelineFlow",
+              "cand": "Orchestration_ContentPipelineFlow",
+              "score": 1.0
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 6,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_write_article",
+              "cand": "TaskPrompt_write_article",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_review_content",
+              "cand": "TaskPrompt_review_content",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_research_topic",
+              "cand": "TaskPrompt_research_topic",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_research_analyst",
+              "cand": "AgentPrompt_research_analyst",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_quality_reviewer",
+              "cand": "AgentPrompt_quality_reviewer",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_content_writer",
+              "cand": "AgentPrompt_content_writer",
+              "score": 1.0
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_run_content_pipeline",
+              "cand": "FlowStep_run_content_pipeline",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_ContentPipelineCrew_research_topic",
+              "cand": "CrewStep_ContentPipelineCrew_research_topic",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Task_write_article",
+              "cand": "Task_write_article",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_research_topic",
+              "cand": "Task_research_topic",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_review_content",
+              "cand": "Task_review_content",
+              "score": 1.0
+            }
+          ]
+        },
+        "Team": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Team_ContentPipelineCrew",
+              "cand": "Team_ContentPipelineCrew",
+              "score": 1.0
+            }
+          ]
+        },
+        "Tool": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Tool_WordCountTool",
+              "cand": "Tool_WordCountTool",
+              "score": 1.0
+            },
+            {
+              "ref": "Tool_WebSearchTool",
+              "cand": "Tool_WebSearchTool",
+              "score": 1.0
+            }
+          ]
+        },
+        "WorkflowStep": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_save_article",
+              "cand": "FlowStep_save_article",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_ContentPipelineCrew_write_article",
+              "cand": "CrewStep_ContentPipelineCrew_write_article",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_run_content_pipeline",
+              "cand": "FlowStep_run_content_pipeline",
+              "score": 1.0
+            }
+          ]
+        }
+      },
+      "alignment": {
+        "AgenticSystem": [
+          [
+            "content_pipeline",
+            "content_pipeline_roundtrip",
+            0.762
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_save_article",
+            "FlowStep_save_article",
+            1.0
+          ],
+          [
+            "CrewStep_ContentPipelineCrew_review_content",
+            "CrewStep_ContentPipelineCrew_review_content",
+            1.0
+          ]
+        ],
+        "Goal": [
+          [
+            "Goal_research_analyst",
+            "Goal_research_analyst",
+            1.0
+          ],
+          [
+            "Goal_quality_reviewer",
+            "Goal_quality_reviewer",
+            1.0
+          ],
+          [
+            "Goal_content_writer",
+            "Goal_content_writer",
+            1.0
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_research_analyst",
+            "Agent_research_analyst",
+            1.0
+          ],
+          [
+            "Agent_quality_reviewer",
+            "Agent_quality_reviewer",
+            1.0
+          ],
+          [
+            "Agent_content_writer",
+            "Agent_content_writer",
+            1.0
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_ContentPipelineFlow",
+            "Orchestration_ContentPipelineFlow",
+            1.0
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_write_article",
+            "TaskPrompt_write_article",
+            1.0
+          ],
+          [
+            "TaskPrompt_review_content",
+            "TaskPrompt_review_content",
+            1.0
+          ],
+          [
+            "TaskPrompt_research_topic",
+            "TaskPrompt_research_topic",
+            1.0
+          ],
+          [
+            "AgentPrompt_research_analyst",
+            "AgentPrompt_research_analyst",
+            1.0
+          ],
+          [
+            "AgentPrompt_quality_reviewer",
+            "AgentPrompt_quality_reviewer",
+            1.0
+          ],
+          [
+            "AgentPrompt_content_writer",
+            "AgentPrompt_content_writer",
+            1.0
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_run_content_pipeline",
+            "FlowStep_run_content_pipeline",
+            1.0
+          ],
+          [
+            "CrewStep_ContentPipelineCrew_research_topic",
+            "CrewStep_ContentPipelineCrew_research_topic",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_write_article",
+            "Task_write_article",
+            1.0
+          ],
+          [
+            "Task_research_topic",
+            "Task_research_topic",
+            1.0
+          ],
+          [
+            "Task_review_content",
+            "Task_review_content",
+            1.0
+          ]
+        ],
+        "Team": [
+          [
+            "Team_ContentPipelineCrew",
+            "Team_ContentPipelineCrew",
+            1.0
+          ]
+        ],
+        "Tool": [
+          [
+            "Tool_WordCountTool",
+            "Tool_WordCountTool",
+            1.0
+          ],
+          [
+            "Tool_WebSearchTool",
+            "Tool_WebSearchTool",
+            1.0
+          ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_save_article",
+            "FlowStep_save_article",
+            1.0
+          ],
+          [
+            "CrewStep_ContentPipelineCrew_write_article",
+            "CrewStep_ContentPipelineCrew_write_article",
+            1.0
+          ],
+          [
+            "FlowStep_run_content_pipeline",
+            "FlowStep_run_content_pipeline",
+            1.0
+          ]
+        ]
+      }
+    },
+    "ast_diff": {
+      "metric": "ast_diff",
+      "overall": {
+        "precision": 0.905,
+        "recall": 0.868,
+        "f1": 0.886
+      },
+      "per_feature": {
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [],
+          "extra": []
+        },
+        "functions": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 11,
+          "cand_count": 11,
+          "missing": [],
+          "extra": []
+        },
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": []
+        },
+        "class_bases": {
+          "precision": 0.571,
+          "recall": 0.571,
+          "f1": 0.571,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "ContentPipelineState(BaseModel)",
+            "WebSearchSchema(BaseModel)",
+            "WordCountSchema(BaseModel)"
+          ],
+          "extra": [
+            "ContentPipelineFlowState(BaseModel)",
+            "WebSearchToolSchema(BaseModel)",
+            "WordCountToolSchema(BaseModel)"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 6,
+          "cand_count": 6,
+          "missing": [],
+          "extra": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 6,
+          "cand_count": 6,
+          "missing": [],
+          "extra": []
+        },
+        "graph_calls": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": []
+        },
+        "imports": {
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8,
+          "ref_count": 9,
+          "cand_count": 6,
+          "missing": [
+            "os",
+            "requests",
+            "uuid"
+          ],
+          "extra": []
+        },
+        "classes": {
+          "precision": 0.571,
+          "recall": 0.571,
+          "f1": 0.571,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "ContentPipelineState",
+            "WebSearchSchema",
+            "WordCountSchema"
+          ],
+          "extra": [
+            "ContentPipelineFlowState",
+            "WebSearchToolSchema",
+            "WordCountToolSchema"
+          ]
+        }
+      },
+      "ref_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/content-pipeline/source_files/crews/content_pipeline_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/content-pipeline/source_files/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/content-pipeline/source_files/tools/web_search.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/crewai/content-pipeline/source_files/tools/word_count.py"
+      ],
+      "cand_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/generated/crews/content_pipeline_crew/content_pipeline_crew.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/generated/main.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/generated/tools/WebSearchTool.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/roundtrip/crewai/content-pipeline/generated/tools/WordCountTool.py"
+      ]
+    },
+    "execution_trace": {
+      "skipped": true
+    }
+  }
+}

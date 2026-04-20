@@ -1,0 +1,720 @@
+{
+  "example": "tech-blog",
+  "framework": "langgraph",
+  "target_framework": "crewai",
+  "source_dir": "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/tech-blog/source_files",
+  "work_dir": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog",
+  "steps": {
+    "extract_1": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog/ttl1.ttl"
+    },
+    "generate": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog/generated"
+    },
+    "extract_2": {
+      "ok": true,
+      "output": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog/ttl2.ttl"
+    }
+  },
+  "metrics": {
+    "ontology_pairwise": {
+      "individual_precision": 0.9655172413793104,
+      "individual_recall": 0.9655172413793104,
+      "individual_f1": 0.9655172413793104,
+      "individual_detail": {
+        "AgenticSystem": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "EndStep": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LLMAgent": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LanguageModel": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Orchestration": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Prompt": {
+          "reference_count": 6,
+          "candidate_count": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "RoutingTermination": {
+          "reference_count": 1,
+          "candidate_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Schema": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "StartStep": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Task": {
+          "reference_count": 3,
+          "candidate_count": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "TaskCompletionTermination": {
+          "reference_count": 0,
+          "candidate_count": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "Team": {
+          "reference_count": 1,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowPattern": {
+          "reference_count": 2,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "WorkflowStep": {
+          "reference_count": 4,
+          "candidate_count": 4,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "property_precision": 1.0,
+      "property_recall": 1.0,
+      "property_f1": 1.0,
+      "triple_precision": 0.6304347826086957,
+      "triple_recall": 0.6304347826086957,
+      "triple_f1": 0.6304347826086957,
+      "literal_overlap": 0.8571428571428571,
+      "missing_individuals": [
+        "RoutingTermination (1 missing)"
+      ],
+      "extra_individuals": [
+        "TaskCompletionTermination (1 extra)"
+      ],
+      "missing_properties": [],
+      "extra_properties": []
+    },
+    "fuzzy_match": {
+      "metric": "fuzzy_match",
+      "threshold": 0.55,
+      "total_matched_pairs": 24,
+      "avg_score": 0.986,
+      "by_class": {
+        "AgenticSystem": {
+          "matched": 1,
+          "avg_score": 0.667,
+          "pairs": [
+            {
+              "ref": "tech_blog",
+              "cand": "tech_blog_roundtrip",
+              "score": 0.667
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_writer",
+              "cand": "FlowStep_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_editor",
+              "cand": "CrewStep_StateGraph_task_editor",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_editor",
+              "cand": "FlowStep_editor",
+              "score": 1.0
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Agent_writer",
+              "cand": "Agent_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_researcher",
+              "cand": "Agent_researcher",
+              "score": 1.0
+            },
+            {
+              "ref": "Agent_editor",
+              "cand": "Agent_editor",
+              "score": 1.0
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Orchestration_StateGraph",
+              "cand": "Orchestration_StateGraph",
+              "score": 1.0
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 6,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_task_writer",
+              "cand": "TaskPrompt_task_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_task_researcher",
+              "cand": "TaskPrompt_task_researcher",
+              "score": 1.0
+            },
+            {
+              "ref": "TaskPrompt_task_editor",
+              "cand": "TaskPrompt_task_editor",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_writer",
+              "cand": "AgentPrompt_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_researcher",
+              "cand": "AgentPrompt_researcher",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_editor",
+              "cand": "AgentPrompt_editor",
+              "score": 1.0
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_researcher",
+              "cand": "FlowStep_researcher",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_researcher",
+              "cand": "CrewStep_StateGraph_task_researcher",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 3,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Task_task_writer",
+              "cand": "Task_task_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_task_researcher",
+              "cand": "Task_task_researcher",
+              "score": 1.0
+            },
+            {
+              "ref": "Task_task_editor",
+              "cand": "Task_task_editor",
+              "score": 1.0
+            }
+          ]
+        },
+        "Team": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Team_langgraph_team_0",
+              "cand": "Team_StateGraph",
+              "score": 1.0
+            }
+          ]
+        },
+        "WorkflowStep": {
+          "matched": 4,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_writer",
+              "cand": "FlowStep_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_writer",
+              "cand": "CrewStep_StateGraph_task_writer",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_researcher",
+              "cand": "FlowStep_researcher",
+              "score": 1.0
+            },
+            {
+              "ref": "FlowStep_editor",
+              "cand": "FlowStep_editor",
+              "score": 1.0
+            }
+          ]
+        }
+      },
+      "alignment": {
+        "AgenticSystem": [
+          [
+            "tech_blog",
+            "tech_blog_roundtrip",
+            0.667
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_writer",
+            "FlowStep_writer",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_editor",
+            "CrewStep_StateGraph_task_editor",
+            1.0
+          ],
+          [
+            "FlowStep_editor",
+            "FlowStep_editor",
+            1.0
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_writer",
+            "Agent_writer",
+            1.0
+          ],
+          [
+            "Agent_researcher",
+            "Agent_researcher",
+            1.0
+          ],
+          [
+            "Agent_editor",
+            "Agent_editor",
+            1.0
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_StateGraph",
+            "Orchestration_StateGraph",
+            1.0
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_task_writer",
+            "TaskPrompt_task_writer",
+            1.0
+          ],
+          [
+            "TaskPrompt_task_researcher",
+            "TaskPrompt_task_researcher",
+            1.0
+          ],
+          [
+            "TaskPrompt_task_editor",
+            "TaskPrompt_task_editor",
+            1.0
+          ],
+          [
+            "AgentPrompt_writer",
+            "AgentPrompt_writer",
+            1.0
+          ],
+          [
+            "AgentPrompt_researcher",
+            "AgentPrompt_researcher",
+            1.0
+          ],
+          [
+            "AgentPrompt_editor",
+            "AgentPrompt_editor",
+            1.0
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_researcher",
+            "FlowStep_researcher",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_researcher",
+            "CrewStep_StateGraph_task_researcher",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_task_writer",
+            "Task_task_writer",
+            1.0
+          ],
+          [
+            "Task_task_researcher",
+            "Task_task_researcher",
+            1.0
+          ],
+          [
+            "Task_task_editor",
+            "Task_task_editor",
+            1.0
+          ]
+        ],
+        "Team": [
+          [
+            "Team_langgraph_team_0",
+            "Team_StateGraph",
+            1.0
+          ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_writer",
+            "FlowStep_writer",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_writer",
+            "CrewStep_StateGraph_task_writer",
+            1.0
+          ],
+          [
+            "FlowStep_researcher",
+            "FlowStep_researcher",
+            1.0
+          ],
+          [
+            "FlowStep_editor",
+            "FlowStep_editor",
+            1.0
+          ]
+        ]
+      }
+    },
+    "ast_diff": {
+      "metric": "ast_diff",
+      "overall": {
+        "precision": 0.431,
+        "recall": 0.432,
+        "f1": 0.431
+      },
+      "per_feature": {
+        "imports": {
+          "precision": 0.5,
+          "recall": 0.286,
+          "f1": 0.364,
+          "ref_count": 7,
+          "cand_count": 4,
+          "missing": [
+            "langchain_core",
+            "langchain_openai",
+            "langgraph",
+            "operator",
+            "os"
+          ],
+          "extra": [
+            "crewai",
+            "pydantic"
+          ]
+        },
+        "class_bases": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 1,
+          "cand_count": 3,
+          "missing": [
+            "TechBlogState(TypedDict)"
+          ],
+          "extra": [
+            "StateGraph()",
+            "StateGraph(?)",
+            "StateGraphState(BaseModel)"
+          ]
+        },
+        "functions": {
+          "precision": 0.375,
+          "recall": 0.6,
+          "f1": 0.462,
+          "ref_count": 5,
+          "cand_count": 8,
+          "missing": [
+            "run",
+            "should_end"
+          ],
+          "extra": [
+            "crew",
+            "kickoff",
+            "task_editor",
+            "task_researcher",
+            "task_writer"
+          ]
+        },
+        "graph_calls": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 7,
+          "cand_count": 0,
+          "missing": [
+            [
+              "graph",
+              "add_edge",
+              "editor"
+            ],
+            [
+              "graph",
+              "add_edge",
+              "researcher"
+            ],
+            [
+              "graph",
+              "add_edge",
+              "writer"
+            ],
+            [
+              "graph",
+              "add_node",
+              "editor"
+            ],
+            [
+              "graph",
+              "add_node",
+              "researcher"
+            ],
+            [
+              "graph",
+              "add_node",
+              "writer"
+            ],
+            [
+              "graph",
+              "set_entry_point",
+              "researcher"
+            ]
+          ],
+          "extra": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [],
+          "extra": []
+        },
+        "decorators": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 0,
+          "cand_count": 6,
+          "missing": [],
+          "extra": [
+            "@agent",
+            "@crew",
+            "@listen()",
+            "@listen(researcher)",
+            "@start()",
+            "@task"
+          ]
+        },
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": []
+        },
+        "classes": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "ref_count": 1,
+          "cand_count": 2,
+          "missing": [
+            "TechBlogState"
+          ],
+          "extra": [
+            "StateGraph",
+            "StateGraphState"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [],
+          "extra": []
+        }
+      },
+      "ref_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/tech-blog/source_files/main.py"
+      ],
+      "cand_files": [
+        "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog/generated/crews/state_graph/state_graph.py",
+        "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog/generated/main.py"
+      ]
+    },
+    "execution_trace": {
+      "skipped": true
+    },
+    "mapping_conformance": {
+      "metric": "mapping_conformance",
+      "direction": "lg_to_cf",
+      "lg_root": "/Users/danilippmann/Documents/Work/thesis_code/examples/langgraph/tech-blog/source_files",
+      "cf_root": "/Users/danilippmann/Documents/Work/thesis_code/output/cross/langgraph/tech-blog/generated",
+      "applicable_rules": 6,
+      "overall_score": 0.561,
+      "per_rule": [
+        {
+          "id": "graph_class",
+          "description": "StateGraph(S) \u21d4 class X(Flow[S])",
+          "lg_count": 1,
+          "cf_count": 1,
+          "score": 1.0,
+          "bidirectional": true
+        },
+        {
+          "id": "node_to_decorated",
+          "description": "add_node(...) \u21d4 method decorated @start or @listen or @router",
+          "lg_count": 3,
+          "cf_count": 3,
+          "score": 1.0,
+          "bidirectional": true
+        },
+        {
+          "id": "entry_point",
+          "description": "add_edge(START, n) \u21d4 @start() method",
+          "lg_count": 0,
+          "cf_count": 1,
+          "score": 0.0,
+          "bidirectional": true
+        },
+        {
+          "id": "sequential_edge",
+          "description": "add_edge('a', 'b') \u21d4 @listen(a) on method b",
+          "lg_count": 3,
+          "cf_count": 2,
+          "score": 0.667,
+          "bidirectional": true
+        },
+        {
+          "id": "conditional",
+          "description": "add_conditional_edges(...) \u21d4 @router(...) method",
+          "lg_count": 0,
+          "cf_count": 0,
+          "score": null,
+          "bidirectional": true
+        },
+        {
+          "id": "state_reducer",
+          "description": "TypedDict field with Annotated[..., reducer] \u21d4 Pydantic BaseModel field with default",
+          "lg_count": 1,
+          "cf_count": 5,
+          "score": 0.2,
+          "bidirectional": true
+        },
+        {
+          "id": "kickoff",
+          "description": "graph.compile() + invoke \u21d4 flow.kickoff()",
+          "lg_count": 1,
+          "cf_count": 2,
+          "score": 0.5,
+          "bidirectional": true
+        },
+        {
+          "id": "fan_in",
+          "description": "Synchronization node (join) \u21d4 @listen(and_(...))",
+          "lg_count": 0,
+          "cf_count": 0,
+          "score": null,
+          "bidirectional": false
+        },
+        {
+          "id": "fan_in_or",
+          "description": "Either-branch merge \u21d4 @listen(or_(...))",
+          "lg_count": 0,
+          "cf_count": 0,
+          "score": null,
+          "bidirectional": false
+        }
+      ]
+    }
+  }
+}

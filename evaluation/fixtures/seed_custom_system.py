@@ -111,6 +111,6 @@ populator = OntologyPopulator(
 )
 populator.populate()
 
-output_path = Path("custom_system.ttl")
+output_path = Path(__file__).parent / "custom_system.ttl"
 populator.g.serialize(destination=str(output_path), format="turtle")
 print(f"Custom TTL generated at: {output_path}")
