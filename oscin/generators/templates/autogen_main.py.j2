@@ -17,6 +17,9 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core.tools import FunctionTool
 from tools import {{ tools | join(', ') }}
 {% endif %}
+{% if memory_classes %}
+from autogen_core.memory import {{ memory_classes | join(', ') }}
+{% endif %}
 
 model_client = OpenAIChatCompletionClient(model="{{ model }}")
 
@@ -38,6 +41,9 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
     {% if agent.tool_vars %}
     tools=[{{ agent.tool_vars | join(', ') }}],
     {% endif %}
+    {% if agent.memory_class %}
+    memory=[{{ agent.memory_class }}()],
+    {% endif %}
     system_message=(
         "{{ agent.system_message }}"
     ),
@@ -46,10 +52,25 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
 {% endfor %}
 {% for team in teams %}
 # -- Team --
+{# The termination variable must be introduced via a simple `Name = Call`
+   assignment so AutoGenParser.term_vars picks it up; only then does the
+   parser emit a hasTerminationCondition triple (and, for TurnLimit,
+   hasMaxTurns). Avoid synthesising extra conditions the source did not
+   have — they'd add spurious triples to TTL₂ and depress triple_f1. #}
+{# Emit one termination variable per condition so AutoGenParser.term_vars
+   picks each up as a simple `Name = Call`. If both MaxMessage and an
+   EventBased trigger exist, combine them via `|` — the parser treats
+   that BinOp as a composite of the two named vars, which populator
+   then serialises back to the same two hasTerminationCondition triples
+   (plus hasTriggerExpression for the EventBased one). #}
 {% if team.max_turns %}
-termination = MaxMessageTermination({{ team.max_turns }}) | TextMentionTermination("TERMINATE")
+termination = MaxMessageTermination({{ team.max_turns }})
 {% else %}
-termination = MaxMessageTermination(10) | TextMentionTermination("TERMINATE")
+termination = MaxMessageTermination(10)
+{% endif %}
+{% if team.trigger_expression %}
+text_termination = TextMentionTermination("{{ team.trigger_expression }}")
+termination = termination | text_termination
 {% endif %}
 
 {% if team.pattern == "SelectorBased" or team.process == "hierarchical" %}

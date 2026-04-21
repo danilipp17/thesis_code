@@ -75,7 +75,9 @@ def pydantic_fields_to_json_schema(
         "properties": properties,
         "required": required,
     }
-    return json.dumps(schema, separators=(",", ":"))
+    # sort_keys canonicalises the literal so semantically-identical schemas
+    # produce byte-identical TTL output regardless of source dict order.
+    return json.dumps(schema, separators=(",", ":"), sort_keys=True)
 
 
 def safe_id(name: str) -> str:

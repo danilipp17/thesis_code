@@ -470,7 +470,7 @@ agentoscin:useLanguageModel a owl:ObjectProperty ;
 ex:AgentPrompt_process a agentoscin:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agentoscin:promptInstruction "process: Node: process"^^xsd:string .
+    agentoscin:promptInstruction "process: This node will solve the request you input"^^xsd:string .
 
 ex:CrewStep_langgraph_team_0_task_process a agentoscin:EndStep,
         agentoscin:StartStep ;
@@ -488,7 +488,7 @@ ex:FlowWorkflowPattern_StateGraph a agentoscin:WorkflowPattern ;
     agentoscin:hasWorkflowStep ex:FlowStep_process .
 
 ex:Goal_process a agentoscin:Goal ;
-    agentoscin:hasDescription "Node: process"^^xsd:string .
+    agentoscin:hasDescription "This node will solve the request you input"^^xsd:string .
 
 ex:LM_gpt_4o a agentoscin:LanguageModel ;
     agentoscin:hasTitle "gpt-4o"^^xsd:string .

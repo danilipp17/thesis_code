@@ -24,7 +24,8 @@ class ContentPipelineFlow(Flow[ContentPipelineFlowState]):
 
     @start()
     def run_content_pipeline(self):
-        pass  # TODO: implement step logic
+        result = ContentPipelineCrew().crew().kickoff()
+        return result
 
     @listen(run_content_pipeline)
     def save_article(self):

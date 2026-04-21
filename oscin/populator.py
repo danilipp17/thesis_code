@@ -179,7 +179,10 @@ class OntologyPopulator:
             self.agent_uris[key] = uri
 
             # Basic Agent props (Mapping table 1)
-            self._add_str(uri, AGENTOSCIN.agentID, agent.role)
+            # agentID carries the source-level identifier (variable/class/key
+            # name) so the reader can preserve original local-names across
+            # round-trips, independent of the human-readable role string.
+            self._add_str(uri, AGENTOSCIN.agentID, key)
             self._add_str(uri, AGENTOSCIN.agentRole, agent.role)
             self._add_str(uri, AGENTOSCIN.agentType, agent.agent_type)
             self._add_bool(uri, AGENTOSCIN.hasReasoningEnabled, agent.reasoning)
@@ -287,8 +290,25 @@ class OntologyPopulator:
 
             # --- Reasoning ---
             if agent.reasoning:
-                rp_uri = self.EX["ReasoningPattern_Unspecified"]
-                self.g.add((rp_uri, RDF.type, AGENTOSCIN.Unspecified))
+                # Map the IR's reasoning_pattern to the matching ontology
+                # subclass (ReAct, ChainOfThought, ReflectionLoop,
+                # TreeOfThoughts). Unknown / empty → Unspecified.
+                _rp_class_map = {
+                    "ReAct": AGENTOSCIN.ReAct,
+                    "ChainOfThought": AGENTOSCIN.ChainOfThought,
+                    "ReflectionLoop": AGENTOSCIN.ReflectionLoop,
+                    "TreeOfThoughts": AGENTOSCIN.TreeOfThoughts,
+                }
+                rp_class = _rp_class_map.get(
+                    agent.reasoning_pattern, AGENTOSCIN.Unspecified
+                )
+                rp_suffix = (
+                    agent.reasoning_pattern
+                    if agent.reasoning_pattern in _rp_class_map
+                    else "Unspecified"
+                )
+                rp_uri = self.EX[f"ReasoningPattern_{rp_suffix}"]
+                self.g.add((rp_uri, RDF.type, rp_class))
                 self.g.add((uri, AGENTOSCIN.employsReasoningPattern, rp_uri))
                 # Use reasoning_origin from intermediate if set, else default
                 origin = agent.reasoning_origin or "FrameworkManaged"
@@ -442,6 +462,17 @@ class OntologyPopulator:
                     self._add_str(gr_uri, HAS_DESCRIPTION, detail)
                 else:
                     self._add_str(gr_uri, HAS_DESCRIPTION, guardrail_str)
+
+                # C2: hasMaxRetries from CrewAI guardrail_max_retries kwarg.
+                # Applied to every guardrail on the task (CrewAI's
+                # guardrail_max_retries is a task-level setting that
+                # governs retries across all guardrails on that task).
+                if task.guardrail_max_retries is not None:
+                    self._add_int(
+                        gr_uri,
+                        AGENTOSCIN.hasMaxRetries,
+                        task.guardrail_max_retries,
+                    )
 
                 self.g.add((uri, AGENTOSCIN.hasGuardrail, gr_uri))
 
@@ -605,7 +636,7 @@ class OntologyPopulator:
                         "Agent", manager_key, AGENTOSCIN.LLMAgent
                     )
                     self.agent_uris[manager_key] = manager_uri
-                    self._add_str(manager_uri, AGENTOSCIN.agentID, "Manager")
+                    self._add_str(manager_uri, AGENTOSCIN.agentID, manager_key)
                     self._add_str(manager_uri, AGENTOSCIN.agentRole, "Manager")
                     self._add_str(manager_uri, AGENTOSCIN.agentType, "Manager")
                     if team.manager_llm:
@@ -760,7 +791,7 @@ class OntologyPopulator:
             self._add_str(
                 schema_uri,
                 AGENTOSCIN.hasSchemaDefinition,
-                json.dumps(flow.state_fields),
+                json.dumps(flow.state_fields, sort_keys=True),
             )
             if flow.state_model:
                 self._add_str(schema_uri, HAS_TITLE, flow.state_model)
@@ -804,7 +835,9 @@ class OntologyPopulator:
                 import json
 
                 self._add_str(
-                    uri, AGENTOSCIN.hasEdgeMapping, json.dumps(step.edge_mapping)
+                    uri,
+                    AGENTOSCIN.hasEdgeMapping,
+                    json.dumps(step.edge_mapping, sort_keys=True),
                 )
 
             self._add_str(uri, HAS_TITLE, step.method_name)

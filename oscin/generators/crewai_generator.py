@@ -335,6 +335,12 @@ class {class_name}(BaseTool):
         # LLM class attribute
         llm_attr = ""
 
+        # Team-level knowledge (re-extracted by parser via `knowledge=` kwarg)
+        knowledge_line = ""
+        if team.knowledge_sources:
+            src_list = ", ".join(f"{s}()" for s in team.knowledge_sources)
+            knowledge_line = f"\n            knowledge=[{src_list}],"
+
         code = f'''"""
 Auto-generated CrewAI crew: {crew_class}
 """
@@ -358,7 +364,7 @@ class {crew_class}:
             agents=self.agents,
             tasks=self.tasks,
             process={process_str},
-            verbose={team.verbose},
+            verbose={team.verbose},{knowledge_line}
         )
 '''
         self._write_file(f"crews/{crew_snake}/{crew_snake}.py", code)
@@ -411,6 +417,14 @@ class {crew_class}:
         if agent.memory is not None:
             extra_args.append(f"            memory={agent.memory},")
 
+        # Knowledge sources (CrewAI Agent accepts `knowledge=[...]`).
+        # The parser re-extracts these by walking `knowledge=` kwarg entries,
+        # matching class Name() nodes. We emit as bare Call expressions so
+        # round-trip extraction sees the same class names.
+        if agent.knowledge_sources:
+            src_list = ", ".join(f"{s}()" for s in agent.knowledge_sources)
+            extra_args.append(f"            knowledge=[{src_list}],")
+
         extra_str = ""
         if extra_args:
             extra_str = "\n" + "\n".join(extra_args)
@@ -433,6 +447,12 @@ class {crew_class}:
         if task.context_tasks:
             ctx_refs = ", ".join(f"self.{t}()" for t in task.context_tasks)
             extra_args += f"\n            context=[{ctx_refs}],"
+        if task.guardrails:
+            extra_args += f"\n            {self._render_guardrail_arg(task.guardrails)}"
+        if task.guardrail_max_retries is not None:
+            extra_args += (
+                f"\n            guardrail_max_retries={task.guardrail_max_retries},"
+            )
 
         return f'''
     @task
@@ -441,6 +461,33 @@ class {crew_class}:
             config=self.tasks_config["{task_key}"],{extra_args}
         )
 '''
+
+    @staticmethod
+    def _render_guardrail_arg(guardrails: list[str]) -> str:
+        """
+        Render the `guardrail=` / `guardrails=` kwarg for a CrewAI Task.
+
+        Input format (from the populator / reader):
+          - "FunctionBased:<name>" → bare Name reference (re-extracts as FunctionBased)
+          - "LLMBased:<text>"      → string literal (re-extracts as LLMBased)
+          - "<anything else>"      → string literal fallback
+        """
+        parts: list[str] = []
+        for g in guardrails:
+            if g.startswith("FunctionBased:"):
+                name = g[len("FunctionBased:") :].strip() or "validate"
+                if not name.isidentifier():
+                    name = "validate"
+                parts.append(name)
+            elif g.startswith("LLMBased:"):
+                detail = g[len("LLMBased:") :].replace("\\", "\\\\").replace('"', '\\"')
+                parts.append(f'"{detail}"')
+            else:
+                detail = g.replace("\\", "\\\\").replace('"', '\\"')
+                parts.append(f'"{detail}"')
+        if len(parts) == 1:
+            return f"guardrail={parts[0]},"
+        return f"guardrails=[{', '.join(parts)}],"
 
     def _build_tool_imports(self, team: ExtractedTeam) -> list[str]:
         """Build import statements for tools used by agents in this team."""

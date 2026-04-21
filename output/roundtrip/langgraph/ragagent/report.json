@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "ragagent",
   "framework": "langgraph",
   "target_framework": "langgraph",
@@ -19,7 +21,7 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
+    "ttl_pairwise": {
       "individual_precision": 1.0,
       "individual_recall": 0.9629629629629629,
       "individual_f1": 0.9811320754716981,
@@ -140,10 +142,10 @@
       "property_precision": 0.9736842105263158,
       "property_recall": 0.9736842105263158,
       "property_f1": 0.9736842105263158,
-      "triple_precision": 0.7711864406779662,
-      "triple_recall": 0.7647058823529411,
-      "triple_f1": 0.7679324894514766,
-      "literal_overlap": 0.71875,
+      "triple_precision": 0.8050847457627118,
+      "triple_recall": 0.7983193277310925,
+      "triple_f1": 0.8016877637130803,
+      "literal_overlap": 0.84375,
       "missing_individuals": [
         "ConditionalStep (1 missing)"
       ],
@@ -153,10 +155,11 @@
       ],
       "extra_properties": [
         "hasDecoratorArgument"
-      ]
+      ],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
       "total_matched_pairs": 21,
       "avg_score": 0.982,
@@ -461,7 +464,9 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
@@ -471,71 +476,19 @@
         "f1": 0.591
       },
       "per_feature": {
-        "decorators": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "functions": {
-          "precision": 0.333,
-          "recall": 0.2,
-          "f1": 0.25,
-          "ref_count": 5,
-          "cand_count": 3,
-          "missing": [
-            "call_llm",
-            "running_agent",
-            "should_continue",
-            "take_action"
-          ],
-          "extra": [
-            "llm",
-            "retriever_agent"
-          ]
-        },
-        "decorator_args": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "class_bases": {
+        "classes": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
           "missing": [
-            "AgentState(TypedDict)"
+            "AgentState"
           ],
           "extra": [
-            "State(TypedDict)"
-          ]
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "state_annotations": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
+            "State"
+          ],
+          "matched": []
         },
         "graph_calls": {
           "precision": 0.4,
@@ -576,6 +529,18 @@
               "add_node",
               "tools"
             ]
+          ],
+          "matched": [
+            [
+              "graph",
+              "add_node",
+              "llm"
+            ],
+            [
+              "graph",
+              "add_node",
+              "retriever_agent"
+            ]
           ]
         },
         "imports": {
@@ -593,19 +558,96 @@
           ],
           "extra": [
             "tools"
+          ],
+          "matched": [
+            "dotenv",
+            "langchain_core",
+            "langchain_openai",
+            "langgraph",
+            "typing"
           ]
         },
-        "classes": {
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "@tool"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "messages"
+          ]
+        },
+        "class_bases": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
           "missing": [
-            "AgentState"
+            "AgentState(TypedDict)"
           ],
           "extra": [
-            "State"
+            "State(TypedDict)"
+          ],
+          "matched": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            [
+              "messages",
+              "Annotated[Sequence[BaseMessage], add_messages]"
+            ]
+          ]
+        },
+        "functions": {
+          "precision": 0.333,
+          "recall": 0.2,
+          "f1": 0.25,
+          "ref_count": 5,
+          "cand_count": 3,
+          "missing": [
+            "call_llm",
+            "running_agent",
+            "should_continue",
+            "take_action"
+          ],
+          "extra": [
+            "llm",
+            "retriever_agent"
+          ],
+          "matched": [
+            "retriever_tool"
           ]
         }
       },
@@ -618,6 +660,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

@@ -10,7 +10,6 @@ from langgraph.graph import END, START, StateGraph
 dotenv.load_dotenv()
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
 
 class State(TypedDict):
@@ -21,7 +20,7 @@ model = ChatOpenAI(model="gpt-4o")
 
 
 def process(state: State) -> dict:
-    """Node: process"""
+    """This node will solve the request you input"""
     messages = state.get("messages", [])
     response = model.invoke(messages)
     return {"messages": [response]}

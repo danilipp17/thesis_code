@@ -530,11 +530,12 @@ ex:Team_RoundRobinGroupChat_0 a agentoscin:Team ;
     agentoscin:hasAgentMember ex:Agent_Editor,
         ex:Agent_Researcher,
         ex:Agent_Writer ;
-    agentoscin:hasTerminationCondition ex:Termination_RoundRobinGroupChat_0 ;
+    agentoscin:hasTerminationCondition ex:TurnLimit_RoundRobinGroupChat_0_0 ;
     agentoscin:hasTitle "RoundRobinGroupChat"^^xsd:string ;
     agentoscin:hasWorkflowPattern ex:WorkflowPattern_RoundRobinGroupChat_0 .
 
-ex:Termination_RoundRobinGroupChat_0 a agentoscin:TaskCompletionTermination .
+ex:TurnLimit_RoundRobinGroupChat_0_0 a agentoscin:TurnLimitTermination ;
+    agentoscin:hasMaxTurns 4 .
 
 ex:WorkflowPattern_RoundRobinGroupChat_0 a agentoscin:WorkflowPattern .
 
@@ -560,6 +561,9 @@ agentoscin:RoutingTermination a owl:Class ;
 
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
+
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:hasCapability a owl:ObjectProperty ;
     rdfs:domain agentoscin:Tool ;
@@ -631,12 +635,6 @@ agentoscin:Step a owl:Class .
 
 agentoscin:System a owl:Class .
 
-agentoscin:TaskCompletionTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
-
-agentoscin:TurnLimitTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
-
 agentoscin:hasGoal a owl:ObjectProperty ;
     rdfs:domain agentoscin:LLMAgent,
         agentoscin:Team ;
@@ -681,6 +679,9 @@ agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
 agentoscin:Schema a owl:Class .
+
+agentoscin:TurnLimitTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:Agent a owl:Class .
 

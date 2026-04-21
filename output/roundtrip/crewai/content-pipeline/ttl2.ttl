@@ -532,7 +532,8 @@ ex:Orchestration_ContentPipelineFlow a agentoscin:Orchestration ;
     agentoscin:employsCoordinationPattern agentoscin:Custom ;
     agentoscin:hasOutputSchema ex:StateSchema_ContentPipelineFlow ;
     agentoscin:hasTitle "ContentPipelineFlow"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_ContentPipelineFlow .
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_ContentPipelineFlow ;
+    agentoscin:orchestratesTeam ex:Team_ContentPipelineCrew .
 
 ex:StateSchema_ContentPipelineFlow a agentoscin:Schema ;
     agentoscin:hasSchemaDefinition "{\"id\": \"str\", \"topic\": \"str\", \"article\": \"str\"}"^^xsd:string ;
@@ -560,16 +561,6 @@ ex:Task_review_content a agentoscin:Task ;
     agentoscin:hasExpectedOutput "A quality assessment with a score (1-10), list of issues found, and specific suggestions for improvement."^^xsd:string ;
     agentoscin:performedByAgent ex:Agent_quality_reviewer ;
     agentoscin:taskPrompt ex:TaskPrompt_review_content .
-
-ex:Team_ContentPipelineCrew a agentoscin:Team ;
-    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
-    agentoscin:hasAgentMember ex:Agent_content_writer,
-        ex:Agent_quality_reviewer,
-        ex:Agent_research_analyst ;
-    agentoscin:hasSystemConfig ex:Config_verbose_Team_ContentPipelineCrew ;
-    agentoscin:hasTerminationCondition ex:Termination_ContentPipelineCrew ;
-    agentoscin:hasTitle "ContentPipelineCrew"^^xsd:string ;
-    agentoscin:hasWorkflowPattern ex:WorkflowPattern_ContentPipelineCrew .
 
 ex:Termination_ContentPipelineCrew a agentoscin:TaskCompletionTermination .
 
@@ -655,6 +646,16 @@ ex:Task_write_article a agentoscin:Task ;
     agentoscin:hasExpectedOutput "A well-structured article of 800-1200 words in markdown format with introduction, body sections, and conclusion."^^xsd:string ;
     agentoscin:performedByAgent ex:Agent_content_writer ;
     agentoscin:taskPrompt ex:TaskPrompt_write_article .
+
+ex:Team_ContentPipelineCrew a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasAgentMember ex:Agent_content_writer,
+        ex:Agent_quality_reviewer,
+        ex:Agent_research_analyst ;
+    agentoscin:hasSystemConfig ex:Config_verbose_Team_ContentPipelineCrew ;
+    agentoscin:hasTerminationCondition ex:Termination_ContentPipelineCrew ;
+    agentoscin:hasTitle "ContentPipelineCrew"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_ContentPipelineCrew .
 
 ex:Tool_WordCountTool a agentoscin:Tool ;
     agentoscin:hasDescription "Counts the number of words in a given text."^^xsd:string ;

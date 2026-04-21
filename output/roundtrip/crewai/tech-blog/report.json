@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "tech-blog",
   "framework": "crewai",
   "target_framework": "crewai",
@@ -19,7 +21,7 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
+    "ttl_pairwise": {
       "individual_precision": 1.0,
       "individual_recall": 1.0,
       "individual_f1": 1.0,
@@ -126,10 +128,11 @@
       "missing_individuals": [],
       "extra_individuals": [],
       "missing_properties": [],
-      "extra_properties": []
+      "extra_properties": [],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
       "total_matched_pairs": 20,
       "avg_score": 0.983,
@@ -408,7 +411,9 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
@@ -418,6 +423,54 @@
         "f1": 0.972
       },
       "per_feature": {
+        "classes": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "TechBlogCrew"
+          ]
+        },
+        "graph_calls": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "imports": {
+          "precision": 1.0,
+          "recall": 0.75,
+          "f1": 0.857,
+          "ref_count": 4,
+          "cand_count": 3,
+          "missing": [
+            "os"
+          ],
+          "extra": [],
+          "matched": [
+            "crewai",
+            "crews",
+            "dotenv"
+          ]
+        },
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
         "decorators": {
           "precision": 1.0,
           "recall": 1.0,
@@ -425,7 +478,44 @@
           "ref_count": 3,
           "cand_count": 3,
           "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": [
+            "@agent",
+            "@crew",
+            "@task"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "class_bases": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "TechBlogCrew()"
+          ]
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
         },
         "functions": {
           "precision": 0.875,
@@ -438,72 +528,16 @@
           ],
           "extra": [
             "kickoff"
-          ]
-        },
-        "decorator_args": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "class_bases": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "state_annotations": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "graph_calls": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "imports": {
-          "precision": 1.0,
-          "recall": 0.75,
-          "f1": 0.857,
-          "ref_count": 4,
-          "cand_count": 3,
-          "missing": [
-            "os"
           ],
-          "extra": []
-        },
-        "classes": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
+          "matched": [
+            "crew",
+            "edit_post",
+            "editor",
+            "research_topic",
+            "researcher",
+            "write_draft",
+            "writer"
+          ]
         }
       },
       "ref_files": [
@@ -516,6 +550,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

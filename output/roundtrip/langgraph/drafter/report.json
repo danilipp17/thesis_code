@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "drafter",
   "framework": "langgraph",
   "target_framework": "langgraph",
@@ -19,10 +21,10 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
-      "individual_precision": 1.0,
-      "individual_recall": 0.16666666666666666,
-      "individual_f1": 0.2857142857142857,
+    "ttl_pairwise": {
+      "individual_precision": 0.9,
+      "individual_recall": 1.0,
+      "individual_f1": 0.9473684210526316,
       "individual_detail": {
         "AgenticSystem": {
           "reference_count": 1,
@@ -33,66 +35,80 @@
         },
         "EndStep": {
           "reference_count": 2,
-          "candidate_count": 0,
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "Goal": {
+          "reference_count": 0,
+          "candidate_count": 1,
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0
         },
         "LLMAgent": {
           "reference_count": 1,
-          "candidate_count": 0,
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "LanguageModel": {
+          "reference_count": 0,
+          "candidate_count": 1,
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0
         },
         "Orchestration": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "Prompt": {
           "reference_count": 2,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "RoutingTermination": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "Schema": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "StartStep": {
           "reference_count": 2,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "Task": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "Team": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "Tool": {
           "reference_count": 2,
@@ -103,77 +119,45 @@
         },
         "WorkflowPattern": {
           "reference_count": 2,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "WorkflowStep": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         }
       },
-      "property_precision": 1.0,
-      "property_recall": 0.15151515151515152,
-      "property_f1": 0.2631578947368421,
-      "triple_precision": 0.28,
-      "triple_recall": 0.0875,
-      "triple_f1": 0.13333333333333333,
-      "literal_overlap": 0.19230769230769232,
-      "missing_individuals": [
-        "RoutingTermination (1 missing)",
-        "Prompt (2 missing)",
-        "EndStep (2 missing)",
-        "WorkflowStep (1 missing)",
-        "Schema (1 missing)",
-        "WorkflowPattern (2 missing)",
-        "StartStep (2 missing)",
-        "LLMAgent (1 missing)",
-        "Task (1 missing)",
-        "Orchestration (1 missing)",
-        "Team (1 missing)"
+      "property_precision": 0.9411764705882353,
+      "property_recall": 0.9696969696969697,
+      "property_f1": 0.955223880597015,
+      "triple_precision": 0.6470588235294118,
+      "triple_recall": 0.6875,
+      "triple_f1": 0.6666666666666667,
+      "literal_overlap": 0.7307692307692307,
+      "missing_individuals": [],
+      "extra_individuals": [
+        "LanguageModel (1 extra)",
+        "Goal (1 extra)"
       ],
-      "extra_individuals": [],
       "missing_properties": [
-        "agentID",
-        "agentPrompt",
-        "agentRole",
-        "agentToolUsage",
-        "agentType",
-        "containsAgent",
-        "containsOrchestration",
-        "containsTeam",
-        "employsCoordinationPattern",
-        "hasAgentMember",
-        "hasAssociatedTask",
-        "hasDecoratorArgument",
-        "hasDelegationStrategy",
-        "hasDirectiveFunction",
-        "hasExpectedOutput",
-        "hasOutputSchema",
-        "hasReasoningEnabled",
-        "hasSchemaDefinition",
-        "hasSourceAttribute",
-        "hasTerminationCondition",
-        "hasWorkflowPattern",
-        "hasWorkflowStep",
-        "performedByAgent",
-        "promptContext",
-        "promptInstruction",
-        "promptOutputIndicator",
-        "stepOrder",
-        "taskPrompt"
+        "hasDecoratorArgument"
       ],
-      "extra_properties": []
+      "extra_properties": [
+        "hasAgentGoal",
+        "useLanguageModel"
+      ],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
-      "total_matched_pairs": 3,
-      "avg_score": 0.861,
+      "total_matched_pairs": 14,
+      "avg_score": 0.97,
       "by_class": {
         "AgenticSystem": {
           "matched": 1,
@@ -183,6 +167,98 @@
               "ref": "drafter",
               "cand": "drafter_roundtrip",
               "score": 0.583
+            }
+          ]
+        },
+        "EndStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_agent",
+              "cand": "FlowStep_agent",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_agent",
+              "cand": "CrewStep_langgraph_team_0_task_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "LLMAgent": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Agent_agent",
+              "cand": "Agent_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "Orchestration": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Orchestration_StateGraph",
+              "cand": "Orchestration_StateGraph",
+              "score": 1.0
+            }
+          ]
+        },
+        "Prompt": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "TaskPrompt_task_agent",
+              "cand": "TaskPrompt_task_agent",
+              "score": 1.0
+            },
+            {
+              "ref": "AgentPrompt_agent",
+              "cand": "AgentPrompt_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "StartStep": {
+          "matched": 2,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_agent",
+              "cand": "FlowStep_agent",
+              "score": 1.0
+            },
+            {
+              "ref": "CrewStep_langgraph_team_0_task_agent",
+              "cand": "CrewStep_langgraph_team_0_task_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "Task": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Task_task_agent",
+              "cand": "Task_task_agent",
+              "score": 1.0
+            }
+          ]
+        },
+        "Team": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "Team_langgraph_team_0",
+              "cand": "Team_langgraph_team_0",
+              "score": 1.0
             }
           ]
         },
@@ -201,6 +277,17 @@
               "score": 1.0
             }
           ]
+        },
+        "WorkflowStep": {
+          "matched": 1,
+          "avg_score": 1.0,
+          "pairs": [
+            {
+              "ref": "FlowStep_agent",
+              "cand": "FlowStep_agent",
+              "score": 1.0
+            }
+          ]
         }
       },
       "alignment": {
@@ -209,6 +296,70 @@
             "drafter",
             "drafter_roundtrip",
             0.583
+          ]
+        ],
+        "EndStep": [
+          [
+            "FlowStep_agent",
+            "FlowStep_agent",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_agent",
+            "CrewStep_langgraph_team_0_task_agent",
+            1.0
+          ]
+        ],
+        "LLMAgent": [
+          [
+            "Agent_agent",
+            "Agent_agent",
+            1.0
+          ]
+        ],
+        "Orchestration": [
+          [
+            "Orchestration_StateGraph",
+            "Orchestration_StateGraph",
+            1.0
+          ]
+        ],
+        "Prompt": [
+          [
+            "TaskPrompt_task_agent",
+            "TaskPrompt_task_agent",
+            1.0
+          ],
+          [
+            "AgentPrompt_agent",
+            "AgentPrompt_agent",
+            1.0
+          ]
+        ],
+        "StartStep": [
+          [
+            "FlowStep_agent",
+            "FlowStep_agent",
+            1.0
+          ],
+          [
+            "CrewStep_langgraph_team_0_task_agent",
+            "CrewStep_langgraph_team_0_task_agent",
+            1.0
+          ]
+        ],
+        "Task": [
+          [
+            "Task_task_agent",
+            "Task_task_agent",
+            1.0
+          ]
+        ],
+        "Team": [
+          [
+            "Team_langgraph_team_0",
+            "Team_langgraph_team_0",
+            1.0
           ]
         ],
         "Tool": [
@@ -222,91 +373,46 @@
             "Tool_save",
             1.0
           ]
+        ],
+        "WorkflowStep": [
+          [
+            "FlowStep_agent",
+            "FlowStep_agent",
+            1.0
+          ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
       "overall": {
-        "precision": 0.444,
-        "recall": 0.281,
-        "f1": 0.344
+        "precision": 0.667,
+        "recall": 0.637,
+        "f1": 0.652
       },
       "per_feature": {
-        "decorators": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
+        "classes": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "functions": {
-          "precision": 1.0,
-          "recall": 0.333,
-          "f1": 0.5,
-          "ref_count": 6,
-          "cand_count": 2,
           "missing": [
-            "our_agent",
-            "print_messages",
-            "run_document_agent",
-            "should_continue"
+            "AgentState"
           ],
-          "extra": []
-        },
-        "decorator_args": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "class_bases": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "ref_count": 1,
-          "cand_count": 0,
-          "missing": [
-            "AgentState(TypedDict)"
+          "extra": [
+            "State"
           ],
-          "extra": []
-        },
-        "state_fields": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "ref_count": 1,
-          "cand_count": 0,
-          "missing": [
-            "messages"
-          ],
-          "extra": []
-        },
-        "state_annotations": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
-          "ref_count": 1,
-          "cand_count": 0,
-          "missing": [
-            [
-              "messages",
-              "Annotated[Sequence[BaseMessage], add_messages]"
-            ]
-          ],
-          "extra": []
+          "matched": []
         },
         "graph_calls": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0,
+          "precision": 0.5,
+          "recall": 0.4,
+          "f1": 0.444,
           "ref_count": 5,
-          "cand_count": 0,
+          "cand_count": 4,
           "missing": [
             [
               "graph",
@@ -320,6 +426,25 @@
             ],
             [
               "graph",
+              "set_entry_point",
+              "agent"
+            ]
+          ],
+          "extra": [
+            [
+              "graph",
+              "add_edge",
+              "START"
+            ],
+            [
+              "graph",
+              "add_edge",
+              "tools"
+            ]
+          ],
+          "matched": [
+            [
+              "graph",
               "add_node",
               "agent"
             ],
@@ -327,39 +452,109 @@
               "graph",
               "add_node",
               "tools"
-            ],
-            [
-              "graph",
-              "set_entry_point",
-              "agent"
             ]
-          ],
-          "extra": []
+          ]
         },
         "imports": {
-          "precision": 1.0,
-          "recall": 0.2,
-          "f1": 0.333,
+          "precision": 0.833,
+          "recall": 1.0,
+          "f1": 0.909,
           "ref_count": 5,
-          "cand_count": 1,
-          "missing": [
+          "cand_count": 6,
+          "missing": [],
+          "extra": [
+            "tools"
+          ],
+          "matched": [
             "dotenv",
+            "langchain_core",
             "langchain_openai",
             "langgraph",
             "typing"
-          ],
-          "extra": []
+          ]
         },
-        "classes": {
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "@tool"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "messages"
+          ]
+        },
+        "class_bases": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
-          "cand_count": 0,
+          "cand_count": 1,
           "missing": [
-            "AgentState"
+            "AgentState(TypedDict)"
           ],
-          "extra": []
+          "extra": [
+            "State(TypedDict)"
+          ],
+          "matched": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            [
+              "messages",
+              "Annotated[Sequence[BaseMessage], add_messages]"
+            ]
+          ]
+        },
+        "functions": {
+          "precision": 0.667,
+          "recall": 0.333,
+          "f1": 0.444,
+          "ref_count": 6,
+          "cand_count": 3,
+          "missing": [
+            "our_agent",
+            "print_messages",
+            "run_document_agent",
+            "should_continue"
+          ],
+          "extra": [
+            "agent"
+          ],
+          "matched": [
+            "save",
+            "update"
+          ]
         }
       },
       "ref_files": [
@@ -371,6 +566,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

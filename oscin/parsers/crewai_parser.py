@@ -530,6 +530,7 @@ class CrewAIParser(BaseSourceParser):
             context_tasks=context_tasks,
             human_input=human_input,
             guardrails=guardrails,
+            guardrail_max_retries=guardrail_max_retries,
             delegation_strategy=delegation,
             source_file=source_file,
         )

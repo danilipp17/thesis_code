@@ -66,6 +66,10 @@ class ExtractedAgent:
     reasoning_origin: str = (
         ""  # → hasReasoningOrigin ("FrameworkManaged", "ModelNative")
     )
+    reasoning_pattern: str = (
+        ""  # → employsReasoningPattern class ("ReAct", "ChainOfThought",
+        #    "ReflectionLoop", "TreeOfThoughts"); empty → Unspecified
+    )
     memory_type: str = (
         ""  # Specific memory class (e.g. "ListMemory", "ChromaDBVectorMemory")
     )
@@ -105,6 +109,9 @@ class ExtractedTask:
     context_tasks: list[str] = field(default_factory=list)  # → dependsOn
     human_input: bool = False  # → hasHumanCheckpoint
     guardrails: list[str] = field(default_factory=list)  # → hasGuardrail
+    guardrail_max_retries: Optional[int] = (
+        None  # → Guardrail.hasMaxRetries (CrewAI guardrail_max_retries kwarg)
+    )
     delegation_strategy: str = ""  # → hasDelegationStrategy ("ExplicitAssignment", "OrchestratorDelegated", "TopologyDetermined")
 
     # Provenance

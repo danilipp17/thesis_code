@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "memoryagent",
   "framework": "langgraph",
   "target_framework": "langgraph",
@@ -19,7 +21,7 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
+    "ttl_pairwise": {
       "individual_precision": 1.0,
       "individual_recall": 1.0,
       "individual_f1": 1.0,
@@ -126,20 +128,21 @@
       "property_precision": 0.9333333333333333,
       "property_recall": 1.0,
       "property_f1": 0.9655172413793104,
-      "triple_precision": 0.6944444444444444,
-      "triple_recall": 0.7142857142857143,
-      "triple_f1": 0.7042253521126761,
-      "literal_overlap": 0.7777777777777778,
+      "triple_precision": 0.7222222222222222,
+      "triple_recall": 0.7428571428571429,
+      "triple_f1": 0.732394366197183,
+      "literal_overlap": 0.8888888888888888,
       "missing_individuals": [],
       "extra_individuals": [],
       "missing_properties": [],
       "extra_properties": [
         "hasExpectedOutput",
         "promptOutputIndicator"
-      ]
+      ],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
       "total_matched_pairs": 13,
       "avg_score": 0.976,
@@ -356,73 +359,31 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
       "overall": {
         "precision": 0.778,
-        "recall": 0.722,
-        "f1": 0.749
+        "recall": 0.704,
+        "f1": 0.739
       },
       "per_feature": {
-        "decorators": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "functions": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "decorator_args": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "class_bases": {
+        "classes": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
           "missing": [
-            "AgentState(TypedDict)"
+            "AgentState"
           ],
           "extra": [
-            "State(TypedDict)"
-          ]
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "state_annotations": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
+            "State"
+          ],
+          "matched": []
         },
         "graph_calls": {
           "precision": 1.0,
@@ -437,30 +398,109 @@
               "process"
             ]
           ],
-          "extra": []
+          "extra": [],
+          "matched": [
+            [
+              "graph",
+              "add_edge",
+              "START"
+            ],
+            [
+              "graph",
+              "add_node",
+              "process"
+            ]
+          ]
         },
         "imports": {
           "precision": 1.0,
-          "recall": 0.833,
-          "f1": 0.909,
+          "recall": 0.667,
+          "f1": 0.8,
           "ref_count": 6,
-          "cand_count": 5,
+          "cand_count": 4,
           "missing": [
+            "langchain_core",
             "os"
           ],
-          "extra": []
+          "extra": [],
+          "matched": [
+            "dotenv",
+            "langchain_openai",
+            "langgraph",
+            "typing"
+          ]
         },
-        "classes": {
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "messages"
+          ]
+        },
+        "class_bases": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
           "missing": [
-            "AgentState"
+            "AgentState(TypedDict)"
           ],
           "extra": [
-            "State"
+            "State(TypedDict)"
+          ],
+          "matched": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            [
+              "messages",
+              "List[Union[HumanMessage, AIMessage]]"
+            ]
+          ]
+        },
+        "functions": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "process"
           ]
         }
       },
@@ -472,6 +512,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

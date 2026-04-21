@@ -8,25 +8,10 @@
 <http://example.org/drafter> a owl:Ontology ;
     owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
 
-ex:Tool_save a agentoscin:Tool ;
-    agentoscin:hasDescription """save
-    Save the current document to a text file and finish the process.
-
-Args:
-    filename: Name for the text file.
-    """^^xsd:string ;
-    agentoscin:hasImplementationReference "tools.save"^^xsd:string ;
-    agentoscin:hasInputSchema "{\"type\": \"object\", \"properties\": {\"filename\": {\"type\": \"string\"}}, \"required\": [\"filename\"]}"^^xsd:string ;
-    agentoscin:hasTitle "save"^^xsd:string .
-
-ex:Tool_update a agentoscin:Tool ;
-    agentoscin:hasDescription """update
-Updates the document with the provided content."""^^xsd:string ;
-    agentoscin:hasImplementationReference "tools.update"^^xsd:string ;
-    agentoscin:hasInputSchema "{\"type\": \"object\", \"properties\": {\"content\": {\"type\": \"string\"}}, \"required\": [\"content\"]}"^^xsd:string ;
-    agentoscin:hasTitle "update"^^xsd:string .
-
 ex:drafter_roundtrip a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_agent ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
     agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
     agentoscin:hasTitle "drafter_roundtrip"^^xsd:string .
 
@@ -35,12 +20,6 @@ agentoscin:ChainOfThought a owl:Class ;
 
 agentoscin:Constraint a owl:Class ;
     rdfs:subClassOf agentoscin:KnowledgeBase .
-
-agentoscin:Custom a agentoscin:CoordinationPattern,
-        owl:NamedIndividual .
-
-agentoscin:EndStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:Hierarchical a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
@@ -62,12 +41,6 @@ agentoscin:RoundRobin a agentoscin:CoordinationPattern,
 
 agentoscin:SelectorBased a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
-
-agentoscin:Sequential a agentoscin:CoordinationPattern,
-        owl:NamedIndividual .
-
-agentoscin:StartStep a owl:Class ;
-    rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:Swarm a agentoscin:CoordinationPattern,
         owl:NamedIndividual .
@@ -494,22 +467,100 @@ agentoscin:useLanguageModel a owl:ObjectProperty ;
     rdfs:range agentoscin:LanguageModel ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+ex:AgentPrompt_agent a agentoscin:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agentoscin:promptContext "f\"\\n    You are Drafter, a helpful writing assistant. You are going to help the user update and modify documents.\\n    \\n    - If the user wants to update or modify content, use the 'update' tool with the complete updated content.\\n    - If the user wants to save and finish, you need to use the 'save' tool.\\n    - Make sure to always show the current document state after modifications.\\n    \\n    The current document content is:{document_content}\\n    \""^^xsd:string ;
+    agentoscin:promptInstruction "agent: Node: agent"^^xsd:string .
+
+ex:CrewStep_langgraph_team_0_task_agent a agentoscin:EndStep,
+        agentoscin:StartStep ;
+    agentoscin:hasAssociatedTask ex:Task_task_agent ;
+    agentoscin:hasTitle "task_agent"^^xsd:string ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowStep_agent a agentoscin:EndStep,
+        agentoscin:StartStep,
+        agentoscin:WorkflowStep ;
+    agentoscin:hasTitle "agent"^^xsd:string ;
+    agentoscin:stepOrder 1 .
+
+ex:FlowWorkflowPattern_StateGraph a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:FlowStep_agent .
+
+ex:Goal_agent a agentoscin:Goal ;
+    agentoscin:hasDescription "Node: agent"^^xsd:string .
+
+ex:LM_gpt_4o a agentoscin:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:employsCoordinationPattern agentoscin:Custom ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
+
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], add_messages]\"}"^^xsd:string ;
+    agentoscin:hasTitle "State"^^xsd:string .
+
+ex:TaskPrompt_task_agent a agentoscin:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agentoscin:promptInstruction "Perform agent responsibilities"^^xsd:string ;
+    agentoscin:promptOutputIndicator "messages"^^xsd:string .
+
+ex:Task_task_agent a agentoscin:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agentoscin:performedByAgent ex:Agent_agent ;
+    agentoscin:taskPrompt ex:TaskPrompt_task_agent .
+
+ex:Team_langgraph_team_0 a agentoscin:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasAgentMember ex:Agent_agent ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Tool_save a agentoscin:Tool ;
+    agentoscin:hasDescription """save
+    Save the current document to a text file and finish the process.
+
+Args:
+    filename: Name for the text file.
+    """^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.save"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"type\": \"object\", \"properties\": {\"filename\": {\"type\": \"string\"}}, \"required\": [\"filename\"]}"^^xsd:string ;
+    agentoscin:hasTitle "save"^^xsd:string .
+
+ex:Tool_update a agentoscin:Tool ;
+    agentoscin:hasDescription """update
+Updates the document with the provided content."""^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.update"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"type\": \"object\", \"properties\": {\"content\": {\"type\": \"string\"}}, \"required\": [\"content\"]}"^^xsd:string ;
+    agentoscin:hasTitle "update"^^xsd:string .
+
+ex:WorkflowPattern_langgraph_team_0 a agentoscin:WorkflowPattern ;
+    agentoscin:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_agent .
+
 <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology .
 
 agentoscin:ConditionalStep a owl:Class ;
     rdfs:subClassOf agentoscin:WorkflowStep .
 
+agentoscin:Custom a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
+
 agentoscin:HumanAgent a owl:Class ;
     rdfs:subClassOf agentoscin:Agent .
-
-agentoscin:LanguageModel a owl:Class ;
-    rdfs:subClassOf agentoscin:StatisticalModel .
 
 agentoscin:Model a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
 
-agentoscin:RoutingTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
+agentoscin:Sequential a agentoscin:CoordinationPattern,
+        owl:NamedIndividual .
 
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
@@ -536,19 +587,28 @@ agentoscin:resourceUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Resource ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+agentoscin:EndStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
+
 agentoscin:EventBasedTermination a owl:Class ;
     rdfs:subClassOf agentoscin:TerminationCondition .
 
-agentoscin:Goal a owl:Class ;
-    rdfs:subClassOf agentoscin:Context .
-
 agentoscin:Instance a owl:Class ;
     rdfs:subClassOf agentoscin:Resource .
+
+agentoscin:LanguageModel a owl:Class ;
+    rdfs:subClassOf agentoscin:StatisticalModel .
 
 agentoscin:Memory a owl:Class ;
     rdfs:subClassOf agentoscin:KnowledgeBase .
 
 agentoscin:Plan a owl:Class .
+
+agentoscin:RoutingTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:StartStep a owl:Class ;
+    rdfs:subClassOf agentoscin:WorkflowStep .
 
 agentoscin:Step a owl:Class .
 
@@ -583,6 +643,17 @@ agentoscin:toolUsage a owl:ObjectProperty ;
     rdfs:range agentoscin:Tool ;
     rdfs:subPropertyOf owl:topObjectProperty .
 
+ex:Agent_agent a agentoscin:LLMAgent ;
+    agentoscin:agentID "agent"^^xsd:string ;
+    agentoscin:agentPrompt ex:AgentPrompt_agent ;
+    agentoscin:agentRole "agent"^^xsd:string ;
+    agentoscin:agentToolUsage ex:Tool_save,
+        ex:Tool_update ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasAgentGoal ex:Goal_agent ;
+    agentoscin:hasReasoningEnabled false ;
+    agentoscin:useLanguageModel ex:LM_gpt_4o .
+
 agentoscin:Capability a owl:Class .
 
 agentoscin:CompositeTermination a owl:Class ;
@@ -591,13 +662,14 @@ agentoscin:CompositeTermination a owl:Class ;
 agentoscin:Environment a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
+agentoscin:Goal a owl:Class ;
+    rdfs:subClassOf agentoscin:Context .
+
 agentoscin:KnowledgeBase a owl:Class ;
     rdfs:subClassOf agentoscin:Instance .
 
 agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
-
-agentoscin:Schema a owl:Class .
 
 agentoscin:Agent a owl:Class .
 
@@ -605,11 +677,7 @@ agentoscin:Config a owl:Class .
 
 agentoscin:Context a owl:Class .
 
-agentoscin:Orchestration a owl:Class ;
-    rdfs:subClassOf agentoscin:Team .
-
-agentoscin:WorkflowPattern a owl:Class ;
-    rdfs:subClassOf agentoscin:Plan .
+agentoscin:Schema a owl:Class .
 
 agentoscin:hasConfig a owl:ObjectProperty ;
     rdfs:domain agentoscin:Agent,
@@ -639,6 +707,12 @@ agentoscin:Guardrail a owl:Class .
 
 agentoscin:HumanCheckpoint a owl:Class .
 
+agentoscin:Orchestration a owl:Class ;
+    rdfs:subClassOf agentoscin:Team .
+
+agentoscin:WorkflowPattern a owl:Class ;
+    rdfs:subClassOf agentoscin:Plan .
+
 agentoscin:AgenticSystem a owl:Class .
 
 agentoscin:MemoryBinding a owl:Class .
@@ -647,16 +721,16 @@ agentoscin:ReasoningPattern a owl:Class .
 
 agentoscin:Resource a owl:Class .
 
-agentoscin:Prompt a owl:Class .
-
 agentoscin:TerminationCondition a owl:Class .
 
 agentoscin:CoordinationPattern a owl:Class .
 
-agentoscin:Team a owl:Class ;
-    rdfs:subClassOf agentoscin:System .
+agentoscin:Prompt a owl:Class .
 
 agentoscin:Tool a owl:Class .
+
+agentoscin:Team a owl:Class ;
+    rdfs:subClassOf agentoscin:System .
 
 agentoscin:WorkflowStep a owl:Class ;
     rdfs:subClassOf agentoscin:Step .

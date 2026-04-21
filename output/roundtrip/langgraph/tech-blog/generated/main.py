@@ -10,7 +10,6 @@ from langgraph.graph import END, START, StateGraph
 dotenv.load_dotenv()
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
 
 
 class State(TypedDict):

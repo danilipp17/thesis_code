@@ -11,7 +11,6 @@ dotenv.load_dotenv()
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.messages import SystemMessage, HumanMessage
 
 from tools import retriever_tool
 from langgraph.prebuilt import ToolNode
@@ -30,17 +29,15 @@ model_with_tools = model.bind_tools(tools)
 
 
 def llm(state: State) -> dict:
-    """Node: llm"""
-    system_prompt = SystemMessage(content=
-        """system_prompt"""
-    )
+    """Function to call the LLM with the current state."""
+    system_prompt = SystemMessage(content='system_prompt')
     messages = [system_prompt] + state.get("messages", [])
     response = model_with_tools.invoke(messages)
     return {"messages": response.content}
 
 
 def retriever_agent(state: State) -> dict:
-    """Node: retriever_agent"""
+    """Execute tool calls from the LLM's response."""
     messages = state.get("messages", [])
     response = model_with_tools.invoke(messages)
     return {"messages": response.content}

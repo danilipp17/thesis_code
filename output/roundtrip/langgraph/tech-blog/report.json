@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "tech-blog",
   "framework": "langgraph",
   "target_framework": "langgraph",
@@ -19,7 +21,7 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
+    "ttl_pairwise": {
       "individual_precision": 0.90625,
       "individual_recall": 1.0,
       "individual_f1": 0.9508196721311475,
@@ -138,10 +140,11 @@
       "extra_properties": [
         "hasAgentGoal",
         "hasDescription"
-      ]
+      ],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
       "total_matched_pairs": 24,
       "avg_score": 0.986,
@@ -460,76 +463,31 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
       "overall": {
         "precision": 0.756,
-        "recall": 0.654,
-        "f1": 0.701
+        "recall": 0.638,
+        "f1": 0.692
       },
       "per_feature": {
-        "decorators": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "functions": {
-          "precision": 1.0,
-          "recall": 0.6,
-          "f1": 0.75,
-          "ref_count": 5,
-          "cand_count": 3,
-          "missing": [
-            "run",
-            "should_end"
-          ],
-          "extra": []
-        },
-        "decorator_args": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "class_bases": {
+        "classes": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
           "missing": [
-            "TechBlogState(TypedDict)"
+            "TechBlogState"
           ],
           "extra": [
-            "State(TypedDict)"
-          ]
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 5,
-          "cand_count": 5,
-          "missing": [],
-          "extra": []
-        },
-        "state_annotations": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 5,
-          "cand_count": 5,
-          "missing": [],
-          "extra": []
+            "State"
+          ],
+          "matched": []
         },
         "graph_calls": {
           "precision": 0.8,
@@ -560,31 +518,145 @@
               "add_edge",
               "START"
             ]
+          ],
+          "matched": [
+            [
+              "graph",
+              "add_edge",
+              "researcher"
+            ],
+            [
+              "graph",
+              "add_node",
+              "editor"
+            ],
+            [
+              "graph",
+              "add_node",
+              "researcher"
+            ],
+            [
+              "graph",
+              "add_node",
+              "writer"
+            ]
           ]
         },
         "imports": {
           "precision": 1.0,
-          "recall": 0.714,
-          "f1": 0.833,
+          "recall": 0.571,
+          "f1": 0.727,
           "ref_count": 7,
-          "cand_count": 5,
+          "cand_count": 4,
           "missing": [
+            "langchain_core",
             "operator",
             "os"
           ],
-          "extra": []
+          "extra": [],
+          "matched": [
+            "dotenv",
+            "langchain_openai",
+            "langgraph",
+            "typing"
+          ]
         },
-        "classes": {
+        "decorator_args": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "draft",
+            "final_post",
+            "messages",
+            "research",
+            "topic"
+          ]
+        },
+        "class_bases": {
           "precision": 0.0,
           "recall": 0.0,
           "f1": 0.0,
           "ref_count": 1,
           "cand_count": 1,
           "missing": [
-            "TechBlogState"
+            "TechBlogState(TypedDict)"
           ],
           "extra": [
-            "State"
+            "State(TypedDict)"
+          ],
+          "matched": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            [
+              "draft",
+              "str"
+            ],
+            [
+              "final_post",
+              "str"
+            ],
+            [
+              "messages",
+              "Annotated[Sequence[BaseMessage], operator.add]"
+            ],
+            [
+              "research",
+              "str"
+            ],
+            [
+              "topic",
+              "str"
+            ]
+          ]
+        },
+        "functions": {
+          "precision": 1.0,
+          "recall": 0.6,
+          "f1": 0.75,
+          "ref_count": 5,
+          "cand_count": 3,
+          "missing": [
+            "run",
+            "should_end"
+          ],
+          "extra": [],
+          "matched": [
+            "editor",
+            "researcher",
+            "writer"
           ]
         }
       },
@@ -596,6 +668,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

@@ -57,7 +57,7 @@ research_analyst = AssistantAgent(
 )
 
 # -- Team --
-termination = MaxMessageTermination(3) | TextMentionTermination("TERMINATE")
+termination = MaxMessageTermination(3)
 
 team = RoundRobinGroupChat(
     participants=[content_writer, quality_reviewer, research_analyst],

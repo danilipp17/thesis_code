@@ -1,64 +1,40 @@
 """
-Auto-generated LangGraph application: email_flow
+Auto-generated CrewAI Flow: EmailAutoResponderFlow
 """
 
 import dotenv
-from typing import Annotated, TypedDict
+from typing import Optional
 
-from langgraph.graph import END, START, StateGraph
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
 
 dotenv.load_dotenv()
-from langgraph.graph.message import add_messages
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.messages import SystemMessage, HumanMessage
 
-from tools import serper_dev_tool, create_draft, gmail_get_thread, tavily_search_results
-from langgraph.prebuilt import ToolNode
+from crews.email_filter_crew.email_filter_crew import EmailFilterCrew
 
 
-class State(TypedDict):
-    """Graph state."""
-    messages: Annotated[list, add_messages]
-    emails: List[Email]
-    checked_emails_ids: set[str]
-
-model = ChatOpenAI(model="gpt-4o")
-
-tools = [serper_dev_tool, create_draft, gmail_get_thread, tavily_search_results]
-tool_node = ToolNode(tools)
-
-model_with_tools = model.bind_tools(tools)
+class EmailAutoResponderFlowState(BaseModel):
+    """Flow state — customize fields as needed."""
+    emails: List[Email] = []
+    checked_emails_ids: set[str] = set()
 
 
-def fetch_new_emails(state: State) -> dict:
-    """Node: fetch_new_emails"""
-    messages = state.get("messages", [])
-    response = model.invoke(messages)
-    return {"messages": [response]}
+class EmailAutoResponderFlow(Flow[EmailAutoResponderFlowState]):
+
+    @start("wait_next_run")
+    def fetch_new_emails(self):
+        result = EmailFilterCrew().crew().kickoff()
+        return result
+
+    @listen(fetch_new_emails)
+    def generate_draft_responses(self):
+        pass  # TODO: implement step logic
 
 
-def generate_draft_responses(state: State) -> dict:
-    """Node: generate_draft_responses"""
-    messages = state.get("messages", [])
-    response = model.invoke(messages)
-    return {"messages": [response]}
-
-
-# Build the graph
-graph = StateGraph(State)
-
-graph.add_node("fetch_new_emails", fetch_new_emails)
-graph.add_node("generate_draft_responses", generate_draft_responses)
-graph.add_node("tools", tool_node)
-
-graph.add_edge(START, "fetch_new_emails")
-graph.add_edge("fetch_new_emails", "generate_draft_responses")
-
-# Compile the graph
-app = graph.compile()
+def kickoff():
+    flow = EmailAutoResponderFlow()
+    flow.kickoff()
 
 
 if __name__ == "__main__":
-    result = app.invoke({"messages": ["Start the task."]})
-    print(result["messages"][-1].content)
+    kickoff()

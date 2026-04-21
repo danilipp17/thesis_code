@@ -11,7 +11,6 @@ dotenv.load_dotenv()
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.messages import SystemMessage, HumanMessage
 
 from tools import add, multiply, subtract
 from langgraph.prebuilt import ToolNode
@@ -31,9 +30,7 @@ model_with_tools = model.bind_tools(tools)
 
 def our_agent(state: State) -> dict:
     """Node: our_agent"""
-    system_prompt = SystemMessage(content=
-        """You are my AI assistant, please answer my query to the best of your ability."""
-    )
+    system_prompt = SystemMessage(content='You are my AI assistant, please answer my query to the best of your ability.')
     messages = [system_prompt] + state.get("messages", [])
     response = model_with_tools.invoke(messages)
     return {"messages": response.content}

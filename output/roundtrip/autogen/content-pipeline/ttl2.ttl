@@ -530,17 +530,18 @@ ex:Team_RoundRobinGroupChat_0 a agentoscin:Team ;
     agentoscin:hasAgentMember ex:Agent_Content_Writer,
         ex:Agent_Quality_Reviewer,
         ex:Agent_Research_Analyst ;
-    agentoscin:hasTerminationCondition ex:Termination_RoundRobinGroupChat_0 ;
+    agentoscin:hasTerminationCondition ex:TurnLimit_RoundRobinGroupChat_0_0 ;
     agentoscin:hasTitle "RoundRobinGroupChat"^^xsd:string ;
     agentoscin:hasWorkflowPattern ex:WorkflowPattern_RoundRobinGroupChat_0 .
-
-ex:Termination_RoundRobinGroupChat_0 a agentoscin:TaskCompletionTermination .
 
 ex:Tool_web_search a agentoscin:Tool ;
     agentoscin:hasDescription "Search the web for information on a given query."^^xsd:string ;
     agentoscin:hasImplementationReference "tools.web_search"^^xsd:string ;
     agentoscin:hasInputSchema "{\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}, \"num_results\": {\"type\": \"integer\"}}, \"required\": [\"query\", \"num_results\"]}"^^xsd:string ;
     agentoscin:hasTitle "web_search"^^xsd:string .
+
+ex:TurnLimit_RoundRobinGroupChat_0_0 a agentoscin:TurnLimitTermination ;
+    agentoscin:hasMaxTurns 3 .
 
 ex:WorkflowPattern_RoundRobinGroupChat_0 a agentoscin:WorkflowPattern .
 
@@ -566,6 +567,9 @@ agentoscin:RoutingTermination a owl:Class ;
 
 agentoscin:StatisticalModel a owl:Class ;
     rdfs:subClassOf agentoscin:Model .
+
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:hasCapability a owl:ObjectProperty ;
     rdfs:domain agentoscin:Tool ;
@@ -646,12 +650,6 @@ agentoscin:Step a owl:Class .
 
 agentoscin:System a owl:Class .
 
-agentoscin:TaskCompletionTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
-
-agentoscin:TurnLimitTermination a owl:Class ;
-    rdfs:subClassOf agentoscin:TerminationCondition .
-
 agentoscin:hasGoal a owl:ObjectProperty ;
     rdfs:domain agentoscin:LLMAgent,
         agentoscin:Team ;
@@ -696,6 +694,9 @@ agentoscin:Objective a owl:Class ;
     rdfs:subClassOf agentoscin:Context .
 
 agentoscin:Schema a owl:Class .
+
+agentoscin:TurnLimitTermination a owl:Class ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
 
 agentoscin:Agent a owl:Class .
 

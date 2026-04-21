@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "content-pipeline",
   "framework": "crewai",
   "target_framework": "crewai",
@@ -19,7 +21,7 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
+    "ttl_pairwise": {
       "individual_precision": 1.0,
       "individual_recall": 1.0,
       "individual_f1": 1.0,
@@ -138,21 +140,20 @@
         }
       },
       "property_precision": 1.0,
-      "property_recall": 0.9761904761904762,
-      "property_f1": 0.9879518072289156,
-      "triple_precision": 0.867816091954023,
-      "triple_recall": 0.8628571428571429,
-      "triple_f1": 0.8653295128939829,
+      "property_recall": 1.0,
+      "property_f1": 1.0,
+      "triple_precision": 0.8685714285714285,
+      "triple_recall": 0.8685714285714285,
+      "triple_f1": 0.8685714285714285,
       "literal_overlap": 0.92,
       "missing_individuals": [],
       "extra_individuals": [],
-      "missing_properties": [
-        "orchestratesTeam"
-      ],
-      "extra_properties": []
+      "missing_properties": [],
+      "extra_properties": [],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
       "total_matched_pairs": 27,
       "avg_score": 0.991,
@@ -517,7 +518,9 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
@@ -527,23 +530,59 @@
         "f1": 0.886
       },
       "per_feature": {
-        "decorators": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 5,
-          "cand_count": 5,
-          "missing": [],
-          "extra": []
+        "classes": {
+          "precision": 0.571,
+          "recall": 0.571,
+          "f1": 0.571,
+          "ref_count": 7,
+          "cand_count": 7,
+          "missing": [
+            "ContentPipelineState",
+            "WebSearchSchema",
+            "WordCountSchema"
+          ],
+          "extra": [
+            "ContentPipelineFlowState",
+            "WebSearchToolSchema",
+            "WordCountToolSchema"
+          ],
+          "matched": [
+            "ContentPipelineCrew",
+            "ContentPipelineFlow",
+            "WebSearchTool",
+            "WordCountTool"
+          ]
         },
-        "functions": {
+        "graph_calls": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "ref_count": 11,
-          "cand_count": 11,
+          "ref_count": 0,
+          "cand_count": 0,
           "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": []
+        },
+        "imports": {
+          "precision": 1.0,
+          "recall": 0.667,
+          "f1": 0.8,
+          "ref_count": 9,
+          "cand_count": 6,
+          "missing": [
+            "os",
+            "requests",
+            "uuid"
+          ],
+          "extra": [],
+          "matched": [
+            "crewai",
+            "crews",
+            "dotenv",
+            "pydantic",
+            "tools",
+            "typing"
+          ]
         },
         "decorator_args": {
           "precision": 1.0,
@@ -552,7 +591,41 @@
           "ref_count": 0,
           "cand_count": 0,
           "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": []
+        },
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 5,
+          "cand_count": 5,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "@agent",
+            "@crew",
+            "@listen(run_content_pipeline)",
+            "@start()",
+            "@task"
+          ]
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 6,
+          "cand_count": 6,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "article",
+            "id",
+            "num_results",
+            "query",
+            "text",
+            "topic"
+          ]
         },
         "class_bases": {
           "precision": 0.571,
@@ -569,16 +642,13 @@
             "ContentPipelineFlowState(BaseModel)",
             "WebSearchToolSchema(BaseModel)",
             "WordCountToolSchema(BaseModel)"
+          ],
+          "matched": [
+            "ContentPipelineCrew()",
+            "ContentPipelineFlow(?)",
+            "WebSearchTool(BaseTool)",
+            "WordCountTool(BaseTool)"
           ]
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 6,
-          "cand_count": 6,
-          "missing": [],
-          "extra": []
         },
         "state_annotations": {
           "precision": 1.0,
@@ -587,45 +657,54 @@
           "ref_count": 6,
           "cand_count": 6,
           "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": [
+            [
+              "article",
+              "str"
+            ],
+            [
+              "id",
+              "str"
+            ],
+            [
+              "num_results",
+              "int"
+            ],
+            [
+              "query",
+              "str"
+            ],
+            [
+              "text",
+              "str"
+            ],
+            [
+              "topic",
+              "str"
+            ]
+          ]
         },
-        "graph_calls": {
+        "functions": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
+          "ref_count": 11,
+          "cand_count": 11,
           "missing": [],
-          "extra": []
-        },
-        "imports": {
-          "precision": 1.0,
-          "recall": 0.667,
-          "f1": 0.8,
-          "ref_count": 9,
-          "cand_count": 6,
-          "missing": [
-            "os",
-            "requests",
-            "uuid"
-          ],
-          "extra": []
-        },
-        "classes": {
-          "precision": 0.571,
-          "recall": 0.571,
-          "f1": 0.571,
-          "ref_count": 7,
-          "cand_count": 7,
-          "missing": [
-            "ContentPipelineState",
-            "WebSearchSchema",
-            "WordCountSchema"
-          ],
-          "extra": [
-            "ContentPipelineFlowState",
-            "WebSearchToolSchema",
-            "WordCountToolSchema"
+          "extra": [],
+          "matched": [
+            "_run",
+            "content_writer",
+            "crew",
+            "kickoff",
+            "quality_reviewer",
+            "research_analyst",
+            "research_topic",
+            "review_content",
+            "run_content_pipeline",
+            "save_article",
+            "write_article"
           ]
         }
       },
@@ -643,6 +722,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

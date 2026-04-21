@@ -1,4 +1,6 @@
 {
+  "pipeline": "roundtrip",
+  "mode": "same_framework",
   "example": "tech-blog",
   "framework": "autogen",
   "target_framework": "autogen",
@@ -19,10 +21,10 @@
     }
   },
   "metrics": {
-    "ontology_pairwise": {
-      "individual_precision": 0.9583333333333334,
-      "individual_recall": 0.9583333333333334,
-      "individual_f1": 0.9583333333333334,
+    "ttl_pairwise": {
+      "individual_precision": 1.0,
+      "individual_recall": 1.0,
+      "individual_f1": 1.0,
       "individual_detail": {
         "AgenticSystem": {
           "reference_count": 1,
@@ -87,13 +89,6 @@
           "recall": 1.0,
           "f1": 1.0
         },
-        "TaskCompletionTermination": {
-          "reference_count": 0,
-          "candidate_count": 1,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
-        },
         "Team": {
           "reference_count": 1,
           "candidate_count": 1,
@@ -103,10 +98,10 @@
         },
         "TurnLimitTermination": {
           "reference_count": 1,
-          "candidate_count": 0,
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1": 0.0
+          "candidate_count": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
         },
         "WorkflowPattern": {
           "reference_count": 2,
@@ -124,25 +119,20 @@
         }
       },
       "property_precision": 1.0,
-      "property_recall": 0.9615384615384616,
-      "property_f1": 0.9803921568627451,
-      "triple_precision": 0.77,
-      "triple_recall": 0.7623762376237624,
-      "triple_f1": 0.7661691542288558,
-      "literal_overlap": 0.9230769230769231,
-      "missing_individuals": [
-        "TurnLimitTermination (1 missing)"
-      ],
-      "extra_individuals": [
-        "TaskCompletionTermination (1 extra)"
-      ],
-      "missing_properties": [
-        "hasMaxTurns"
-      ],
-      "extra_properties": []
+      "property_recall": 1.0,
+      "property_f1": 1.0,
+      "triple_precision": 0.7920792079207921,
+      "triple_recall": 0.7920792079207921,
+      "triple_f1": 0.7920792079207921,
+      "literal_overlap": 0.9615384615384616,
+      "missing_individuals": [],
+      "extra_individuals": [],
+      "missing_properties": [],
+      "extra_properties": [],
+      "metric": "ttl_pairwise"
     },
-    "fuzzy_match": {
-      "metric": "fuzzy_match",
+    "ttl_fuzzy_match": {
+      "metric": "ttl_fuzzy_match",
       "threshold": 0.55,
       "total_matched_pairs": 20,
       "avg_score": 0.983,
@@ -429,7 +419,9 @@
             1.0
           ]
         ]
-      }
+      },
+      "missing_ref": {},
+      "extra_cand": {}
     },
     "ast_diff": {
       "metric": "ast_diff",
@@ -439,59 +431,15 @@
         "f1": 0.989
       },
       "per_feature": {
-        "decorators": {
+        "classes": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
           "ref_count": 0,
           "cand_count": 0,
           "missing": [],
-          "extra": []
-        },
-        "functions": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 1,
-          "cand_count": 1,
-          "missing": [],
-          "extra": []
-        },
-        "decorator_args": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "class_bases": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "state_fields": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
-        },
-        "state_annotations": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1": 1.0,
-          "ref_count": 0,
-          "cand_count": 0,
-          "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": []
         },
         "graph_calls": {
           "precision": 1.0,
@@ -500,7 +448,8 @@
           "ref_count": 0,
           "cand_count": 0,
           "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": []
         },
         "imports": {
           "precision": 1.0,
@@ -511,16 +460,75 @@
           "missing": [
             "os"
           ],
-          "extra": []
+          "extra": [],
+          "matched": [
+            "asyncio",
+            "autogen_agentchat",
+            "autogen_ext",
+            "dotenv"
+          ]
         },
-        "classes": {
+        "decorator_args": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
           "ref_count": 0,
           "cand_count": 0,
           "missing": [],
-          "extra": []
+          "extra": [],
+          "matched": []
+        },
+        "decorators": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "state_fields": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "class_bases": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "state_annotations": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 0,
+          "cand_count": 0,
+          "missing": [],
+          "extra": [],
+          "matched": []
+        },
+        "functions": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "ref_count": 1,
+          "cand_count": 1,
+          "missing": [],
+          "extra": [],
+          "matched": [
+            "main"
+          ]
         }
       },
       "ref_files": [
@@ -531,6 +539,7 @@
       ]
     },
     "execution_trace": {
+      "metric": "execution_trace",
       "skipped": true
     }
   }

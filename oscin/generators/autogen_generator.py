@@ -136,7 +136,9 @@ class AutoGenGenerator(BaseCodeGenerator):
         for agent in self.reader.agents.values():
             if agent.llm:
                 llm_models.add(agent.llm)
-        model = next(iter(llm_models), "gpt-4o")
+        # Sort for deterministic selection across Python runs (PYTHONHASHSEED
+        # randomises set iteration order of strings; pick first alphabetically).
+        model = next(iter(sorted(llm_models)), "gpt-4o")
 
         tools_list = []
         tools_config = []
@@ -178,20 +180,52 @@ class AutoGenGenerator(BaseCodeGenerator):
                     "name": agent.role.replace(" ", "_"),
                     "system_message": self._escape_string(system_message),
                     "tool_vars": agent_tool_vars,
+                    # Memory class (e.g. ListMemory, ChromaDBVectorMemory).
+                    # The parser re-extracts this by walking `memory=[Cls()]`
+                    # kwargs. Emitting it here closes the memory round-trip.
+                    "memory_class": agent.memory_type or (
+                        "ListMemory" if agent.memory else ""
+                    ),
                 }
             )
+
+        # Collect memory classes used across agents so the template can emit
+        # the correct imports without hard-coding them.
+        memory_classes = sorted(
+            {a["memory_class"] for a in agents_data if a["memory_class"]}
+        )
 
         teams_data = []
         for key, team in self.reader.teams.items():
             agent_list = [
                 agent_vars.get(ak, self._to_snake(ak)) for ak in team.agent_keys
             ]
+            # Pull out the first EventBased trigger so the template can
+            # emit TextMentionTermination("…"). The parser picks these up
+            # via hasTriggerExpression; without re-emitting, the second
+            # extraction loses that triple. Composite termination conditions
+            # wrap sub-conditions, so we descend one level when needed.
+            trigger_expr = ""
+            for tc in getattr(team, "termination_conditions", []) or []:
+                if tc.get("type") == "EventBased" and tc.get("trigger"):
+                    trigger_expr = tc["trigger"]
+                    break
+                if tc.get("type") == "Composite":
+                    for sub in tc.get("conditions", []):
+                        if sub.get("type") == "EventBased" and sub.get("trigger"):
+                            trigger_expr = sub["trigger"]
+                            break
+                    if trigger_expr:
+                        break
             teams_data.append(
                 {
                     "agents": agent_list,
                     "max_turns": team.max_turns,
                     "process": team.process,
                     "pattern": team.coordination_pattern,
+                    "trigger_expression": self._escape_string(trigger_expr)
+                    if trigger_expr
+                    else "",
                 }
             )
 
@@ -210,6 +244,7 @@ class AutoGenGenerator(BaseCodeGenerator):
             agents=agents_data,
             teams=teams_data,
             task_string=task_str,
+            memory_classes=memory_classes,
         )
 
         self._write_file("main.py", code)
