@@ -1,6 +1,0 @@
-gather_literature_task:
-  description: Use the search tools to gather literature on the topic. Extract key claims and references.
-  expected_output: A well-structured outline containing the title, key claims, and academic sources.
-write_paper_task:
-  description: Take the outline and draft the final academic paper.
-  expected_output: A complete paper with an abstract, body paragraphs, and conclusion.

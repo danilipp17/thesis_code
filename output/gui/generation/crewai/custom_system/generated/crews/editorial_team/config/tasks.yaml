@@ -1,8 +1,0 @@
-research_task:
-  description: Research the latest news on AI breakthroughs.
-  expected_output: A list of 5 key facts.
-  agent: researcher
-write_task:
-  description: Draft an article based on the research.
-  expected_output: A 3-paragraph article.
-  agent: writer
