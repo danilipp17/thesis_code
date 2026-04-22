@@ -118,6 +118,11 @@ class LangGraphGenerator(BaseCodeGenerator):
         """Generate main.py with StateGraph construction."""
         # Determine if any agent has a system prompt
         has_system_prompts = any(a.backstory for a in self.reader.agents.values())
+        # Any team with memory triggers a checkpointer in the compiled graph.
+        # The LangGraph parser re-extracts this via graph.compile(checkpointer=Cls())
+        # (see _extract_compile_memory in langgraph_parser.py), so emitting it
+        # here closes the memory round-trip.
+        needs_checkpointer = any(t.memory for t in self.reader.teams.values())
 
         lines = [
             '"""',
@@ -132,11 +137,13 @@ class LangGraphGenerator(BaseCodeGenerator):
             "dotenv.load_dotenv()",
             "from langgraph.graph.message import add_messages",
             "from langchain_openai import ChatOpenAI",
-        "from langchain_core.messages import SystemMessage, HumanMessage",
         ]
-
+        if needs_checkpointer:
+            lines.append("from langgraph.checkpoint.memory import MemorySaver")
         if has_system_prompts:
-            lines.append("from langchain_core.messages import SystemMessage, HumanMessage")
+            lines.append(
+                "from langchain_core.messages import SystemMessage, HumanMessage"
+            )
 
         lines.append("")
 
@@ -159,7 +166,9 @@ class LangGraphGenerator(BaseCodeGenerator):
         for agent in self.reader.agents.values():
             if agent.llm:
                 llm_models.add(agent.llm)
-        model = next(iter(llm_models), "gpt-4o")
+        # Sort for deterministic selection across Python runs (PYTHONHASHSEED
+        # randomises set iteration order of strings; pick first alphabetically).
+        model = next(iter(sorted(llm_models)), "gpt-4o")
 
         lines.extend(
             [
@@ -240,11 +249,16 @@ class LangGraphGenerator(BaseCodeGenerator):
             self._generate_sequential_graph(lines)
 
         # Compile and run
+        compile_call = (
+            "app = graph.compile(checkpointer=MemorySaver())"
+            if needs_checkpointer
+            else "app = graph.compile()"
+        )
         lines.extend(
             [
                 "",
                 "# Compile the graph",
-                "app = graph.compile()",
+                compile_call,
                 "",
                 "",
                 'if __name__ == "__main__":',
@@ -325,20 +339,33 @@ class LangGraphGenerator(BaseCodeGenerator):
         # Find the corresponding agent for this step
         agent = self._find_agent_for_step(step)
 
+        # The LangGraph parser reconstructs `agent.goal` from the node
+        # function's docstring (ast.get_docstring). Emit the original goal
+        # verbatim — falling back to a generic label drops the literal and
+        # breaks the goal round-trip.
+        docstring = (
+            agent.goal.replace('"""', r'\"\"\"')
+            if agent and agent.goal
+            else f"Node: {step.method_name}"
+        )
+
         lines = [
             "",
             f"def {func_name}(state: State) -> dict:",
-            f'    """Node: {step.method_name}"""',
+            f'    """{docstring}"""',
         ]
 
         messages_init = []
         if agent and agent.backstory:
-            escaped = agent.backstory.replace('"""', '\"\"\"')
-            messages_init.extend([
-                f"    system_prompt = SystemMessage(content=",
-                f'        """{escaped}"""',
-                f"    )"
-            ])
+            # Use repr() to always produce a syntactically-valid Python
+            # string literal. The previous triple-quoted wrapper broke on
+            # backstories that ended in a quote (e.g. values preserved as
+            # raw f-strings by the parser's ast.unparse fallback), which
+            # emitted `"""..."""""` and crashed downstream re-extraction.
+            literal = repr(agent.backstory)
+            messages_init.append(
+                f"    system_prompt = SystemMessage(content={literal})"
+            )
             
         # Get dynamic task prompt
         task = self._find_task_for_agent(agent)
@@ -398,12 +425,10 @@ class LangGraphGenerator(BaseCodeGenerator):
         ]
 
         if agent.backstory:
-            escaped = agent.backstory.replace('"""', '\\"\\"\\"')
+            literal = repr(agent.backstory)
             lines.extend(
                 [
-                    f"    system_prompt = SystemMessage, HumanMessage(content=",
-                    f'        """{escaped}"""',
-                    f"    )",
+                    f"    system_prompt = SystemMessage(content={literal})",
                     f'    messages = [system_prompt] + state["messages"]',
                 ]
             )

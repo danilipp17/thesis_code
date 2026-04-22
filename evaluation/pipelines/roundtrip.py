@@ -139,7 +139,12 @@ def run_roundtrip(
         run_step(report, "extract_2", run_oscin, [
             "extract", str(gen_dir),
             "--framework", target_framework,
-            "--system-name", f"{system_name}_roundtrip",
+            # Use the same system name as TTL₁ so the two graphs share
+            # the system URI. Otherwise every triple whose subject is the
+            # system (includesAgent, includesTeam, hasTitle, …) mismatches
+            # purely on the URI local name, collapsing triple_f1 even when
+            # properties/individuals are perfectly preserved.
+            "--system-name", system_name,
             "--namespace", ns,
             "--output", str(ttl2_path),
             "--no-report",

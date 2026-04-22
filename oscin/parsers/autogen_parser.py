@@ -212,7 +212,7 @@ class AutoGenParser(BaseSourceParser):
                     class_name=node.name,
                     name=node.name,
                     description=ft_description or ast.get_docstring(node) or "",
-                    args_schema_json=json.dumps(args_schema) if args_schema else "{}",
+                    args_schema_json=json.dumps(args_schema, sort_keys=True) if args_schema else "{}",
                     implementation_ref=f"{filepath.stem}.{node.name}",
                     source_file=str(filepath),
                 )
@@ -476,12 +476,12 @@ class AutoGenParser(BaseSourceParser):
                 if kw.arg == "termination_condition":
                     if isinstance(kw.value, ast.Name) and kw.value.id in term_vars:
                         tc = term_vars[kw.value.id]
-                        if tc["type"] == "Composite":
-                            termination_conditions = tc.get("conditions", [])
-                            # Also store the composite itself
-                            termination_conditions.append(tc)
-                        else:
-                            termination_conditions.append(tc)
+                        # Emit Composite as-is (populator walks `conditions`
+                        # and writes one `CompositeTermination` individual
+                        # with `hasSubCondition` edges). Previously we also
+                        # flattened sub-conditions into sibling entries,
+                        # which duplicated individuals in the TTL.
+                        termination_conditions.append(tc)
                     elif isinstance(kw.value, ast.Call):
                         tc = self._parse_termination_call(kw.value)
                         if tc:

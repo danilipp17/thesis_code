@@ -521,6 +521,10 @@ class LangGraphParser(BaseSourceParser):
                     )
                     agent.reasoning = True
                     agent.reasoning_origin = "FrameworkManaged"
+                    # create_react_agent is the canonical ReAct reasoning
+                    # pattern in LangGraph — use the typed ontology class
+                    # instead of the generic Unspecified fallback.
+                    agent.reasoning_pattern = "ReAct"
                     self.agents[agent_key] = agent
 
                     task_key = f"task_{agent_key}"
@@ -1112,7 +1116,7 @@ class LangGraphParser(BaseSourceParser):
                     class_name=node.name,
                     name=node.name,
                     description=ast.get_docstring(node) or "",
-                    args_schema_json=json.dumps(args_schema) if args_schema else "{}",
+                    args_schema_json=json.dumps(args_schema, sort_keys=True) if args_schema else "{}",
                     implementation_ref=f"{filepath.stem}.{node.name}",
                     source_file=str(filepath),
                 )

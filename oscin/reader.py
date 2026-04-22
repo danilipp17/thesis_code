@@ -198,7 +198,11 @@ class OntologyReader:
         """Read all LLMAgent individuals."""
         for agent_uri in self.g.subjects(RDF.type, AGENTOSCIN.LLMAgent):
             role = self._str_value(agent_uri, AGENTOSCIN.agentRole) or ""
-            agent_id = self._str_value(agent_uri, AGENTOSCIN.agentID) or role
+            # agentID is the stable source-level identifier (populator writes
+            # the original key here). Do NOT fall back to role — role is
+            # human-readable and may contain spaces, which would break URI
+            # stability. Empty means "no explicit identifier in TTL".
+            agent_id = self._str_value(agent_uri, AGENTOSCIN.agentID) or ""
 
             # Goal — follow hasAgentGoal → Goal → dcterms:description
             goal = ""
@@ -227,9 +231,52 @@ class OntologyReader:
             max_reasoning = self._int_value(
                 agent_uri, AGENTOSCIN.hasMaxReasoningAttempts
             )
+            reasoning_origin = (
+                self._str_value(agent_uri, AGENTOSCIN.hasReasoningOrigin) or ""
+            )
 
-            # Memory
-            memory = bool(list(self.g.objects(agent_uri, AGENTOSCIN.hasMemoryBinding)))
+            # Reasoning pattern — follow employsReasoningPattern → individual
+            # and recover the subclass name (ReAct, ChainOfThought, …) from
+            # its rdf:type. Populator writes exactly one such triple.
+            reasoning_pattern = ""
+            _rp_type_map = {
+                str(AGENTOSCIN.ReAct): "ReAct",
+                str(AGENTOSCIN.ChainOfThought): "ChainOfThought",
+                str(AGENTOSCIN.ReflectionLoop): "ReflectionLoop",
+                str(AGENTOSCIN.TreeOfThoughts): "TreeOfThoughts",
+            }
+            for rp_uri in self.g.objects(
+                agent_uri, AGENTOSCIN.employsReasoningPattern
+            ):
+                for rp_type in self.g.objects(rp_uri, RDF.type):
+                    name = _rp_type_map.get(str(rp_type))
+                    if name:
+                        reasoning_pattern = name
+                        break
+                if reasoning_pattern:
+                    break
+
+            # Memory — also traverse MemoryBinding → bindsMemory to recover
+            # the specific memory backend (e.g. "ChromaDBVectorMemory") and
+            # persistence scope.
+            memory = False
+            memory_type = ""
+            memory_persistence = ""
+            for mb_uri in self.g.objects(agent_uri, AGENTOSCIN.hasMemoryBinding):
+                memory = True
+                for mem_uri in self.g.objects(mb_uri, AGENTOSCIN.bindsMemory):
+                    memory_type = self._str_value(mem_uri, HAS_TITLE) or memory_type
+                    memory_persistence = (
+                        self._str_value(mem_uri, AGENTOSCIN.hasPersistenceScope)
+                        or memory_persistence
+                    )
+
+            # Knowledge sources (via hasKnowledge → KnowledgeBase)
+            knowledge_sources: list[str] = []
+            for kb_uri in self.g.objects(agent_uri, AGENTOSCIN.hasKnowledge):
+                kb_title = self._str_value(kb_uri, HAS_TITLE)
+                if kb_title:
+                    knowledge_sources.append(kb_title)
 
             # Config — verbose, allow_delegation
             verbose = self._config_value(
@@ -239,8 +286,10 @@ class OntologyReader:
                 agent_uri, AGENTOSCIN.hasAgentConfig, "allow_delegation"
             )
 
-            # Derive key from URI local name
-            key = self._local_name(agent_uri).replace("Agent_", "")
+            # Prefer agentID (source-level identifier written by populator) so
+            # the original source key survives the round-trip. Fall back to the
+            # URI local name for TTL graphs produced before this convention.
+            key = agent_id or self._local_name(agent_uri).replace("Agent_", "")
 
             agent = ExtractedAgent(
                 agent_key=key,
@@ -254,6 +303,11 @@ class OntologyReader:
                 memory=memory,
                 verbose=_str_to_bool(verbose) if verbose else None,
                 allow_delegation=_str_to_bool(allow_deleg) if allow_deleg else None,
+                knowledge_sources=knowledge_sources,
+                reasoning_origin=reasoning_origin,
+                reasoning_pattern=reasoning_pattern,
+                memory_type=memory_type,
+                memory_persistence=memory_persistence,
             )
             self.agents[key] = agent
             self._agent_uri_to_key[str(agent_uri)] = key
@@ -301,6 +355,38 @@ class OntologyReader:
                 list(self.g.objects(task_uri, AGENTOSCIN.hasHumanCheckpoint))
             )
 
+            # Delegation strategy
+            delegation_strategy = (
+                self._str_value(task_uri, AGENTOSCIN.hasDelegationStrategy) or ""
+            )
+
+            # Guardrails — reconstruct "Type:detail" format written by
+            # the populator (FunctionBased → hasValidationLogic, LLMBased →
+            # dcterms:description, else raw description).
+            guardrails: list[str] = []
+            guardrail_max_retries: int | None = None
+            for gr_uri in self.g.objects(task_uri, AGENTOSCIN.hasGuardrail):
+                gr_type = self._str_value(gr_uri, AGENTOSCIN.hasGuardrailType) or ""
+                if gr_type == "FunctionBased":
+                    detail = (
+                        self._str_value(gr_uri, AGENTOSCIN.hasValidationLogic) or ""
+                    )
+                    guardrails.append(f"FunctionBased:{detail}")
+                elif gr_type == "LLMBased":
+                    detail = self._str_value(gr_uri, HAS_DESCRIPTION) or ""
+                    guardrails.append(f"LLMBased:{detail}")
+                else:
+                    detail = self._str_value(gr_uri, HAS_DESCRIPTION) or ""
+                    if detail:
+                        guardrails.append(detail)
+                # hasMaxRetries is task-level in CrewAI source (one kwarg
+                # applied across all guardrails). Read it off any guardrail
+                # that carries it; last-writer-wins is safe because the
+                # populator writes the same value to every sibling.
+                mr = self._int_value(gr_uri, AGENTOSCIN.hasMaxRetries)
+                if mr is not None:
+                    guardrail_max_retries = mr
+
             # Output schema
             output_pydantic = None
             for schema_uri in self.g.objects(task_uri, AGENTOSCIN.hasOutputSchema):
@@ -333,6 +419,9 @@ class OntologyReader:
                 tools=task_tools,
                 context_tasks=context_tasks,
                 human_input=human_input,
+                guardrails=guardrails,
+                guardrail_max_retries=guardrail_max_retries,
+                delegation_strategy=delegation_strategy,
             )
             self.tasks[key] = task
             self._task_uri_to_key[str(task_uri)] = key
@@ -356,17 +445,21 @@ class OntologyReader:
 
             # Coordination pattern → process
             process = "sequential"
+            coordination_pattern = ""
             for pattern_uri in self.g.objects(
                 team_uri, AGENTOSCIN.employsCoordinationPattern
             ):
                 pattern_local = self._local_name(pattern_uri)
-                if (
-                    "Hierachical" in pattern_local
-                    or "hierarchical" in pattern_local.lower()
-                ):
+                coordination_pattern = pattern_local
+                pattern_lower = pattern_local.lower()
+                # Tolerant of the historical "Hierachical" misspelling that
+                # may still exist in previously generated TTL files.
+                if "hierarchical" in pattern_lower or "hierachical" in pattern_lower:
                     process = "hierarchical"
-                elif "Custom" in pattern_local:
+                elif "custom" in pattern_lower:
                     process = "custom"
+                elif "sequential" in pattern_lower:
+                    process = "sequential"
 
             # Workflow steps → task_keys (ordered by stepOrder)
             task_keys = []
@@ -389,8 +482,13 @@ class OntologyReader:
                 list(self.g.objects(team_uri, AGENTOSCIN.hasTeamMemoryBinding))
             )
 
-            # Max turns (TurnLimitTermination)
+            # Termination conditions: walk hasTerminationCondition and
+            # rebuild the structured list the parser produced so that
+            # EventBased triggers (TextMentionTermination("APPROVE")) and
+            # MaxMessageTermination(n) survive the round-trip. Without this
+            # the generator cannot re-emit hasTriggerExpression.
             max_turns = None
+            termination_conditions: list[dict] = []
             for term_uri in self.g.objects(
                 team_uri, AGENTOSCIN.hasTerminationCondition
             ):
@@ -398,6 +496,80 @@ class OntologyReader:
                     mt = self._int_value(term_uri, AGENTOSCIN.hasMaxTurns)
                     if mt is not None:
                         max_turns = mt
+                        termination_conditions.append(
+                            {"type": "TurnLimit", "max_turns": mt}
+                        )
+                elif (
+                    term_uri,
+                    RDF.type,
+                    AGENTOSCIN.EventBasedTermination,
+                ) in self.g:
+                    trigger = self._str_value(
+                        term_uri, AGENTOSCIN.hasTriggerExpression
+                    ) or ""
+                    termination_conditions.append(
+                        {"type": "EventBased", "trigger": trigger}
+                    )
+                elif (
+                    term_uri,
+                    RDF.type,
+                    AGENTOSCIN.RoutingTermination,
+                ) in self.g:
+                    termination_conditions.append({"type": "Routing"})
+                elif (
+                    term_uri,
+                    RDF.type,
+                    AGENTOSCIN.CompositeTermination,
+                ) in self.g:
+                    operator = (
+                        self._str_value(term_uri, AGENTOSCIN.hasOperator) or "OR"
+                    )
+                    sub_conditions: list[dict] = []
+                    for sub_uri in self.g.objects(
+                        term_uri, AGENTOSCIN.hasSubCondition
+                    ):
+                        if (
+                            sub_uri,
+                            RDF.type,
+                            AGENTOSCIN.EventBasedTermination,
+                        ) in self.g:
+                            trigger = (
+                                self._str_value(
+                                    sub_uri, AGENTOSCIN.hasTriggerExpression
+                                )
+                                or ""
+                            )
+                            sub_conditions.append(
+                                {"type": "EventBased", "trigger": trigger}
+                            )
+                        elif (
+                            sub_uri,
+                            RDF.type,
+                            AGENTOSCIN.TurnLimitTermination,
+                        ) in self.g:
+                            mt = self._int_value(sub_uri, AGENTOSCIN.hasMaxTurns)
+                            if mt is not None:
+                                sub_conditions.append(
+                                    {"type": "TurnLimit", "max_turns": mt}
+                                )
+                                # Promote to team-level so the generator can
+                                # emit the MaxMessageTermination call.
+                                if max_turns is None:
+                                    max_turns = mt
+                    termination_conditions.append(
+                        {
+                            "type": "Composite",
+                            "operator": operator,
+                            "conditions": sub_conditions,
+                        }
+                    )
+
+            # Knowledge sources attached at team level
+            team_knowledge: list[str] = []
+            for kb_uri in self.g.objects(team_uri, AGENTOSCIN.hasKnowledge):
+                kb_title = self._str_value(kb_uri, HAS_TITLE)
+                if kb_title:
+                    team_knowledge.append(kb_title)
 
             key = self._local_name(team_uri).replace("Team_", "")
 
@@ -409,6 +581,9 @@ class OntologyReader:
                 verbose=verbose,
                 memory=memory,
                 max_turns=max_turns,
+                knowledge_sources=team_knowledge,
+                coordination_pattern=coordination_pattern,
+                termination_conditions=termination_conditions,
             )
             self.teams[key] = team
             self._team_uri_to_key[str(team_uri)] = key
@@ -455,6 +630,23 @@ class OntologyReader:
             steps: list[ExtractedFlowStep] = []
             for wp_uri in self.g.objects(orch_uri, AGENTOSCIN.hasWorkflowPattern):
                 steps = self._read_flow_steps(wp_uri)
+
+            # The ontology records team orchestration at the flow level
+            # (`orchestratesTeam`) but does not bind an individual step to a
+            # specific crew. On round-trip, if no step carries a
+            # `calls_crew` hint, the generator emits `pass` bodies — the
+            # re-extraction then reports an empty crew_references set and
+            # `orchestratesTeam` is lost. Restore the binding heuristically:
+            # the first non-router/non-end step without routing logic gets
+            # the (single) crew reference. Flows with multiple crews are
+            # left untouched since round-tripping them requires per-step
+            # semantics that the TBox does not currently express.
+            if crew_refs and len(crew_refs) == 1:
+                single_crew = crew_refs[0]
+                for s in steps:
+                    if s.step_type in ("start", "regular") and not s.function_body:
+                        s.calls_crew = single_crew
+                        break
 
             self.flow = ExtractedFlow(
                 class_name=class_name,
