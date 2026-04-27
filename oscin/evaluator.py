@@ -94,10 +94,16 @@ class PairwiseMetrics:
     property_recall: float = 0.0
     property_f1: float = 0.0
 
-    # Triple-level (normalized semantic triples)
+    # Triple-level (normalized semantic triples — exact local-name match)
     triple_precision: float = 0.0
     triple_recall: float = 0.0
     triple_f1: float = 0.0
+
+    # Triple-level (after class-aware bipartite alignment of individuals)
+    aligned_triple_precision: float = 0.0
+    aligned_triple_recall: float = 0.0
+    aligned_triple_f1: float = 0.0
+    alignment_size: int = 0  # number of cand individuals matched to a ref
 
     # Content fidelity
     literal_overlap: float = 0.0
@@ -348,7 +354,151 @@ def compute_pairwise(reference: Graph, candidate: Graph) -> PairwiseMetrics:
         len(common_literals) / len(ref_literals) if ref_literals else 0.0
     )
 
+    # --- Aligned triple metric ---
+    ap, ar, af1, n_aligned = _compute_aligned_triple_metric(reference, candidate)
+    m.aligned_triple_precision = ap
+    m.aligned_triple_recall = ar
+    m.aligned_triple_f1 = af1
+    m.alignment_size = n_aligned
+
     return m
+
+
+# ===================================================================
+# Class-aware bipartite alignment for triple-level scoring
+# ===================================================================
+
+def _individual_classes(g: Graph) -> dict[URIRef, set[URIRef]]:
+    """Map ABox individual URIs to their rdf:type set (excluding TBox types)."""
+    result: dict[URIRef, set[URIRef]] = defaultdict(set)
+    for s, _, o in g.triples((None, RDF.type, None)):
+        if not isinstance(s, URIRef):
+            continue
+        if str(s).startswith(str(AGENTOSCIN)):
+            continue
+        if isinstance(o, URIRef) and o in TBOX_TYPES:
+            continue
+        result[s].add(o)
+    return dict(result)
+
+
+def _individual_features(g: Graph, ind: URIRef) -> set[tuple[str, str]]:
+    """Feature set for a single individual: (predicate-localname, literal-or-type) pairs.
+
+    Used as the alignment signal: two individuals across graphs are similar
+    when they share predicate→literal pairs and predicate→class-of-object pairs.
+    """
+    feats: set[tuple[str, str]] = set()
+    classes = _individual_classes(g)
+    for _, p, o in g.triples((ind, None, None)):
+        if _is_tbox_triple(ind, p, o):
+            continue
+        p_name = _local_name(p)
+        if isinstance(o, Literal):
+            feats.add((p_name, " ".join(str(o).split()).lower()))
+        elif isinstance(o, URIRef):
+            # use the object's type set rather than its (unstable) name
+            o_classes = classes.get(o, set())
+            if o_classes:
+                for cls in o_classes:
+                    feats.add((p_name, "@" + _local_name(cls)))
+            else:
+                # fall back on local-name (e.g. for fixed schema individuals
+                # like agentoscin:Sequential)
+                feats.add((p_name, "@" + _local_name(o)))
+    # also include declared type(s)
+    for cls in classes.get(ind, set()):
+        feats.add(("rdf:type", "@" + _local_name(cls)))
+    return feats
+
+
+def _compute_alignment(
+    reference: Graph, candidate: Graph
+) -> dict[URIRef, URIRef]:
+    """Greedy bipartite alignment of candidate→reference individuals, by
+    Jaccard of feature sets, restricted to pairs sharing at least one type.
+    """
+    ref_classes = _individual_classes(reference)
+    cand_classes = _individual_classes(candidate)
+
+    # group by class for candidate scoring
+    ref_inds = list(ref_classes.keys())
+    cand_inds = list(cand_classes.keys())
+
+    ref_feats = {r: _individual_features(reference, r) for r in ref_inds}
+    cand_feats = {c: _individual_features(candidate, c) for c in cand_inds}
+
+    # build candidate-pair scores (only when types overlap and features overlap)
+    pair_scores: list[tuple[float, URIRef, URIRef]] = []
+    for c in cand_inds:
+        c_classes = cand_classes[c]
+        cf = cand_feats[c]
+        if not cf:
+            continue
+        for r in ref_inds:
+            if not (c_classes & ref_classes[r]):
+                continue
+            rf = ref_feats[r]
+            if not rf:
+                continue
+            inter = len(cf & rf)
+            if inter == 0:
+                continue
+            union = len(cf | rf)
+            jacc = inter / union if union else 0.0
+            pair_scores.append((jacc, c, r))
+
+    # greedy: highest score first, each individual matched at most once
+    pair_scores.sort(key=lambda t: t[0], reverse=True)
+    used_c: set[URIRef] = set()
+    used_r: set[URIRef] = set()
+    alignment: dict[URIRef, URIRef] = {}
+    for score, c, r in pair_scores:
+        if c in used_c or r in used_r:
+            continue
+        alignment[c] = r
+        used_c.add(c)
+        used_r.add(r)
+    return alignment
+
+
+def _compute_aligned_triple_metric(
+    reference: Graph, candidate: Graph
+) -> tuple[float, float, float, int]:
+    """Triple P/R/F1 after rewriting candidate URIs to their aligned reference
+    counterparts. Unmatched candidate URIs are kept as-is and therefore will
+    not match any reference triple."""
+    alignment = _compute_alignment(reference, candidate)
+
+    def rewrite_node(n):
+        if isinstance(n, URIRef) and n in alignment:
+            return alignment[n]
+        return n
+
+    ref_triples = _get_normalized_triples(reference)
+
+    cand_triples: set[tuple[str, str, str]] = set()
+    for s, p, o in candidate:
+        if _is_tbox_triple(s, p, o):
+            continue
+        if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+            continue
+        s_n = rewrite_node(s)
+        o_n = rewrite_node(o)
+        s_name = _local_name(s_n) if isinstance(s_n, URIRef) else str(s_n)
+        p_name = _local_name(p) if isinstance(p, URIRef) else str(p)
+        if isinstance(o_n, Literal):
+            o_repr = f'"{str(o_n)}"'
+        elif isinstance(o_n, URIRef):
+            o_repr = _local_name(o_n)
+        else:
+            o_repr = str(o_n)
+        cand_triples.add((s_name, p_name, o_repr))
+
+    common = ref_triples & cand_triples
+    p = len(common) / len(cand_triples) if cand_triples else 0.0
+    r = len(common) / len(ref_triples) if ref_triples else 0.0
+    return p, r, _f1(p, r), len(alignment)
 
 
 # ===================================================================

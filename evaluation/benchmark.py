@@ -68,7 +68,7 @@ def discover_examples(frameworks: Iterable[str]) -> list[tuple[str, Path]]:
         if not fw_root.is_dir():
             continue
         for sub in sorted(fw_root.iterdir()):
-            if sub.is_dir() and any(sub.rglob("*.py")):
+            if sub.is_dir() and (any(sub.rglob("*.py")) or any(sub.rglob("*.ipynb"))):
                 found.append((fw, sub))
     return found
 
