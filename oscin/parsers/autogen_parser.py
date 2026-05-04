@@ -341,7 +341,9 @@ class AutoGenParser(BaseSourceParser):
 
             # A2: AutoGen uses ModelDirective for system_message, or separate
             # ModelDirective + OrchestratorDirective when description is also present
-            directive = "ModelDirective" if system_message else "DualDirective"
+            directive = "ModelDirective"
+
+            prompt_source = "system_message, description" if description else "system_message"
 
             agent = ExtractedAgent(
                 agent_key=agent_key,
@@ -357,6 +359,7 @@ class AutoGenParser(BaseSourceParser):
                 agent_type=agent_type,
                 description=description,
                 directive_function=directive,
+                prompt_source=prompt_source,
                 reasoning_origin=reasoning_origin,
                 memory_type=memory_type,
                 memory_persistence=memory_persistence,
@@ -385,7 +388,7 @@ class AutoGenParser(BaseSourceParser):
         # A5: Pre-pass to collect termination condition variable assignments
         # e.g. text_term = TextMentionTermination("APPROVE")
         term_vars: dict[str, dict] = {}
-        for node in ast.iter_child_nodes(tree):
+        for node in ast.walk(tree):
             if not isinstance(node, ast.Assign) or len(node.targets) != 1:
                 continue
             target = node.targets[0]
@@ -413,7 +416,7 @@ class AutoGenParser(BaseSourceParser):
                 term_vars[target.id] = {"type": "EventBased", "trigger": call_name}
 
         # A5: Detect composite termination (var_a | var_b or var_a & var_b)
-        for node in ast.iter_child_nodes(tree):
+        for node in ast.walk(tree):
             if not isinstance(node, ast.Assign) or len(node.targets) != 1:
                 continue
             target = node.targets[0]
@@ -582,11 +585,16 @@ class AutoGenParser(BaseSourceParser):
     # -----------------------------------------------------------
 
     def _extract_flow(self, tree: ast.Module, filepath: Path) -> None:
+        _INFRA_CALLERS = {"asyncio"}
+
         steps = []
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 if node.func.attr in ("run", "run_stream", "initiate_chat"):
                     caller = ast_utils.get_attr_value_name(node.func)
+
+                    if caller in _INFRA_CALLERS:
+                        continue
 
                     # A4: Extract task string from team.run(task="...")
                     task_string = ast_utils.extract_keyword_string(node, "task") or ""
@@ -604,6 +612,10 @@ class AutoGenParser(BaseSourceParser):
                     if node.args and isinstance(node.args[0], ast.Name):
                         target = node.args[0].id
 
+                    calls_crew = target if target else caller
+                    if caller in _INFRA_CALLERS:
+                        calls_crew = None
+
                     method_title = f"run_{caller or 'unknown'}"
                     if node.func.attr == "initiate_chat":
                         method_title = f"initiate_chat_{caller or 'unknown'}_to_{target or 'unknown'}"
@@ -612,7 +624,7 @@ class AutoGenParser(BaseSourceParser):
                         method_name=method_title,
                         step_type="start",
                         dependencies=[],
-                        calls_crew=target if target else caller,
+                        calls_crew=calls_crew,
                     )
                     steps.append(step)
 
@@ -625,6 +637,7 @@ class AutoGenParser(BaseSourceParser):
                             expected_output="",
                             agent_key=None,
                             delegation_strategy="OrchestratorDelegated",
+                            source_attribute="task",
                             source_file=str(filepath),
                         )
                         self.tasks[task_key] = task

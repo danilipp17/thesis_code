@@ -38,6 +38,7 @@ from oscin.intermediate import (
 )
 from oscin.namespaces import (
     AGENTOSCIN,
+    CALLS_CREW,
     COORD_CUSTOM,
     COORD_SEQUENTIAL,
     HAS_DESCRIPTION,
@@ -117,10 +118,17 @@ class OntologyReader:
     def _synthesize_state(self) -> None:
         """
         Synthesize a unified global state from all extracted tasks if none was explicitly defined.
-        This ensures that target frameworks requiring explicit state (like LangGraph and CrewAI Flows)
-        have a populated state definition.
+
+        Only synthesizes for frameworks that use explicit state models
+        (LangGraph). For CrewAI and AutoGen, state is managed internally
+        by the framework and shouldn't be fabricated from task outputs.
         """
         if not self.flow:
+            return
+
+        # Only synthesize for flow-based frameworks that need explicit state
+        stateful_frameworks = {"LangGraph"}
+        if self.source_framework not in stateful_frameworks:
             return
 
         # If we already extracted explicit state fields, we respect them.
@@ -278,6 +286,16 @@ class OntologyReader:
                 if kb_title:
                     knowledge_sources.append(kb_title)
 
+            # Agent type
+            agent_type = self._str_value(agent_uri, AGENTOSCIN.agentType) or ""
+
+            # Directive function — on the agent's prompt
+            directive_function = ""
+            prompt_source = ""
+            for _prompt_uri in self.g.objects(agent_uri, AGENTOSCIN.agentPrompt):
+                directive_function = self._str_value(_prompt_uri, AGENTOSCIN.hasDirectiveFunction) or ""
+                prompt_source = self._str_value(_prompt_uri, AGENTOSCIN.hasSourceAttribute) or ""
+
             # Config — verbose, allow_delegation
             verbose = self._config_value(
                 agent_uri, AGENTOSCIN.hasAgentConfig, "verbose"
@@ -304,6 +322,9 @@ class OntologyReader:
                 verbose=_str_to_bool(verbose) if verbose else None,
                 allow_delegation=_str_to_bool(allow_deleg) if allow_deleg else None,
                 knowledge_sources=knowledge_sources,
+                agent_type=agent_type,
+                directive_function=directive_function,
+                prompt_source=prompt_source,
                 reasoning_origin=reasoning_origin,
                 reasoning_pattern=reasoning_pattern,
                 memory_type=memory_type,
@@ -331,9 +352,13 @@ class OntologyReader:
 
             # Description — follow taskPrompt → Prompt → promptInstruction
             description = ""
+            source_attribute = ""
             for prompt_uri in self.g.objects(task_uri, AGENTOSCIN.taskPrompt):
                 description = (
                     self._str_value(prompt_uri, AGENTOSCIN.promptInstruction) or ""
+                )
+                source_attribute = (
+                    self._str_value(prompt_uri, AGENTOSCIN.hasSourceAttribute) or ""
                 )
 
             # Tools — follow taskToolUsage → Tool URIs
@@ -389,24 +414,36 @@ class OntologyReader:
 
             # Output schema
             output_pydantic = None
+            output_json = None
             for schema_uri in self.g.objects(task_uri, AGENTOSCIN.hasOutputSchema):
+                source_attr = (
+                    self._str_value(schema_uri, AGENTOSCIN.hasSourceAttribute) or ""
+                )
                 schema_def = self._str_value(schema_uri, AGENTOSCIN.hasSchemaDefinition)
-                if schema_def:
-                    output_pydantic = self._local_name(schema_uri).replace(
+                schema_title = self._str_value(schema_uri, HAS_TITLE)
+
+                if source_attr == "output_json":
+                    output_json = schema_title or self._local_name(schema_uri).replace(
+                        "Schema_", ""
+                    ).replace("_json", "")
+                else:
+                    # Default: output_pydantic (or legacy without source_attr)
+                    output_pydantic = schema_title or self._local_name(schema_uri).replace(
                         "Schema_", ""
                     )
-                    # Store as a pydantic model
-                    try:
-                        schema_dict = json.loads(schema_def)
-                        fields = {}
-                        for fname, finfo in schema_dict.get("properties", {}).items():
-                            fields[fname] = finfo.get("type", "str")
-                        self.pydantic_models[output_pydantic] = ExtractedPydanticModel(
-                            class_name=output_pydantic,
-                            fields=fields,
-                        )
-                    except json.JSONDecodeError:
-                        pass
+                    if schema_def:
+                        # Store as a pydantic model
+                        try:
+                            schema_dict = json.loads(schema_def)
+                            fields = {}
+                            for fname, finfo in schema_dict.get("properties", {}).items():
+                                fields[fname] = finfo.get("type", "str")
+                            self.pydantic_models[output_pydantic] = ExtractedPydanticModel(
+                                class_name=output_pydantic,
+                                fields=fields,
+                            )
+                        except json.JSONDecodeError:
+                            pass
 
             key = self._local_name(task_uri).replace("Task_", "")
 
@@ -416,12 +453,14 @@ class OntologyReader:
                 expected_output=expected_output,
                 agent_key=agent_key,
                 output_pydantic=output_pydantic,
+                output_json=output_json,
                 tools=task_tools,
                 context_tasks=context_tasks,
                 human_input=human_input,
                 guardrails=guardrails,
                 guardrail_max_retries=guardrail_max_retries,
                 delegation_strategy=delegation_strategy,
+                source_attribute=source_attribute,
             )
             self.tasks[key] = task
             self._task_uri_to_key[str(task_uri)] = key
@@ -631,22 +670,15 @@ class OntologyReader:
             for wp_uri in self.g.objects(orch_uri, AGENTOSCIN.hasWorkflowPattern):
                 steps = self._read_flow_steps(wp_uri)
 
-            # The ontology records team orchestration at the flow level
-            # (`orchestratesTeam`) but does not bind an individual step to a
-            # specific crew. On round-trip, if no step carries a
-            # `calls_crew` hint, the generator emits `pass` bodies — the
-            # re-extraction then reports an empty crew_references set and
-            # `orchestratesTeam` is lost. Restore the binding heuristically:
-            # the first non-router/non-end step without routing logic gets
-            # the (single) crew reference. Flows with multiple crews are
-            # left untouched since round-tripping them requires per-step
-            # semantics that the TBox does not currently express.
-            if crew_refs and len(crew_refs) == 1:
+            # Fallback heuristic: if no step carries a calls_crew value
+            # (e.g. TTL files produced before callsCrew was added), restore
+            # the binding by assigning all non-router/non-conditional steps
+            # to the first crew reference.
+            if crew_refs:
                 single_crew = crew_refs[0]
                 for s in steps:
-                    if s.step_type in ("start", "regular") and not s.function_body:
+                    if s.step_type in ("start", "regular") and not s.function_body and not s.calls_crew:
                         s.calls_crew = single_crew
-                        break
 
             self.flow = ExtractedFlow(
                 class_name=class_name,
@@ -685,11 +717,14 @@ class OntologyReader:
             is_end = (step_uri, RDF.type, AGENTOSCIN.EndStep) in self.g
 
             # A step can be both start and conditional (LangGraph pattern:
-            # entry node with conditional edges)
+            # entry node with conditional edges). EndStep is mutually
+            # exclusive with StartStep — a start step is never just "end".
             if is_conditional and not is_start:
                 step_type = "conditional"
             elif is_start:
                 step_type = "start"
+            elif is_end:
+                step_type = "end"
             else:
                 step_type = "regular"
 
@@ -724,6 +759,20 @@ class OntologyReader:
                 if isinstance(lit, Literal):
                     decorator_args.append(str(lit))
 
+            # Associated agent (e.g. LangGraph node → LLMAgent)
+            associated_agent_key: Optional[str] = None
+            for agent_uri in self.g.objects(step_uri, AGENTOSCIN.hasAssociatedAgent):
+                key = self._agent_uri_to_key.get(str(agent_uri))
+                if key:
+                    associated_agent_key = key
+                    break
+            aggregation_combinator = (
+                self._str_value(step_uri, AGENTOSCIN.hasAggregationCombinator) or ""
+            )
+
+            # Per-step crew binding (callsCrew)
+            calls_crew = self._str_value(step_uri, CALLS_CREW)
+
             step_uri_to_name[str(step_uri)] = name
             step_info[str(step_uri)] = {
                 "order": order,
@@ -733,6 +782,9 @@ class OntologyReader:
                 "edge_mapping": edge_mapping,
                 "next_uris": next_names,
                 "decorator_args": decorator_args,
+                "associated_agent_key": associated_agent_key,
+                "aggregation_combinator": aggregation_combinator,
+                "calls_crew": calls_crew,
             }
 
         # Phase 2: Resolve next_uris to method names
@@ -780,13 +832,24 @@ class OntologyReader:
                 if not return_values and info.get("edge_mapping"):
                     return_values = list(info["edge_mapping"].keys())
 
+            # Direct outgoing edges (non-conditional). Routing targets are
+            # already carried by return_values/edge_mapping, so we only keep
+            # plain nextStep targets for non-routing steps.
+            outgoing = []
+            if not (info["step_type"] == "conditional" or info["routing_logic"]):
+                outgoing = list(info.get("next_names", []))
+
             step = ExtractedFlowStep(
                 method_name=name,
                 step_type=info["step_type"],
                 dependencies=dec_args,
                 return_values=return_values,
                 function_body=info["routing_logic"],
+                calls_crew=info.get("calls_crew"),
                 edge_mapping=info.get("edge_mapping", {}),
+                associated_agent_key=info.get("associated_agent_key") or None,
+                aggregation_combinator=info.get("aggregation_combinator", ""),
+                outgoing=outgoing,
             )
             steps.append(step)
 

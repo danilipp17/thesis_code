@@ -84,6 +84,10 @@ class CrewAIGenerator(BaseCodeGenerator):
         for key, tool in self.reader.tools.items():
             self._generate_tool(key, tool)
 
+        # Ensure tools package has __init__.py
+        if self.reader.tools:
+            self._write_file("tools/__init__.py", "")
+
         # Generate Pydantic model files for structured outputs
         if self.reader.pydantic_models:
             self._generate_models()
@@ -335,6 +339,14 @@ class {class_name}(BaseTool):
         # LLM class attribute
         llm_attr = ""
 
+        # Manager agent/llm for hierarchical crews
+        manager_line = ""
+        if team.manager_agent:
+            snake_manager = self._to_snake(team.manager_agent)
+            manager_line = f"\n            manager_agent=self.{snake_manager},"
+        elif team.manager_llm:
+            manager_line = f'\n            manager_llm="{team.manager_llm}",'
+
         # Team-level knowledge (re-extracted by parser via `knowledge=` kwarg)
         knowledge_line = ""
         if team.knowledge_sources:
@@ -364,10 +376,11 @@ class {crew_class}:
             agents=self.agents,
             tasks=self.tasks,
             process={process_str},
-            verbose={team.verbose},{knowledge_line}
+            verbose={team.verbose},{knowledge_line}{manager_line}
         )
 '''
         self._write_file(f"crews/{crew_snake}/{crew_snake}.py", code)
+        self._write_file(f"crews/{crew_snake}/__init__.py", "")
 
     def _detect_common_llm(self, team: ExtractedTeam) -> Optional[str]:
         """Detect if all agents in a team share the same LLM."""
@@ -385,6 +398,7 @@ class {crew_class}:
     ) -> str:
         """Render a single @agent method."""
         extra_args = []
+        method_name = self._to_snake(agent_key)
 
         # Tools
         tool_list = self._build_tool_list(agent.tools)
@@ -431,7 +445,7 @@ class {crew_class}:
 
         return f'''
     @agent
-    def {agent_key}(self) -> Agent:
+    def {method_name}(self) -> Agent:
         return Agent(
             config=self.agents_config["{agent_key}"],{extra_str}
         )
@@ -439,14 +453,19 @@ class {crew_class}:
 
     def _render_task_method(self, task_key: str, task: ExtractedTask) -> str:
         """Render a single @task method."""
+        method_name = self._to_snake(task_key)
         extra_args = ""
         if task.output_pydantic and task.output_pydantic in self.reader.pydantic_models:
             extra_args += f"\n            output_pydantic={task.output_pydantic},"
         if task.human_input:
             extra_args += "\n            human_input=True,"
         if task.context_tasks:
-            ctx_refs = ", ".join(f"self.{t}()" for t in task.context_tasks)
+            ctx_refs = ", ".join(f"self.{self._to_snake(t)}()" for t in task.context_tasks)
             extra_args += f"\n            context=[{ctx_refs}],"
+        if task.tools:
+            tool_list = self._build_tool_list(task.tools)
+            if tool_list:
+                extra_args += f"\n            tools=[{tool_list}],"
         if task.guardrails:
             extra_args += f"\n            {self._render_guardrail_arg(task.guardrails)}"
         if task.guardrail_max_retries is not None:
@@ -456,7 +475,7 @@ class {crew_class}:
 
         return f'''
     @task
-    def {task_key}(self) -> Task:
+    def {method_name}(self) -> Task:
         return Task(
             config=self.tasks_config["{task_key}"],{extra_args}
         )
@@ -490,7 +509,7 @@ class {crew_class}:
         return f"guardrails=[{', '.join(parts)}],"
 
     def _build_tool_imports(self, team: ExtractedTeam) -> list[str]:
-        """Build import statements for tools used by agents in this team."""
+        """Build import statements for tools used by agents or tasks in this team."""
         imports = set()
         for agent_key in team.agent_keys:
             agent = self.reader.agents.get(agent_key)
@@ -502,6 +521,20 @@ class {crew_class}:
                     continue
                 class_name = tool.class_name
 
+                if class_name in EXTERNAL_TOOL_IMPORTS:
+                    imports.add(EXTERNAL_TOOL_IMPORTS[class_name])
+                else:
+                    imports.add(f"from tools.{class_name} import {class_name}")
+        # Also include task-level tools
+        for task_key in team.task_keys:
+            task = self.reader.tasks.get(task_key)
+            if not task:
+                continue
+            for tool_key in task.tools:
+                tool = self.reader.tools.get(tool_key)
+                if not tool:
+                    continue
+                class_name = tool.class_name
                 if class_name in EXTERNAL_TOOL_IMPORTS:
                     imports.add(EXTERNAL_TOOL_IMPORTS[class_name])
                 else:
@@ -544,7 +577,7 @@ class {crew_class}:
     def _generate_main(self, flow: ExtractedFlow) -> None:
         """Generate the main.py with a Flow class."""
         flow_class = flow.class_name
-        state_class = f"{flow_class}State"
+        state_class = flow.state_model if flow.state_model else f"{flow_class}State"
 
         # Build crew imports
         crew_imports = []
@@ -675,7 +708,6 @@ if __name__ == "__main__":
             # @router takes a method reference to the preceding step
             if step.dependencies:
                 arg = step.dependencies[0]
-                # Use as method reference if it matches a known method
                 if arg in all_method_names:
                     dec = f"@router({arg})"
                 else:
@@ -691,13 +723,7 @@ if __name__ == "__main__":
 
         else:  # regular/listen
             if step.dependencies:
-                arg = step.dependencies[0]
-                # Use as method reference if it matches a known method,
-                # otherwise use string (for router return values like "complete")
-                if arg in all_method_names:
-                    dec = f"@listen({arg})"
-                else:
-                    dec = f'@listen("{arg}")'
+                dec = f"@listen({self._render_decorator_args(step, all_method_names)})"
             else:
                 dec = "@listen()"
             body = self._render_step_body(step)
@@ -706,6 +732,23 @@ if __name__ == "__main__":
     def {step.method_name}(self):
 {body}
 """
+
+    def _render_decorator_args(self, step: ExtractedFlowStep, all_method_names: list[str]) -> str:
+        """Render decorator arguments handling or_/and_ combinators."""
+        deps = step.dependencies
+        combinator = step.aggregation_combinator if hasattr(step, "aggregation_combinator") else ""
+        if not deps:
+            return ""
+
+        def _fmt(dep: str) -> str:
+            if dep in all_method_names:
+                return dep
+            return f'"{dep}"'
+
+        formatted = [_fmt(d) for d in deps]
+        if combinator in ("or_", "and_") and len(formatted) > 1:
+            return f"{combinator}({', '.join(formatted)})"
+        return formatted[0]
 
     def _render_step_body(self, step: ExtractedFlowStep) -> str:
         """Render the body of a flow step method."""

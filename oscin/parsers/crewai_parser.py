@@ -446,6 +446,9 @@ class CrewAIParser(BaseSourceParser):
             verbose=verbose,
             allow_delegation=allow_delegation,
             knowledge_sources=knowledge_sources,
+            agent_type="GeneralPurpose",
+            directive_function="DualDirective",
+            prompt_source="role, goal, backstory",
             source_file=source_file,
         )
 
@@ -532,6 +535,7 @@ class CrewAIParser(BaseSourceParser):
             guardrails=guardrails,
             guardrail_max_retries=guardrail_max_retries,
             delegation_strategy=delegation,
+            source_attribute="description, expected_output",
             source_file=source_file,
         )
 
@@ -678,6 +682,7 @@ class CrewAIParser(BaseSourceParser):
         """
         step_type = None
         dependencies: list[str] = []
+        aggregation_combinator = ""
 
         for deco in method.decorator_list:
             if isinstance(deco, ast.Call) and isinstance(deco.func, ast.Name):
@@ -690,6 +695,18 @@ class CrewAIParser(BaseSourceParser):
                             dependencies.append(str(arg.value))
                         elif isinstance(arg, ast.Name):
                             dependencies.append(arg.id)
+                        elif isinstance(arg, ast.Call):
+                            # Handle @listen(or_(step_a, step_b)) and @listen(and_(...))
+                            if isinstance(arg.func, ast.Name) and arg.func.id in (
+                                "or_",
+                                "and_",
+                            ):
+                                aggregation_combinator = arg.func.id
+                                for inner_arg in arg.args:
+                                    if isinstance(inner_arg, ast.Constant):
+                                        dependencies.append(str(inner_arg.value))
+                                    elif isinstance(inner_arg, ast.Name):
+                                        dependencies.append(inner_arg.id)
             elif isinstance(deco, ast.Name):
                 # Bare decorator without parentheses: @start
                 if deco.id in ("start", "listen", "router"):
@@ -740,6 +757,7 @@ class CrewAIParser(BaseSourceParser):
             calls_crew=calls_crew,
             return_values=return_values,
             function_body=function_body,
+            aggregation_combinator=aggregation_combinator,
         )
 
     # -----------------------------------------------------------

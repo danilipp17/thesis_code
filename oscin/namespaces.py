@@ -24,6 +24,7 @@ AGENTOSCIN = Namespace(
 HAS_TITLE = AGENTOSCIN.hasTitle
 HAS_DESCRIPTION = AGENTOSCIN.hasDescription
 HAS_REFERENCE = AGENTOSCIN.hasReference
+CALLS_CREW = AGENTOSCIN.callsCrew
 
 # ---------------------------------------------------------------------------
 # Coordination pattern named individuals (pre-defined in the ontology)

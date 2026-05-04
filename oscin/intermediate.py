@@ -59,10 +59,10 @@ class ExtractedAgent:
 
     # Framework-specific agent metadata
     agent_type: str = (
-        "GeneralPurpose"  # → agentType ("GeneralPurpose", "UserProxy", "Manager")
+        ""  # → agentType ("GeneralPurpose", "UserProxy", "Manager"); empty → skip
     )
     description: str = ""  # → OrchestratorDirective Prompt (AutoGen description param)
-    directive_function: str = "DualDirective"  # → Prompt.hasDirectiveFunction
+    directive_function: str = ""  # → Prompt.hasDirectiveFunction; empty → skip
     reasoning_origin: str = (
         ""  # → hasReasoningOrigin ("FrameworkManaged", "ModelNative")
     )
@@ -78,6 +78,10 @@ class ExtractedAgent:
     )
     human_input: bool = (
         False  # → hasHumanCheckpoint (for AutoGen UserProxy / LangGraph interrupt)
+    )
+
+    prompt_source: str = (
+        ""  # → agentPrompt.hasSourceAttribute (e.g. "role, goal, backstory", "system_message")
     )
 
     # Provenance
@@ -109,10 +113,17 @@ class ExtractedTask:
     context_tasks: list[str] = field(default_factory=list)  # → dependsOn
     human_input: bool = False  # → hasHumanCheckpoint
     guardrails: list[str] = field(default_factory=list)  # → hasGuardrail
+    # Format: "FunctionBased:<name>" for function-based guardrails,
+    # "LLMBased:<prompt>" for LLM-based guardrails, or "<text>" as
+    # fallback. Parsers and readers produce these strings; generators
+    # parse the prefix back to determine the CrewAI kwarg style.
     guardrail_max_retries: Optional[int] = (
         None  # → Guardrail.hasMaxRetries (CrewAI guardrail_max_retries kwarg)
     )
-    delegation_strategy: str = ""  # → hasDelegationStrategy ("ExplicitAssignment", "OrchestratorDelegated", "TopologyDetermined")
+    delegation_strategy: str = ""  # → hasDelegationStrategy; empty → skip (parser must set explicitly)
+    source_attribute: str = (
+        ""  # → TaskPrompt.hasSourceAttribute (e.g. "description, expected_output", "task")
+    )
 
     # Provenance
     source_file: str = ""
@@ -199,6 +210,12 @@ class ExtractedFlowStep:
     edge_mapping: dict[str, str] = field(
         default_factory=dict
     )  # Router label → target node
+    aggregation_combinator: str = (
+        ""  # "or_", "and_", or "" for single-predecessor → hasAggregationCombinator
+    )
+    outgoing: list[str] = field(
+        default_factory=list
+    )  # Direct successor nodes from add_edge() — preserves back-edges/loops
 
 
 @dataclass

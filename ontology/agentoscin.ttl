@@ -130,6 +130,14 @@
                 rdfs:range :LLMAgent .
 
 
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAssociatedAgent
+:hasAssociatedAgent rdf:type owl:ObjectProperty ;
+                    rdfs:subPropertyOf owl:topObjectProperty ;
+                    rdfs:domain :WorkflowStep ;
+                    rdfs:range :LLMAgent ;
+                    rdfs:comment "Links a workflow step to the agent that executes it (e.g. a LangGraph node function implemented by a specific LLMAgent).".
+
+
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAssociatedTask
 :hasAssociatedTask rdf:type owl:ObjectProperty ;
                    rdfs:subPropertyOf owl:topObjectProperty ;
@@ -150,7 +158,6 @@
            rdfs:domain :Agent ,
                        :AgenticSystem ,
                        :Capability ,
-                       :Config ,
                        :Context ,
                        :CoordinationPattern ,
                        :Guardrail ,
@@ -222,7 +229,8 @@
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasOutputSchema
 :hasOutputSchema rdf:type owl:ObjectProperty ;
                  rdfs:subPropertyOf owl:topObjectProperty ;
-                 rdfs:domain :Task ;
+                 rdfs:domain :Orchestration ,
+                             :Task ;
                  rdfs:range :Schema .
 
 
@@ -605,6 +613,22 @@
                       rdfs:domain :WorkflowStep ;
                       rdfs:range xsd:string ;
                       rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAggregationCombinator
+:hasAggregationCombinator rdf:type owl:DatatypeProperty ;
+                           rdfs:subPropertyOf owl:topDataProperty ;
+                           rdfs:domain :WorkflowStep ;
+                           rdfs:range xsd:string ;
+                           rdfs:comment "Combinator used to aggregate multiple predecessor steps in the source decorator (e.g. CrewAI @listen(or_(step_a, step_b)) stores \"or_\"). Values: \"or_\", \"and_\", or empty for single-predecessor steps." .
+
+
+###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/callsCrew
+:callsCrew rdf:type owl:DatatypeProperty ;
+            rdfs:subPropertyOf owl:topDataProperty ;
+            rdfs:domain :WorkflowStep ;
+            rdfs:range xsd:string ;
+            rdfs:comment "Key of the team/crew invoked by this workflow step (e.g. CrewAI @listen method calling crew.kickoff()). Enables per-step crew binding through the ontology round-trip." .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasRoutingLogic

@@ -44,6 +44,9 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
     {% if agent.memory_class %}
     memory=[{{ agent.memory_class }}()],
     {% endif %}
+    {% if agent.description %}
+    description="{{ agent.description }}",
+    {% endif %}
     system_message=(
         "{{ agent.system_message }}"
     ),
@@ -64,13 +67,15 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
    then serialises back to the same two hasTerminationCondition triples
    (plus hasTriggerExpression for the EventBased one). #}
 {% if team.max_turns %}
-termination = MaxMessageTermination({{ team.max_turns }})
+max_msg_termination = MaxMessageTermination({{ team.max_turns }})
 {% else %}
-termination = MaxMessageTermination(10)
+max_msg_termination = MaxMessageTermination(10)
 {% endif %}
 {% if team.trigger_expression %}
 text_termination = TextMentionTermination("{{ team.trigger_expression }}")
-termination = termination | text_termination
+termination = max_msg_termination | text_termination
+{% else %}
+termination = max_msg_termination
 {% endif %}
 
 {% if team.pattern == "SelectorBased" or team.process == "hierarchical" %}

@@ -179,10 +179,8 @@ class AutoGenGenerator(BaseCodeGenerator):
                     "var_name": var_name,
                     "name": agent.role.replace(" ", "_"),
                     "system_message": self._escape_string(system_message),
+                    "description": self._escape_string(agent.description) if agent.description else "",
                     "tool_vars": agent_tool_vars,
-                    # Memory class (e.g. ListMemory, ChromaDBVectorMemory).
-                    # The parser re-extracts this by walking `memory=[Cls()]`
-                    # kwargs. Emitting it here closes the memory round-trip.
                     "memory_class": agent.memory_type or (
                         "ListMemory" if agent.memory else ""
                     ),
@@ -256,4 +254,10 @@ class AutoGenGenerator(BaseCodeGenerator):
     @staticmethod
     def _escape_string(s: str) -> str:
         """Escape a string for use in Python source code."""
-        return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+        return (
+            s.replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        )

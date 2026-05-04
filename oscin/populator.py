@@ -32,6 +32,7 @@ from rdflib.namespace import OWL, RDF, RDFS, XSD
 from oscin.base_parser import BaseSourceParser
 from oscin.namespaces import (
     AGENTOSCIN,
+    CALLS_CREW,
     COORD_CUSTOM,
     COORD_HIERARCHICAL,
     COORD_NETWORK,
@@ -184,7 +185,8 @@ class OntologyPopulator:
             # round-trips, independent of the human-readable role string.
             self._add_str(uri, AGENTOSCIN.agentID, key)
             self._add_str(uri, AGENTOSCIN.agentRole, agent.role)
-            self._add_str(uri, AGENTOSCIN.agentType, agent.agent_type)
+            if agent.agent_type:
+                self._add_str(uri, AGENTOSCIN.agentType, agent.agent_type)
             self._add_bool(uri, AGENTOSCIN.hasReasoningEnabled, agent.reasoning)
 
             # --- Goal ---
@@ -194,28 +196,25 @@ class OntologyPopulator:
                 self.g.add((uri, AGENTOSCIN.hasAgentGoal, goal_uri))
 
             # --- Agent Prompt(s) ---
-            # D2: Use directive_function from intermediate to determine prompt type
+            # Use directive_function from intermediate to determine prompt type
             directive = agent.directive_function
 
             if directive == "ModelDirective":
-                # AutoGen pattern: system_message → ModelDirective prompt
-                # backstory holds the full system_message content
                 prompt_uri = self._create_individual(
                     "AgentPrompt", key, AGENTOSCIN.Prompt
                 )
                 self.prompt_uris[f"agent_{key}"] = prompt_uri
-                # For AutoGen, instruction is goal (first sentence), context is backstory (rest)
                 self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, agent.goal)
                 self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
                 self._add_str(
                     prompt_uri, AGENTOSCIN.hasDirectiveFunction, "ModelDirective"
                 )
-                self._add_str(
-                    prompt_uri, AGENTOSCIN.hasSourceAttribute, "system_message"
-                )
+                if agent.prompt_source:
+                    self._add_str(
+                        prompt_uri, AGENTOSCIN.hasSourceAttribute, agent.prompt_source
+                    )
                 self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
 
-                # If description is also present, create a second OrchestratorDirective prompt
                 if agent.description:
                     orch_prompt_uri = self._create_individual(
                         "OrchestratorPrompt", key, AGENTOSCIN.Prompt
@@ -236,14 +235,12 @@ class OntologyPopulator:
                         "description",
                     )
                     self.g.add((uri, AGENTOSCIN.agentPrompt, orch_prompt_uri))
-            else:
-                # CrewAI/default pattern: DualDirective
+            elif directive == "DualDirective":
                 prompt_uri = self._create_individual(
                     "AgentPrompt", key, AGENTOSCIN.Prompt
                 )
                 self.prompt_uris[f"agent_{key}"] = prompt_uri
 
-                # Compose instruction: role + goal
                 instruction = (
                     f"{agent.role}: {agent.goal}" if agent.goal else agent.role
                 )
@@ -252,11 +249,28 @@ class OntologyPopulator:
                 self._add_str(
                     prompt_uri, AGENTOSCIN.hasDirectiveFunction, "DualDirective"
                 )
-                self._add_str(
-                    prompt_uri,
-                    AGENTOSCIN.hasSourceAttribute,
-                    "role, goal, backstory",
+                if agent.prompt_source:
+                    self._add_str(
+                        prompt_uri, AGENTOSCIN.hasSourceAttribute, agent.prompt_source
+                    )
+                self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
+            elif agent.goal or agent.backstory:
+                prompt_uri = self._create_individual(
+                    "AgentPrompt", key, AGENTOSCIN.Prompt
                 )
+                self.prompt_uris[f"agent_{key}"] = prompt_uri
+                if agent.goal:
+                    self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, agent.goal)
+                if agent.backstory:
+                    self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+                if directive:
+                    self._add_str(
+                        prompt_uri, AGENTOSCIN.hasDirectiveFunction, directive
+                    )
+                if agent.prompt_source:
+                    self._add_str(
+                        prompt_uri, AGENTOSCIN.hasSourceAttribute, agent.prompt_source
+                    )
                 self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
 
             # --- Tool bindings ---
@@ -380,18 +394,10 @@ class OntologyPopulator:
                 self.g.add(
                     (uri, AGENTOSCIN.performedByAgent, self.agent_uris[task.agent_key])
                 )
-            # Use delegation_strategy from intermediate if set, else infer
+            # Only emit delegation strategy when parser explicitly set it
             if task.delegation_strategy:
                 self._add_str(
                     uri, AGENTOSCIN.hasDelegationStrategy, task.delegation_strategy
-                )
-            elif task.agent_key:
-                self._add_str(
-                    uri, AGENTOSCIN.hasDelegationStrategy, "ExplicitAssignment"
-                )
-            else:
-                self._add_str(
-                    uri, AGENTOSCIN.hasDelegationStrategy, "OrchestratorDelegated"
                 )
 
             # --- Task Prompt ---
@@ -406,11 +412,12 @@ class OntologyPopulator:
             self._add_str(
                 task_prompt_uri, AGENTOSCIN.promptOutputIndicator, task.expected_output
             )
-            self._add_str(
-                task_prompt_uri,
-                AGENTOSCIN.hasSourceAttribute,
-                "description, expected_output",
-            )
+            if task.source_attribute:
+                self._add_str(
+                    task_prompt_uri,
+                    AGENTOSCIN.hasSourceAttribute,
+                    task.source_attribute,
+                )
 
             self.g.add((uri, AGENTOSCIN.taskPrompt, task_prompt_uri))
 
@@ -430,6 +437,20 @@ class OntologyPopulator:
                 )
                 schema_json = pydantic_fields_to_json_schema(model.fields)
                 self._add_str(schema_uri, AGENTOSCIN.hasSchemaDefinition, schema_json)
+                self._add_str(schema_uri, HAS_TITLE, task.output_pydantic)
+                self._add_str(
+                    schema_uri, AGENTOSCIN.hasSourceAttribute, "output_pydantic"
+                )
+                self.g.add((uri, AGENTOSCIN.hasOutputSchema, schema_uri))
+
+            if task.output_json:
+                schema_uri = self._create_individual(
+                    "Schema", f"{task.output_json}_json", AGENTOSCIN.Schema
+                )
+                self._add_str(schema_uri, HAS_TITLE, task.output_json)
+                self._add_str(
+                    schema_uri, AGENTOSCIN.hasSourceAttribute, "output_json"
+                )
                 self.g.add((uri, AGENTOSCIN.hasOutputSchema, schema_uri))
 
             # --- Dependencies ---
@@ -442,6 +463,7 @@ class OntologyPopulator:
                     dep_uri = self.EX[f"Task_{self._safe_id(dep_key)}"]
                     self.g.add((dep_uri, RDF.type, AGENTOSCIN.Task))
                     self.g.add((uri, AGENTOSCIN.dependsOn, dep_uri))
+            if task.context_tasks:
                 self._add_str(uri, AGENTOSCIN.hasDependencyType, "ContextProviding")
 
             # --- Guardrails ---
@@ -538,95 +560,111 @@ class OntologyPopulator:
             self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, pattern_uri))
 
             # --- Termination ---
-            # Default: TaskCompletionTermination (CrewAI always terminates when tasks done)
-            if not team.termination_conditions:
-                term_uri = self._create_individual(
-                    "Termination", key, AGENTOSCIN.TaskCompletionTermination
-                )
-                self.g.add((uri, AGENTOSCIN.hasTerminationCondition, term_uri))
-            else:
+            # Only emit termination conditions that were explicitly declared by the parser
+            if team.termination_conditions:
                 # Structured termination conditions from parser
                 self._populate_termination_conditions(
                     uri, key, team.termination_conditions
                 )
 
             # Turn-limit termination (e.g. AutoGen max_turns)
+            # Skip if a TurnLimit condition is already present in
+            # termination_conditions (avoid duplicating when max_turns
+            # was promoted from a composite sub-condition).
             if team.max_turns is not None:
-                tl_uri = self._create_individual(
-                    "TurnLimit", key, AGENTOSCIN.TurnLimitTermination
+                has_top_level_turn_limit = any(
+                    tc.get("type") == "TurnLimit" and tc.get("max_turns") == team.max_turns
+                    for tc in team.termination_conditions
                 )
-                self._add_int(tl_uri, AGENTOSCIN.hasMaxTurns, team.max_turns)
-                self.g.add((uri, AGENTOSCIN.hasTerminationCondition, tl_uri))
+                if not has_top_level_turn_limit:
+                    tl_uri = self._create_individual(
+                        "TurnLimit", key, AGENTOSCIN.TurnLimitTermination
+                    )
+                    self._add_int(tl_uri, AGENTOSCIN.hasMaxTurns, team.max_turns)
+                    self.g.add((uri, AGENTOSCIN.hasTerminationCondition, tl_uri))
 
             # --- Workflow Pattern ---
-            wp_uri = self._create_individual(
-                "WorkflowPattern", key, AGENTOSCIN.WorkflowPattern
-            )
-            self.g.add((uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
+            # Only create team-level sequential workflow steps for teams
+            # that have explicitly ordered tasks (CrewAI crews from YAML).
+            # LangGraph and AutoGen teams have auto-synthesized task_keys
+            # whose ordering doesn't represent a real workflow — the Flow
+            # pattern is the authoritative workflow for those frameworks.
+            if team.task_keys and team.coordination_pattern not in (
+                "RoundRobin",
+                "SelectorBased",
+                "Swarm",
+                "ReActLoop",
+                "Custom",
+                "Network",
+            ):
+                wp_uri = self._create_individual(
+                    "WorkflowPattern", key, AGENTOSCIN.WorkflowPattern
+                )
+                self.g.add((uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
 
-            prev_step_uri = None
-            for idx, task_key in enumerate(team.task_keys):
-                step_uri = self.EX[
-                    f"CrewStep_{self._safe_id(key)}_{self._safe_id(task_key)}"
-                ]
+                prev_step_uri = None
+                for idx, task_key in enumerate(team.task_keys):
+                    step_uri = self.EX[
+                        f"CrewStep_{self._safe_id(key)}_{self._safe_id(task_key)}"
+                    ]
 
-                # Determine type
-                is_first = idx == 0
-                is_last = idx == len(team.task_keys) - 1
-                if is_first and is_last:
-                    self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
-                    self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
-                elif is_first:
-                    self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
-                elif is_last:
-                    self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
-                else:
-                    self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
+                    # Determine type
+                    is_first = idx == 0
+                    is_last = idx == len(team.task_keys) - 1
+                    if is_first and is_last:
+                        self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
+                        self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
+                    elif is_first:
+                        self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
+                    elif is_last:
+                        self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
+                    else:
+                        self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
 
-                self._add_str(step_uri, HAS_TITLE, task_key)
-                self._add_int(step_uri, AGENTOSCIN.stepOrder, idx + 1)
+                    self._add_str(step_uri, HAS_TITLE, task_key)
+                    self._add_int(step_uri, AGENTOSCIN.stepOrder, idx + 1)
 
-                if task_key in self.task_uris:
-                    self.g.add(
-                        (
-                            step_uri,
-                            AGENTOSCIN.hasAssociatedTask,
-                            self.task_uris[task_key],
-                        )
-                    )
-
-                if prev_step_uri is not None:
-                    self.g.add((prev_step_uri, AGENTOSCIN.nextStep, step_uri))
-
-                self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, step_uri))
-
-                # C3: For sequential teams, add implicit Sequential dependency
-                # between consecutive tasks that don't have explicit context
-                if (
-                    team.process == "sequential"
-                    and prev_step_uri is not None
-                    and task_key in self.task_uris
-                    and idx > 0
-                ):
-                    prev_task_key = team.task_keys[idx - 1]
-                    task_obj = self.parser.tasks.get(task_key)
-                    if task_obj and not task_obj.context_tasks:
-                        # No explicit context → add sequential dependency
-                        if prev_task_key in self.task_uris:
-                            self.g.add(
-                                (
-                                    self.task_uris[task_key],
-                                    AGENTOSCIN.dependsOn,
-                                    self.task_uris[prev_task_key],
-                                )
-                            )
-                            self._add_str(
+                    if task_key in self.task_uris:
+                        self.g.add(
+                            (
+                                step_uri,
+                                AGENTOSCIN.hasAssociatedTask,
                                 self.task_uris[task_key],
-                                AGENTOSCIN.hasDependencyType,
-                                "Sequential",
                             )
+                        )
 
-                prev_step_uri = step_uri
+                    if prev_step_uri is not None:
+                        self.g.add((prev_step_uri, AGENTOSCIN.nextStep, step_uri))
+
+                    self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, step_uri))
+
+                    # C3: For sequential teams, add implicit Sequential dependency
+                    # between consecutive tasks that don't have explicit context
+                    if (
+                        team.process == "sequential"
+                        and prev_step_uri is not None
+                        and task_key in self.task_uris
+                        and idx > 0
+                    ):
+                        prev_task_key = team.task_keys[idx - 1]
+                        task_obj = self.parser.tasks.get(task_key)
+                        if task_obj and not task_obj.context_tasks:
+                            # No explicit context → add sequential dependency
+                            if prev_task_key in self.task_uris:
+                                self.g.add(
+                                    (
+                                        self.task_uris[task_key],
+                                        AGENTOSCIN.dependsOn,
+                                        self.task_uris[prev_task_key],
+                                    )
+                                )
+                                self._add_str(
+                                    self.task_uris[task_key],
+                                    AGENTOSCIN.hasDependencyType,
+                                    "Sequential",
+                                )
+
+                    prev_step_uri = step_uri
 
             # --- Manager Agent (hierarchical process) ---
             if team.manager_llm or team.manager_agent:
@@ -760,8 +798,8 @@ class OntologyPopulator:
         )
         self.g.add((orch_uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
 
-        step_uris, outgoing_edges = self._create_flow_steps(flow, wp_uri)
-        self._resolve_flow_edges(flow, step_uris, outgoing_edges)
+        step_uris, outgoing_edges, conditional_step_names = self._create_flow_steps(flow, wp_uri)
+        self._resolve_flow_edges(flow, step_uris, outgoing_edges, conditional_step_names)
 
         log.info(
             "  [Flow] %s \u2192 %s (%d steps, %d crew references)",
@@ -777,9 +815,10 @@ class OntologyPopulator:
         )
         self._add_str(uri, HAS_TITLE, flow.class_name)
 
-        # Default for CrewAI Flow
-        self.g.add((COORD_CUSTOM, RDF.type, AGENTOSCIN.CoordinationPattern))
-        self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, COORD_CUSTOM))
+        # Infer coordination pattern from flow topology
+        coord_pattern = self._infer_orchestration_pattern(flow)
+        self.g.add((coord_pattern, RDF.type, AGENTOSCIN.CoordinationPattern))
+        self.g.add((uri, AGENTOSCIN.employsCoordinationPattern, coord_pattern))
 
         # Store state schema if present (e.g. LangGraph TypedDict fields)
         if hasattr(flow, "state_fields") and flow.state_fields:
@@ -795,15 +834,35 @@ class OntologyPopulator:
             )
             if flow.state_model:
                 self._add_str(schema_uri, HAS_TITLE, flow.state_model)
+            self._add_str(
+                schema_uri, AGENTOSCIN.hasSourceAttribute, "state_model"
+            )
             self.g.add((uri, AGENTOSCIN.hasOutputSchema, schema_uri))
 
         return uri
 
+    @staticmethod
+    def _infer_orchestration_pattern(flow) -> URIRef:
+        step_types = {s.step_type for s in flow.steps}
+        has_conditional = "conditional" in step_types or "router" in step_types
+        has_loop = any(
+            s.step_type in ("conditional", "router")
+            and s.method_name in s.return_values
+            for s in flow.steps
+        )
+
+        if not has_conditional:
+            return COORD_SEQUENTIAL
+        if has_loop:
+            return COORD_REACT_LOOP
+        return COORD_HIERARCHICAL
+
     def _create_flow_steps(
         self, flow, wp_uri: URIRef
-    ) -> tuple[dict[str, URIRef], dict[str, list[str]]]:
+    ) -> tuple[dict[str, URIRef], dict[str, list[str]], set[str]]:
         step_uris: dict[str, URIRef] = {}
         outgoing_edges: dict[str, list[str]] = {}
+        conditional_step_names: set[str] = set()
 
         for idx, step in enumerate(flow.steps):
             uri = self._create_individual(
@@ -817,6 +876,10 @@ class OntologyPopulator:
                 self.g.add((uri, RDF.type, AGENTOSCIN.StartStep))
             elif step.step_type == "router":
                 self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
+                conditional_step_names.add(step.method_name)
+            elif step.step_type == "conditional":
+                self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
+                conditional_step_names.add(step.method_name)
 
             # Store routing logic if present (routers, or start nodes
             # with conditional edges in LangGraph)
@@ -827,6 +890,7 @@ class OntologyPopulator:
                 # Mark as conditional even if also a start step
                 if step.step_type != "router":
                     self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
+                    conditional_step_names.add(step.method_name)
             elif step.step_type == "router" and step.function_body:
                 self._add_str(uri, AGENTOSCIN.hasRoutingLogic, step.function_body)
 
@@ -844,6 +908,26 @@ class OntologyPopulator:
             self._add_int(uri, AGENTOSCIN.stepOrder, idx + 1)
             self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, uri))
 
+            # Link step to its associated agent (e.g. LangGraph node → LLMAgent)
+            if step.associated_agent_key and step.associated_agent_key in self.agent_uris:
+                self.g.add(
+                    (
+                        uri,
+                        AGENTOSCIN.hasAssociatedAgent,
+                        self.agent_uris[step.associated_agent_key],
+                    )
+                )
+
+            # Store per-step crew binding (e.g. CrewAI @listen calling crew.kickoff())
+            if step.calls_crew:
+                self._add_str(uri, CALLS_CREW, step.calls_crew)
+
+            # Store aggregation combinator for multi-predecessor decorators
+            if step.aggregation_combinator:
+                self._add_str(
+                    uri, AGENTOSCIN.hasAggregationCombinator, step.aggregation_combinator
+                )
+
         # Persist literal decorator arguments (e.g. CrewAI @start("wait_next_run"))
         # as :hasDecoratorArgument so they survive the round-trip. Method-name
         # references are already captured by the nextStep edge structure, so
@@ -855,10 +939,11 @@ class OntologyPopulator:
                 if dep and dep not in method_names:
                     self._add_str(uri, AGENTOSCIN.hasDecoratorArgument, dep)
 
-        return step_uris, outgoing_edges
+        return step_uris, outgoing_edges, conditional_step_names
 
     def _resolve_flow_edges(
-        self, flow, step_uris: dict[str, URIRef], outgoing_edges: dict[str, list[str]]
+        self, flow, step_uris: dict[str, URIRef], outgoing_edges: dict[str, list[str]],
+        conditional_step_names: set[str] | None = None,
     ) -> None:
         # Resolve target mapping: @listen("label") or method names
         # First pass: map step names to their own URIs
@@ -877,6 +962,15 @@ class OntologyPopulator:
         # Connect edges
         for step in flow.steps:
             src_uri = step_uris[step.method_name]
+
+            # Direct outgoing edges recorded by the parser (e.g. LangGraph
+            # add_edge("a","b") incl. back-edges that close ReAct loops).
+            # rdflib dedupes triples, so this is safe even if a later branch
+            # adds the same edge again.
+            for tgt in step.outgoing:
+                if tgt in label_map:
+                    self.g.add((src_uri, AGENTOSCIN.nextStep, label_map[tgt]))
+                    outgoing_edges[step.method_name].append(tgt)
 
             # Steps with return_values (routers, or start nodes with
             # conditional edges in LangGraph)
@@ -899,9 +993,18 @@ class OntologyPopulator:
                             )
                             outgoing_edges[step.method_name].append(other.method_name)
 
-        # Reclassify dead-ends as EndSteps (keep WorkflowStep as parent type)
+        # Reclassify dead-ends as EndSteps (keep WorkflowStep as parent type).
+        # Skip conditional/router steps — they may have zero resolved edges
+        # because their routing targets didn't map to step URIs, but they
+        # are NOT terminal steps.
+        # Also skip steps that are already StartSteps — a start node
+        # cannot also be a terminal node in a non-trivial flow.
+        conditional = conditional_step_names or set()
+        start_step_names = {
+            s.method_name for s in flow.steps if s.step_type == "start"
+        }
         for step_name, edges in outgoing_edges.items():
-            if not edges:
+            if not edges and step_name not in conditional and step_name not in start_step_names:
                 uri = step_uris[step_name]
                 self.g.add((uri, RDF.type, AGENTOSCIN.EndStep))
 

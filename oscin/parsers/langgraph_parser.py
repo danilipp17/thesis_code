@@ -301,12 +301,11 @@ class LangGraphParser(BaseSourceParser):
                 if name in self._tool_node_names:
                     log.info("  [Agent] Skipping stub for ToolNode '%s'", name)
                     continue
-                # Use module-level LLM as fallback
-                llm_model = (
-                    next(iter(self._module_llms.values()), None)
-                    if self._module_llms
-                    else None
-                )
+                # If exactly one module-level LLM, use it; otherwise
+                # leave None to avoid assigning the wrong model.
+                llm_model = None
+                if len(self._module_llms) == 1:
+                    llm_model = next(iter(self._module_llms.values()))
                 agent = ExtractedAgent(
                     agent_key=agent_key,
                     role=name,
@@ -390,6 +389,7 @@ class LangGraphParser(BaseSourceParser):
                 expected_output=expected_output,
                 agent_key=agent_key,
                 delegation_strategy="TopologyDetermined",  # B2
+                source_attribute="",
                 source_file=agent.source_file,
             )
             self.tasks[task.task_key] = task
@@ -517,6 +517,9 @@ class LangGraphParser(BaseSourceParser):
                         if not model and self._module_llms
                         else model,
                         tools=tools,
+                        agent_type="",
+                        directive_function="ModelDirective",
+                        prompt_source="",
                         source_file=str(filepath),
                     )
                     agent.reasoning = True
@@ -534,6 +537,7 @@ class LangGraphParser(BaseSourceParser):
                         expected_output="",
                         agent_key=agent_key,
                         delegation_strategy="TopologyDetermined",
+                        source_attribute="",
                         source_file=str(filepath),
                     )
                     self.tasks[task_key] = task
@@ -716,6 +720,13 @@ class LangGraphParser(BaseSourceParser):
             if has_tool_target and (has_end or targets & agent_node_names):
                 return "ReActLoop"
 
+        # Check for self-loops in conditional edges: if a source node
+        # appears in its own mapping targets, it's not purely hierarchical
+        for ce in conditional_edges:
+            targets = set(ce.mapping.values())
+            if ce.source_node in targets:
+                return "Custom"
+
         # Check for Hierarchical: one node routes to multiple agent nodes
         for ce in conditional_edges:
             targets = set(ce.mapping.values()) - {"END", "__end__"}
@@ -825,7 +836,7 @@ class LangGraphParser(BaseSourceParser):
         Patterns:
         - ``llm = ChatOpenAI(model="gpt-4o")``
         - ``llm = ChatAnthropic(model="claude-3-5-sonnet-20240620")``
-        - ``model_client = ChatOpenAI(model="gpt-4-turbo-preview")``
+        - ``model = ChatOpenAI(model="gpt-4o").bind_tools(tools)``
         """
         for node in ast.iter_child_nodes(tree):
             if not isinstance(node, ast.Assign) or len(node.targets) != 1:
@@ -833,6 +844,26 @@ class LangGraphParser(BaseSourceParser):
             target = node.targets[0]
             if not isinstance(target, ast.Name):
                 continue
+            # Handle both direct calls and chained calls like ChatOpenAI(...).bind_tools(...)
+            call_node = node.value
+            if isinstance(call_node, ast.Call) and isinstance(call_node.func, ast.Attribute):
+                # Chained call: model = ChatOpenAI(...).bind_tools(...)
+                inner_call = call_node.func.value
+                if isinstance(inner_call, ast.Call):
+                    call_name = ast_utils.get_call_name(inner_call)
+                    if call_name in _LLM_CLASSES:
+                        model = self._extract_model_kwarg(inner_call)
+                        if model:
+                            self._module_llms[target.id] = model
+                            log.info(
+                                "  [LLM] Module-level %s = %s(model='%s').bind_tools(...) in %s",
+                                target.id,
+                                call_name,
+                                model,
+                                filepath.name,
+                            )
+                            continue
+            # Direct call: llm = ChatOpenAI(model="gpt-4o")
             if not isinstance(node.value, ast.Call):
                 continue
             call_name = ast_utils.get_call_name(node.value)
@@ -1046,13 +1077,6 @@ class LangGraphParser(BaseSourceParser):
             # This function is used as a graph node — check for LLM calls
             llm_model = self._find_llm_in_function(item)
 
-            # Fallback: use module-level LLM if none found in function body
-            if not llm_model and self._module_llms:
-                llm_model = next(iter(self._module_llms.values()))
-
-            # Extract system prompt from the function body
-            system_prompt = self._extract_system_prompt(item)
-
             # Detect tool bindings: find which model variable the function uses
             # and check if that variable has bound tools
             agent_tools: list[str] = []
@@ -1064,11 +1088,22 @@ class LangGraphParser(BaseSourceParser):
                 # e.g. model = ChatOpenAI(...).bind_tools(tools)
                 # The variable itself may be in _bound_tools
                 pass
+
+            # Fallback: resolve model variable to module-level LLM
+            if not llm_model and self._module_llms:
+                if model_var and model_var in self._module_llms:
+                    llm_model = self._module_llms[model_var]
+                elif self._module_llms:
+                    llm_model = next(iter(self._module_llms.values()))
+
             # Fallback: if there's only one bind_tools mapping, assign all tools
             if not agent_tools and len(self._bound_tools) == 1:
                 only_key = next(iter(self._bound_tools))
                 if model_var == only_key or model_var is None:
                     agent_tools = sorted(next(iter(self._bound_tools.values())))
+
+            # Extract system prompt from the function body
+            system_prompt = self._extract_system_prompt(item)
 
             # Use the node name (not the function name) as the agent key
             # so it matches flow steps correctly
@@ -1080,6 +1115,9 @@ class LangGraphParser(BaseSourceParser):
                 backstory=system_prompt,
                 llm=llm_model,
                 tools=agent_tools,
+                agent_type="",
+                directive_function="ModelDirective",
+                prompt_source="system_prompt",
                 source_file=str(filepath),
             )
             self.agents[agent_key] = agent
@@ -1346,6 +1384,25 @@ class LangGraphParser(BaseSourceParser):
                 return_values=return_values,
                 function_body=function_body,
                 edge_mapping=edge_mapping,
+                associated_agent_key=ast_utils.safe_key(name),
+                outgoing=list(outgoing.get(name, [])),
+            )
+            steps.append(step)
+
+        # Add ToolNode steps (infrastructure nodes, not agents)
+        for tool_node_name in self._tool_node_names:
+            incoming_tools = [frm for frm, to in edges if to == tool_node_name]
+            outgoing_tools = [to for frm, to in edges if frm == tool_node_name]
+            step = ExtractedFlowStep(
+                method_name=tool_node_name,
+                step_type="regular",
+                dependencies=incoming_tools if incoming_tools else [],
+                calls_crew=None,
+                return_values=[],
+                function_body="",
+                edge_mapping={},
+                associated_agent_key=None,
+                outgoing=outgoing_tools,
             )
             steps.append(step)
 

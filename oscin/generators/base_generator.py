@@ -79,15 +79,32 @@ class BaseCodeGenerator(ABC):
         """
         Write a file relative to ``self.output_dir``.
 
-        Creates parent directories as needed.  Returns the absolute
-        path of the written file.
+        Creates parent directories as needed. For .py files, verifies
+        that the content parses as valid Python and logs a warning if
+        it does not.  Returns the absolute path of the written file.
         """
         out = self.output_dir / rel_path
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(content, encoding="utf-8")
         self._created_files.append(out)
         log.info("  [WRITE] %s", out)
+
+        if rel_path.endswith(".py"):
+            self._validate_python(out)
+
         return out
+
+    @staticmethod
+    def _validate_python(path: Path) -> None:
+        """Verify that a .py file parses as valid Python and log a warning if not."""
+        import ast
+
+        try:
+            source = path.read_text(encoding="utf-8")
+            if source.strip():
+                ast.parse(source)
+        except SyntaxError as e:
+            log.warning("  [SYNTAX] %s: %s", path, e)
 
     @staticmethod
     def _to_snake(name: str) -> str:

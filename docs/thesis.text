@@ -1,0 +1,1561 @@
+% Copyright (C) 2014-2025 by Thomas Auzinger <thomas@auzinger.name>
+
+% Options:
+% 'final'   : Remove debug info in the final build.
+% 'twoside' : Add empty pages so chapters start on odd pages.
+\documentclass[final,twoside]{vutinfth}
+
+% --- Your thesis metadata ---
+\newcommand{\authorname}{Dani Lippmann} % The author name without titles.
+\newcommand{\thesistitle}{Towards Interoperability between Agentic AI Frameworks
+through Semantic Representation}
+
+% --- PDF/A XMP metadata ---
+\begin{filecontents*}[overwrite]{\jobname.xmpdata}
+\Author{\authorname}
+\Title{\thesistitle}
+\Language{en-GB}
+\Keywords{AI documentation\sep workflows\sep enterprise platforms\sep governance\sep transparency}
+\Publisher{TU Wien}
+\Subject{Master's Thesis}
+\end{filecontents*}
+
+% --- Encoding and fonts ---
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% --- Useful packages (kept from template) ---
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{microtype}
+\usepackage[inline]{enumitem}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage[ruled,linesnumbered,algochapter]{algorithm2e}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{nag}
+\usepackage{todonotes}
+\usepackage{morewrites}
+\usepackage[a-2b,mathxmp]{pdfx}      % Loads hyperref; must be second to last package before glossaries
+\usepackage[acronym,toc]{glossaries} 
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{minted}
+\usepackage{xcolor}
+\usepackage{listings}% Must be last package
+
+\lstdefinelanguage{yaml}{
+  keywords={role, goal, backstory, llm, tools, memory, verbose,
+             allow_delegation, max_iter, reasoning},
+  keywordstyle=\color{blue}\bfseries,
+  morestring=[b]',
+  morestring=[b]",
+  stringstyle=\color{teal},
+  comment=[l]{\#},
+  commentstyle=\color{gray}\itshape,
+  sensitive=true
+}
+
+\lstset{
+  language=yaml,
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{black!30},
+  backgroundcolor=\color{black!4},
+  captionpos=b,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1.5em,
+  framexleftmargin=1.5em
+}
+
+\lstdefinelanguage{autogen}{
+  language=Python,
+  morekeywords={AssistantAgent, UserProxyAgent, OpenAIChatCompletionClient,
+                ListMemory, ChromaDBVectorMemory},
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{teal},
+  commentstyle=\color{gray}\itshape,
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{black!30},
+  backgroundcolor=\color{black!4},
+  captionpos=b,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1.5em,
+  framexleftmargin=1.5em
+}
+\lstdefinelanguage{langgraph}{
+  language=Python,
+  morekeywords={StateGraph, MessagesState, SystemMessage, HumanMessage,
+                ChatOpenAI, ChatAnthropic, ToolNode, START, END,
+                create_react_agent},
+  keywordstyle=\color{blue}\bfseries,
+  stringstyle=\color{teal},
+  commentstyle=\color{gray}\itshape,
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{black!30},
+  backgroundcolor=\color{black!4},
+  captionpos=b,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1.5em,
+  framexleftmargin=1.5em
+}
+% --- PDF viewer behavior / link styling ---
+\hypersetup{
+    pdfpagelayout   = TwoPageRight,
+    linkbordercolor = {Melon},
+}
+
+% --- Layout tweaks ---
+\setpnumwidth{2.5em}
+\setsecnumdepth{subsection}
+\nonzeroparskip
+\setlength{\parindent}{0pt}
+
+% --- Optional indices & glossaries ---
+\makeindex
+\makeglossaries
+
+% --- People (leave titles empty if not used). Gender: male/female/na. ---
+\setauthor{}{Dani Lippmann BSc}{}{male}
+\setadvisor{}{Forename Surname}{}{na}           % TODO: fill in advisor
+% Assistants (Master theses often don't need these—keep or comment out as required)
+\setfirstassistant{}{}{}{na}
+\setsecondassistant{}{}{}{na}
+\setthirdassistant{}{}{}{na}
+
+% Dissertation-only fields (commented)
+% \setfirstreviewer{}{}{}{na}
+% \setsecondreviewer{}{}{}{na}
+% \setsecondadvisor{}{}{}{na}
+
+% --- Administrative data ---
+\setregnumber{12332231} % TODO: set your student/reg number
+\setdate{30}{06}{2026} % {day}{month}{year}
+\settitle{\thesistitle}{Round-Trip-Engineering agentenbasierter KI-Systeme mittels semantischer Repräsentation}
+\setsubtitle{}{ } % Optional English/German subtitles (left empty)
+
+% Thesis type and degree
+\setthesis{master}
+\setmasterdegree{dipl.} % dipl. / rer.nat. / rer.soc.oec. / master
+
+% Curriculum (adjust if needed)
+\setcurriculum{Business Informatics}{Wirtschaftsinformatik}
+
+% Optional reviewer data (often not used for Master)
+% \setfirstreviewerdata{}
+% \setsecondreviewerdata{}
+
+\begin{document}
+
+\frontmatter % Roman numbering
+
+% Title/statement pages
+% \addtitlepage{naustrian} % German title page
+\addtitlepage{english}   % English title page
+\addstatementpage{english} % Or 'english' for English statement text
+
+
+\begin{acknowledgements*}
+% TODO: Enter your text here.
+\end{acknowledgements*}
+
+
+\begin{abstract}
+% TODO: Insert your English abstract here.
+\end{abstract}
+
+% Language of the thesis
+\selectlanguage{english}
+
+% TOC
+\tableofcontents
+
+\mainmatter % Arabic numbering
+
+\chapter{Introduction}
+
+Over the past several years, agentic AI systems have moved from research prototypes to real world production deployments, driven by organizational demand to automate complex tasks without continuous human oversight \cite{fi17090404}. In contrast to conventional AI systems, agentic systems are capable of planning, delegating and acting autonomously across extended task  \cite{deepaketal2025}. However, as these systems scale to handle more sophisticated and distributed workflows, their underlying architectures become increasingly complex, exposing severe challenges in interoperability, scalability as well as system integration \cite{derouiche2025agenticaiframeworksarchitectures}. 
+
+This is particularly critical as agentic AI systems, in practice, are frequently developed in a monolithic and ad hoc manner, relying on framework-specific abstractions and tightly coupled implementations \cite{Sapkota_2026, ekelhart2026agento}. Frameworks such as LangGraph, CrewAI, and AutoGen each realize similar agentic concepts through fundamentally different code-level constructs (e.g. graph-based state machines, role-based agent teams, and conversation-driven orchestration). Architectural decisions and coordination logic are often hard-coded into source code, thereby limiting modularity and transferability across systems \cite{ekelhart2026agento}. This lack of standardized and transferable architectural semantics has been identified as a central challenge for agentic AI, as it hinders the comparison of implementations, the replication of results, and generalization across domains \cite{Sapkota_2026}.
+
+Existing semantic representations partially address these challenges by providing expressive conceptual vocabularies for agents, tasks and workflows. More recent work such as AgentO \cite{ekelhart2026agento} additionally demonstrates the feasibility of extracting agentic workflows from framework-specific source code into a unified ontology. However, these approaches remain focused on unidirectional extraction and do not model constructs such as conditional control flow, state management, or prompt-level semantics at sufficient depth to support bidirectional transformation between frameworks. This unidirectional limitation shows that existing representations are not expressive enough to serve as a shared intermediate layer between frameworks and therefore cannot support the systematic migration or comparison of agentic architectures across different implementations. 
+
+This thesis aims to contribute to addressing the challenges above and enrich the discourse on the topic of Agentic AI Systems and their semantic presentation. Specifically, we aim to answer the main research question:
+
+\begin{quote}
+\textit{To what extent can semantic representations enable interoperability between agentic AI frameworks?}
+\end{quote}
+
+Answering this question requires demonstrating that the vocabulary is rich enough to carry the architectural information of real agentic systems in both directions. This means from framework-specific implementations into a formal representation, and from that representation back into executable code. The thesis approaches the question through round-trip transformation, using the fidelity of extraction and regeneration as a measurable indicator of how far a shared ontology can close the gap between frameworks. To structure this research, the main question is split into four sub-questions:
+
+\begin{itemize}
+\item \textbf{RQ1:} Which architectural constructs must a semantic representation support to capture agentic AI systems implemented in CrewAI, AutoGen and LangGraph?
+\item \textbf{RQ2:} To what extent can semantic representations of agentic AI systems be systematically derived from their source code?
+\item \textbf{RQ3:} To what extent can the source code of agentic AI systems be generated from their semantic representations?
+\item \textbf{RQ4:} Which methods can be used to adequately evaluate the quality of extraction and generation of agentic AI systems from framework-specific source code?
+\end{itemize}
+
+RQ1 establishes the conceptual foundation by identifying what a shared representation must express to capture the constructs found in contemporary agentic AI frameworks. The outcome of this phase is a list of requirements a semantic representation needs to fulfill, to function as a framework-agnostic semantic representation. This list also acts as the guideline of the subsequent ontology evaluation, where we will check whether our ontology provides a higher concepts coverage than existing data models. 
+
+RQ2 and RQ3 form the two halves of the round-trip: the first concerns lifting framework-specific implementations into the semantic representation, the second concerns regenerating executable implementations from it. RQ4 addresses how the results of both directions can be evaluated rigorously rather than asserted, and grounds the evaluation through comparison against a large language model-driven baseline.
+
+\chapter{Related Work}
+
+This chapter reviews prior work relevant to the thesis in three areas: semantic representations of agentic and AI systems, the landscape of contemporary multi-agent frameworks, and model transformation approaches that bridge source code and semantic models.
+
+\section{Semantic Representations for Agentic and AI Systems}
+
+Alongside the development of agentic AI frameworks, several semantic representations have been proposed to capture the structure and interactions of complex AI systems.
+The BEAM ontology provides a high-level semantic model for representing AI systems within their operational and organizational context \cite{Ekaputra2025}. BEAM is an extension of the orginial Boxology \cite{DBLP} and focuses on systems, resources and contextual elements, enabling structured documentation of AI-based solutions and their deployment environments. While BEAM supports architectural description and contextual reasoning, it remains largely agnostic to fine-grained agentic control structures and execution semantics, which limits its suitability for detailed modeling of multi-agent workflows.
+
+AgentO is a recent ontology designed specifically for agentic AI systems and is the primary semantic foundation on which the present work builds \cite{ekelhart2026agento}. Its central premise is that contemporary agentic frameworks lack a shared conceptual model: each framework encodes its logic directly in code, resulting in monolithic implementations that hinder reusability, interoperability and auditing across systems. AgentO addresses this by offering a standardized RDF/OWL vocabulary for the recurring concepts of the agentic paradigm (agents, goals, tasks, tools, resources, workflows and their interrelations) so that agentic systems can be represented declaratively and independently of any particular framework.\cite{ekelhart2026agento} also developed an LLM-driven extraction pipeline that transforms source code from four agentic frameworks (AutoGen, CrewAI, LangGraph and Mastra AI) into instances of the ontology, producing a knowledge graph of 66 agentic patterns. The authors demonstrate the utility of this representation through three use cases: declarative reconstruction of agentic workflows, reuse of agent and task configurations across problem contexts, and auditing of agentic implementations for transparency and traceability \cite{ekelhart2026agento}.
+
+
+\section{Multi-agent Systems and Frameworks}
+
+Multi-agent systems are not a new research field. Work on coordinated autonomous agents dates back  decades \cite{wooldridge-1995, wooldridge-2009}. Classical MAS research was driven by questions of distributed problem solving, concurrent rationality and open systems. What large language models have changed is not the underlying paradigm but the foucs. Agents are now natural-language reasoners with broad general competence rather than narrow symbolic planners, and the coordination problem has accordingly shifted from symbolic message exchange to prompt engineering, tool orchestration and workflow control \cite{botti2025agenticaimultiagenticreinventing, guo2024largelanguagemodelbased}. The transition towards LLM-based multi-agent systems was motivated in large part by tasks that exceed the context window, domain coverage or reasoning budget of any single model. Early LLM-based frameworks explored different communication topologies to manage this coordination, broadly categorizing interactions into chain (waterfall), star (hub-and-spoke), and mesh (swarm) patterns\cite{arunkumar2026}. Among these three agentic AI frameworks have become particularly influential in both research and production settings: AutoGen, CrewAI and LangGraph \cite{botti2025agenticaimultiagenticreinventing}. Each realizes multi-agent collaboration through a different architectural commitment.
+
+AutoGen treats multi-agent collaboration as a conversation between conversable entities \cite{wu2023autogenenablingnextgenllm}. Its underlying model is dialogical: agents, tools and humans are all first-class participants in a shared message stream, and the system's behavior emerges from the rules that govern who speaks next. CrewAI treats multi-agent collaboration as role-based teamwork. Agents are defined by personas and responsibilities, organized into crews, and coordinated through processes that resemble organizational structures\cite{crewai_docs_2025}. LangGraph, developed by LangChain, treats multi-agent collaboration as a programmable workflow. Its underlying model is computational: the system is a state machine whose transitions are explicit and whose execution is traceable. Agent identity is secondary to graph structure, which places LangGraph closer to workflow engines and flow-based programming than to either dialogue systems or role-based teams \cite{langgraph_docs_2025, clark-2026}.
+
+These three framings (dialogue, role-based team and programmable workflow) represent genuinely different theories of what coordinated LLM agents are. They agree on the vocabulary of the domain while disagreeing on which concept is primary. This divergence is what motivates a shared ontological representation, and it is the starting point of the present work.
+
+\section{Model transformation and cross-framework interoperability}
+
+In the context of agentic AI systems, recent work such as AgentO demonstrates the feasibility of extracting agentic workflows from framework specific implementations into a unified semantic representation using Large Language Models \cite{ekelhart2026agento}. These approaches enable declarative reconstruction, cross framework comparison, and workflow auditing. However, they remain focused on one directional extraction and analysis and do not provide mechanisms for regenerating framework specific implementations from semantic models.   
+
+Model Driven Engineering (MDE) provides an established foundation for closing this gap. In MDE, models are treated as primary development artefacts from which executable code is generated rather than as mere documentation \cite{MDEMobile, MDESoftware}. The paradigm has been applied to many domains but not, so far, to agentic AI frameworks. A concrete instantiation relevant to the present work is the Ontology-based Source Code Interoperability (OSCIN) method \cite{oscin}. OSCIN separates syntactic from semantic abstraction. Source code is first parsed into a syntactic structure specific to its host language, and then mapped to a shared ontology representing a common subdomain. By routing heterogeneous source languages through a central operational ontology, this method mitigates both syntactic and semantic heterogeneity and exposes a single abstraction layer to downstream tools.
+
+However, similar to extraction method developed by AgentO\cite{ekelhart2026agento}, OSCIN focuses primarily on interoperability and perspective-based analysis rather than the feasiblity of bidirectional transformation. While it successfully abstracts source code into rich, queryable semantic graphs that can unify different languages under a common domain consensus, it serves as an analytical framework and does not natively provide mechanisms to dynamically regenerate executable, framework-specific implementations from a semantic representation.
+
+\section{Research Gap}
+
+The research gap this thesis addresses is whether a shared ontology can represent agentic AI systems with enough details that framework-specific implementations can be extracted into the ontology and regenerated from it, and how much semantic information is lost in each direction. Existing work on AgentO has shown that extraction alone is possible, but the inverse direction has not been attempted, and without it the adequacy of the representation cannot be rigorously tested. Round-trip transformation therefore serves as both the method and the measurement. It forces the ontology to carry enough structure to reconstruct executable systems, and the fidelity loss it exposes becomes a direct indicator of where the shared representation succeeds and where it reaches its limits.
+
+
+\chapter{Research Methods}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{graphics/threecycleview.png}
+    \caption{Three cycle view of DSR according to \cite{hevner2007}}
+    \label{fig:threecylceview}
+\end{figure}
+
+
+This research follows the Design Science Research (DSR) approach as defined by \cite{hevneretal2004} and \cite{hevner2007}. Requirement elicitation addresses the \emph{relevance cycle}, ontology engineering bridges the \emph{rigor} and \emph{design cycles}, and the bidirectional transformation method together with its evaluation completes the \emph{design cycle}.
+
+\section{Requirement Elicitation through Literature Review and Framework Analysis}
+
+The requirement elicitation phase aims to identify representational requirements for a semantic model of agentic AI systems that supports bidirectional transformation. The phase is structured in two steps.
+
+The first step is a literature review conducted according to \cite{grantandbooth}. The review follows a structured process of identifying relevant sources, extracting recurring architectural concepts and organizing them into a cross-paper concept matrix (see Chapter~\ref{chap:requirements}). The search string ("agentic AI" OR "multi-agent systems") AND ("ontology" OR "representation" OR "architecture") was applied to Google Scholar and Semantic Scholar with a cut-off date of April 20, 2026. 
+
+Because the research field is new and rapidly evolving, preprints were included alongside peer-reviewed publications. The initial result set was extended through backward snowballing: references cited in the papers retained after full-text screening were examined and included when they satisfied the same selection criteria. The results were screened in three stages: title, abstract and full text. A paper was included if it (i) addressed the architectural design of LLM-based or classical multi-agent systems, (ii) was written in English and (iii) was accessible in full text. A paper was excluded if it (i) focused on single-agent systems without multi-agent considerations, (ii) treated multi-agent systems purely as an application case study rather than analyzing their design, (iii) concentrated on agent communication protocols or runtime behavior rather than on architectural structure. Classical multi-agent systems references such as Wooldridge's foundational work~\cite{wooldridge-1995, wooldridge-2009} were included selectively as conceptual anchor points for the taxonomy.
+
+The retained papers were then analyzed to extract the architectural concepts each paper identifies as constitutive of agentic AI systems. Concepts were coded individually per paper and subsequently aggregated across the corpus. Semantically related concepts were grouped into higher-level categories, which form the main concepts of the taxonomy. Finer-grained concepts that refine or specialize a main concept are retained as sub concepts beneath it. The result is a two-tier concept matrix that records, for each paper in the corpus, which main concepts and sub concepts it addresses.
+
+The second step is an analysis of framework-specific artefacts. The main-concepts identified in the literature review are examined at the source code level across three agentic AI frameworks that represent fundamentally different architectural paradigms: sequential role-based (CrewAI), graph-based (LangGraph) and conversation-driven (AutoGen). For each concept, the analysis documents how, and whether, the concept is realized in each framework. Developer documentation~\cite{crewai_docs_2025, autogen_docs_2025, langgraph_docs_2025} and selected open-source code bases of the three frameworks are the primary sources. The specific versions analyzed are CrewAI 1.13.0, AutoGen (\texttt{autogen-agentchat}) 0.7.5, and LangGraph at the state of its main branch as of April 20, 2026. The output of this step is a set of requirements that a framework-agnostic ontology must fulfill in order to represent agentic AI systems across the three target frameworks. Each requirement is traceable back to at least one framework-level construct, one literature concept or both, ensuring that the requirement set is grounded.
+
+\section{Ontology Engineering using Ontology Development 101}
+
+The second methodological step is the development of a formal semantic representation for agentic AI systems. This thesis proposes the development of an framework-agnostic ontology to semantically represent the requirements of phase one. Ontology engineering is conducted following the Ontology Development 101 methodology~\cite{onto101} and applied in four iterative activities.
+
+First, the scope and domain of the ontology are determined based on the concepts and requirements list produced in the previous phase. The scope is bounded by the three target frameworks and the agentic AI concepts identified across them. Second, competency questions are formulated to define what the ontology must be able to answer. These questions are derived directly from the requirements elicitation and serve both as design guidance during modeling and as a validation criterion during evaluation. Third, existing vocabularies are evaluated for reuse. AgentO~\cite{ekelhart2026agento} is adopted as the primary starting point because it already covers the recurring concepts of the agentic paradigm and builds on established upper vocabularies (PROV-O, P-Plan and BEAM). Additional data models (e.g. unified class model by \cite{derouiche2025agenticaiframeworksarchitectures}) are also analyzed to gather additional vocabulary for our ontology.  Concepts or properties that are not expressible by existing literature, as identified through the requirement analysis, are introduced as AgentO extensions rather than as a parallel vocabulary. This includes constructs required for bidirectional transformation. Fourth, the extended ontology is formalized in OWL to ensure machine interpretability and compatibility with existing Semantic Web standards. The resulting ontology is referred to as AgentOscin.
+
+\section{Bidirectional Transformation using the OSCIN Method}
+
+The third methodological step is the construction of a bidirectional transformation method that links framework-specific source code of agentic AI systems to AgentOscin. The method follows the five phases of the OSCIN method for ontology-based source code interoperability.
+
+The first phase (i.e. specification) defines the scope of the transformation. The subdomain is agentic AI systems, the source language is Python, and the target frameworks are CrewAI, LangGraph and AutoGen. The second phase, Subdomain Semantic Abstraction, is the construction of the domain ontology and is addressed by the ontology engineering step above. The third phase, Language Syntactic Abstraction, defines how source code is parsed into syntactic structures that the transformation can operate on. The fourth phase, Language Semantic Abstraction, maps these syntactic structures to the corresponding instances of our semantic representation (i.e. AgentOscin) \cite{oscin}.
+
+The fifth phase, Application Perspective, specifies what is done with the populated ontology. The original OSCIN method applies this phase to analytical operations over the semantic graph such as querying, comparison and auditing \cite{oscin}. This thesis extends the fifth phase with code generation: the populated ontology is treated not only as an analytical artefact but also as a source from which framework-specific source code can be regenerated. This extension is what makes the transformation bidirectional and is one of the contributions of this thesis.
+
+The transformation pipeline is deterministic. It operates through static parsing and mapping rules. Constructs that cannot be resolved without interpretation of natural-language content or semantic analysis of source code are identified but excluded from the pipeline, in order to preserve reproducibility. The resulting gaps in coverage are reported as part of the evaluation and discussed as limitations and directions for future work. The technical realization of the pipeline, including parser implementation, intermediate data structures and code generation, is presented in Chapter~\ref{chap:transformation}.
+
+\section{Evaluation}
+
+The evaluation is structured along two complementary dimensions, reflecting the interdependent nature of both research artifacts (i.e., AgentOscin and the corresponding transformation method).
+
+\subsubsection{Ontology Evaluation}
+
+The first evaluation dimension assesses the quality of AgentOscin as a semantic representation for agentic AI systems. The evaluation examines whether the ontology captures enough of the architectural concepts required to support cross-framework representation, following the validation approach outlined in Ontology Development 101~\cite{onto101} and extending it with a comparative baseline.
+AgentOscin is evaluated by checking, for each competency question defined during ontology engineering, whether the question can be answered from the structure the ontology provides.
+
+To assess whether the proposed extensions add more expressiveness beyond existing representations, the same competency questions are evaluated against comparable data models from the literature analyzed in chapter 4. AgentO~\cite{ekelhart2026agento} serves as the primary baseline, as it is the only existing ontology designed specifically for agentic AI systems and an direct starting point for AgentOscin. Coverage is classified on a three-level metric: \emph{full} when all concepts required to answer the question are representable in the model, \emph{partial} when some but not all required concepts are representable, and \emph{none} when the model provides no means of representing the concepts the copmpetency question asks about. The resulting coverage profiles are compared across the models to quantify the expressiveness gain contributed by AgentOscin.
+
+\subsubsection{Transformation Experiments}
+
+The second evaluation dimension uses controlled transformation experiments to assess the operational usability of the ontology and the OSCIN-based transformation method.
+
+In the \emph{extraction direction}, framework-specific source code is transformed into instances of the semantic representation. The resulting instances are compared against the original source code to assess \emph{transformation correctness} (the degree to which agentic AI concepts are accurately captured) and \emph{transformation completeness} (the coverage of architectural elements such as agents, coordination structures, control flow and tool usage). Traceability is assessed by examining whether each semantic element can be linked back to a corresponding code-level construct through its mapping table entry.
+
+In the \emph{generation direction}, ontology instances are transformed into executable source code for a target framework. Correctness is evaluated by examining whether the generated code complies with the structural requirements of the target framework and reproduces the intended system architecture. Structural consistency is assessed by comparing the generated code against reference implementations where available.
+
+To evaluate \emph{cross-framework interoperability}, transformation experiments are conducted across all three frameworks. Source code from one framework is transformed into the semantic representation, regenerated into a second framework and then re-extracted into an ontology instance (see Figure~\ref{fig:roundtrip}). The original and reconstructed ontology instances are compared using structural equivalence criteria such as the preservation of agent roles, interaction patterns and control structures.
+
+\begin{figure}[h] \centering \includegraphics[width=0.65\textwidth]{roundtrip.png} \caption{Cross-framework transformation experiment linking source code, semantic representation and regenerated target-framework code.} \label{fig:roundtrip} \end{figure}
+
+Across all experiments, the proposed approach is compared to an LLM-based baseline that uses large language models for direct code-to-model and model-to-code translation without formal semantic mappings. Comparison criteria include correctness, completeness, structural equivalence, consistency across transformation directions and reproducibility (whether the same input produces consistent outputs across repeated executions).
+
+Together, the ontology evaluation and the transformation experiments provide the empirical basis for answering RQ4 by combining ontology-level quality assessment with evaluation of extraction and generation across heterogeneous frameworks.
+
+
+% ===================================================================
+% Chapter: Requirement Elicitation
+% NOTE: Add to preamble:
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+%   \usepackage{longtable}
+% ===================================================================
+
+\chapter{Agentic AI Concepts and Framework-level Implementation}
+\label{chap:requirements}
+
+\begin{table}[htbp]
+\caption{Concept Matrix --- Concepts for Agentic AI Frameworks}
+\label{tab:concept_matrix}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l*{20}{c}c@{}}
+\toprule
+ & \multicolumn{3}{c}{\textbf{Agent Definition}}
+ & \multicolumn{3}{c}{\textbf{Perception / Task}}
+ & \multicolumn{3}{c}{\textbf{Coordination}}
+ & \multicolumn{3}{c}{\textbf{Reasoning}}
+ & \multicolumn{3}{c}{\textbf{Memory}}
+ & \multicolumn{2}{c}{\textbf{Tool Use}}
+ & \multicolumn{3}{c}{\textbf{Guardrails / Gov.}}
+ & \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}\cmidrule(lr){11-13}\cmidrule(lr){14-16}\cmidrule(lr){17-18}\cmidrule(lr){19-21}
+\textbf{Paper}
+ & \rotatebox{90}{Agent Profile Schema}
+ & \rotatebox{90}{Role / Prompt Config.}
+ & \rotatebox{90}{LLM Backbone Sel.}
+ & \rotatebox{90}{Task Schema \& Def.}
+ & \rotatebox{90}{Agent--Task Assign.}
+ & \rotatebox{90}{Deps. \& Outputs}
+ & \rotatebox{90}{Orch. \& Routing}
+ & \rotatebox{90}{Multi--Agent Topology}
+ & \rotatebox{90}{Termination \& Flow}
+ & \rotatebox{90}{Planning \& Decomp.}
+ & \rotatebox{90}{Reflection Mech.}
+ & \rotatebox{90}{Reasoning Pattern}
+ & \rotatebox{90}{Memory Scope}
+ & \rotatebox{90}{Short--Term Memory}
+ & \rotatebox{90}{Long--Term Mem. / RAG}
+ & \rotatebox{90}{Tool Schema \& Reg.}
+ & \rotatebox{90}{Tool Assign. Scope}
+ & \rotatebox{90}{Rule \& Constr. Def.}
+ & \rotatebox{90}{Intervention Mech.}
+ & \rotatebox{90}{HITL Interface}
+ & \rotatebox{90}{\textbf{Count}} \\
+\midrule
+\cite{wooldridge-1995}
+ & $\bullet$ & $\bullet$ &   &   &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ &   &   &   &   &   &   &   &   &   &   & 5  \\
+\cite{wooldridge-2009}
+ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   &   &   &   &   &   &   &   &   & 8  \\
+\cite{horlinglessser2004}
+ &   &   &   &   &   &   & $\bullet$ &   &   &   &   &   &   &   &   &   &   &   &   &   & 1  \\
+\cite{wu2023autogenenablingnextgenllm}
+ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   &   & $\bullet$ & 11 \\
+\cite{hong2024metagptmetaprogrammingmultiagent}
+ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ &   &   &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ &   &   & 11 \\
+\cite{li2023camelcommunicativeagentsmind}
+ & $\bullet$ & $\bullet$ &   &   &   &   & $\bullet$ & $\bullet$ &   &   &   &   &   &   &   &   &   &   &   &   & 4  \\
+\cite{yao2023react}
+ &   &   &   &   &   &   &   &   &   & $\bullet$ &   & $\bullet$ &   &   &   & $\bullet$ &   &   &   &   & 3  \\
+\cite{guo2024largelanguagemodelbased}
+ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   & $\bullet$ &   &   &   &   & 12 \\
+\cite{lietal2024}
+ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   &   & 13 \\
+\cite{chen2025surveyllmbasedmultiagentsystem}
+ & $\bullet$ & $\bullet$ &   &   &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   &   & 11 \\
+\cite{schneider2025generativeagenticaisurvey}
+ & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   &   & 12 \\
+\cite{NISA202669}
+ & $\bullet$ &   &   &   &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   & $\bullet$ &   &   &   &   & 8  \\
+\cite{yehudai2025surveyevaluationllmbasedagents}
+ &   &   &   &   &   &   &   &   &   & $\bullet$ &   & $\bullet$ &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ &   &   & 5  \\
+\cite{fi17090404}
+ & $\bullet$ & $\bullet$ &   & $\bullet$ &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ &   &   & 12 \\
+\cite{botti2025agenticaimultiagenticreinventing}
+ & $\bullet$ & $\bullet$ &   &   &   &   & $\bullet$ & $\bullet$ &   &   &   & $\bullet$ & $\bullet$ &   &   & $\bullet$ &   &   &   &   & 7  \\
+\cite{derouiche2025agenticaiframeworksarchitectures}
+ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ &   &   & 13 \\
+\cite{wissuchek2025exploringagenticartificialintelligence}
+ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ &   &   &   &   & $\bullet$ & $\bullet$ &   &   &   &   & 9  \\
+\cite{Sapkota_2026}
+ & $\bullet$ & $\bullet$ &   &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ &   &   & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ &   &   &   &   & 9  \\
+\cite{deepaketal2025}
+ & $\bullet$ &   &   &   &   &   & $\bullet$ & $\bullet$ &   &   &   & $\bullet$ & $\bullet$ &   &   & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ & 9  \\
+\cite{Allam2025AgenticAF}
+ &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ & 3  \\
+\cite{arunkumar2026}
+ &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   &   &   &   & $\bullet$ &   &   &   &   & 7  \\
+\cite{petrova2025semanticwebmasagentic}
+ &   &   &   &   &   & $\bullet$ &   &   &   &   &   &   &   &   &   & $\bullet$ & $\bullet$ &   &   &   & 3  \\
+\cite{miehling2025agenticaineedssystems}
+ &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   & $\bullet$ & $\bullet$ &   & 2  \\
+\cite{Borghofetal2025}
+ &   &   &   &   &   &   & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   &   &   &   &   &   &   &   &   & 3  \\
+\cite{lovenetal2026}
+ &   &   &   &   &   &   &   & $\bullet$ & $\bullet$ &   &   &   &   &   &   &   &   & $\bullet$ &   &   & 3  \\
+\cite{dwivedietal2026}
+ &   &   &   & $\bullet$ & $\bullet$ &   &   &   &   & $\bullet$ &   &   &   &   &   &   &   &   &   &   & 3  \\
+\cite{olujimietal2025}
+ &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   &   & $\bullet$ & $\bullet$ &   & 2  \\
+\cite{ekelhart2026agento}
+ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ &   & $\bullet$ & $\bullet$ & $\bullet$ &   &   &   & $\bullet$ &   &   & $\bullet$ &   &   &   &   & 10 \\
+\midrule
+\textbf{Total}
+ & 16 & 14 & 4 & 10 & 9 & 4 & 17 & 17 & 6 & 9 & 5 & 9 & 10 & 5 & 6 & 16 & 4 & 6 & 3 & 3 & \textbf{173} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The first work on Multi-Agent Systems and their architectures was conducted by \cite{wooldridge-2009}. They defined core concepts like reasoning, agent interactions, coordination, and communication. Although their work was written before the current rise of generative AI, it still provides a solid foundation for understanding how modern agentic systems are designed. Recent studies have updated these classical ideas to fit LLM-based agents (e.g. \cite{ekelhart2026agento, derouiche2025agenticaiframeworksarchitectures, botti2025agenticaimultiagenticreinventing}. This includes adding new elements like tool use, memory architectures and reasoning patterns.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{graphics/unifiedclassmodel.png}
+    \caption{Unified class model showing the core components of agentic AI systems \cite{derouiche2025agenticaiframeworksarchitectures}}
+    \label{fig:unified_class_model}
+\end{figure}
+
+\cite{derouiche2025agenticaiframeworksarchitectures} created a unified model that shows the main parts of an agentic AI system (see Figure \ref{fig:unified_class_model}). Other researchers, such as \cite{botti2025agenticaimultiagenticreinventing}, suggest that the core of agentic AI systems can be simplified into three main pillars: Reasoning, Memory and Tool Use. Currently, there is no single, agreed-upon data model to categorize these designs in the research community. Because of this, we propose a literature-derived concept-matrix \ref{tab:concept_matrix}. In the following section these concepts are described and then further analyzed at the source code level across CrewAI, AutoGen and LangGrph. \cite{crewai_docs_2025} \cite{autogen_docs_2025} \cite{langgraph_docs_2025}. 
+
+\newpage
+
+\section{Agent Definition}
+
+\cite{wooldridge-1995} provide one of the earliest comprehensive surveys of agent theories, architectures and languages, establishing core properties such as autonomy, reactivity, proactivity and social ability as defining characteristics of an agent. They define agents as a computing system situated in an environment that is capable of flexible, autonomous action to meet its design objectives. 
+
+In the context of modern LLM-based multi-agent systems, the agent remains a central architectural component, but its characterization has changed from simple reactive/proactive agents to fully self-aware agents, that exhibit meta-cognitve awareness \cite{NISA202669}. 
+
+In the context of the modern AI landscape, an agent is based on a foundation model (like a Large Language Model) and pursues complex, multi-step goals with limited direct supervision \cite{schneider2025generativeagenticaisurvey}. Additionally, these agents are often defined with specific profiles, roles, backgrounds and constraints that specify how they act within the agentic AI system \cite{lietal2024} \cite{guo2024largelanguagemodelbased}. 
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+
+CrewAI defines an Agent as an autonomous unit capable of performing tasks, making decisions, using tools, interacting with other agents, maintaining memory of interactions and being able to delegate tasks when allowed. In the source code, agents are defined either using YAML configuration or directly in code.To define an agent's profile, CrewAI provides a list of agent attributes that can be specified when designing an agentic system. The only required parameters are {role}, {goal} and {backstory} \cite{crewai_docs_2025}.
+
+
+\begin{lstlisting}[language=yaml, caption={CrewAI agent definition (YAML configuration).}, label={lst:crewai-agent}]
+data_analyst:
+  role: Data Analyst
+  goal: >
+    Extract actionable insights from structured datasets
+    and surface relevant patterns to the research team.
+  backstory: >
+    A seasoned analyst with expertise in statistical methods
+    and business intelligence who prioritises clarity over
+    complexity when communicating findings.
+\end{lstlisting}
+
+\subsubsection{AutoGen}
+
+AutoGen provides a set of preset agent types that all inherit from the {BaseChatAgent} class. All agents share a common set of attributes that define their identity: {name}, {description} and {system\_message}, which are configured at agent instantiation. The {name} serves as a unique identifier within a multi-agent system the {description} communicates the agent's purpose to other agents during orchestration and the {system\_message} provides the behavioral instructions passed to the underlying language model.
+
+Among the preset agents, {AssistantAgent} serves as a general-purpose agent intended for prototyping and educational use. For more specialized requirements, AutoGen allows developers to define custom agents by subclassing {BaseChatAgent}, enabling the implementation of domain-specific behavior that does not fit the provided presets \cite{autogen_docs_2025}.
+
+
+
+\subsubsection{LangGraph}
+
+LangGraph, while part of the LangChain ecosystem, follows a fundamentally different paradigm at the source code level than LangChain's agent abstractions. LangGraph explicitly distinguishes between \textit{workflows} and \textit{agents}: workflows follow predetermined code paths with a fixed execution order, whereas agents are driven by a language model that dynamically determines its own sequence of actions, typically through iterative tool use.
+
+LangGraph does not provide its users with a mechanism to configure specific agents with roles, descriptions, or backstories. Instead, behavior is constructed using discrete steps called \textit{nodes}, connected via \textit{edges} that define transitions and conditional branching. An agent in LangGraph is therefore not defined through identity parameters but rather emerges as a node in which a language model autonomously decides whether to invoke tools or return a final response, typically implemented through a {react-style} loop \cite{langgraph_docs_2025}.
+
+\begin{lstlisting}[language=langgraph, caption={LangGraph agent definition as a node function}, label={lst:langgraph-agent}]
+
+def data_analyst(state: MessagesState):
+    system = SystemMessage(content=(
+        "You are a data analyst with expertise in statistical "
+        "methods and business intelligence. Prioritise clarity "
+        "over complexity when communicating findings."
+    ))
+    response = model.invoke([system] + state["messages"])
+    return {"messages": [response]}
+
+\end{lstlisting}
+
+\subsection{Synthesis and Requirements}
+
+The framework analysis of agent definitions revealed structural inconsistencies on an architectural level across all three frameworks. While CrewAI and AutoGen support defining individual agents with distinct characteristics and roles through dedicated parameters, LangGraph follows a fundamentally different approach in which agents are not explicitly declared but emerge from graph nodes that contain language model calls with tool access.
+
+Despite these differences, all three frameworks share the underlying concept of an autonomous unit that is associated with a language model and guided by natural language instructions. CrewAI expresses this through {role}, {goal} and {backstory}; AutoGen through {name}, {description} and {system\_message} and LangGraph implicitly through prompt content within node functions.
+
+From this analysis, the following representational requirements for agent definitions can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R1}] \textbf{Framework-independent agent identity.} The ontology must represent agent identity as a separable concept that can be populated either from explicit configuration attributes (as in CrewAI and AutoGen) or inferred from prompt-level content within computational nodes (as in LangGraph).
+
+    \item[\textbf{R2}] \textbf{Distinction between orchestration-relevant and model-relevant attributes.} The ontology must distinguish between agent attributes that serve the orchestration layer (e.g., AutoGen's description used for speaker selection) and those that instruct the language model (e.g., AutoGen's system\_message, CrewAI's backstory). A single agent may carry both types of directive simultaneously.
+
+    \item[\textbf{R3}] \textbf{Prompt decomposition into structured components} The ontology must decompose natural language prompt content into structured components so that equivalent prompts can be reconstructed for different target frameworks from these components.
+
+    \item[\textbf{R4}] \textbf{Flexible attribute cardinality.} The required and optional attributes differ across frameworks. CrewAI mandates {role}, {goal} and {backstory}; AutoGen requires only {name}; LangGraph has no required agent-level attributes at all. The ontology must define a minimal set of identity properties while accommodating framework-specific extensions without loss of information.
+
+    \item[\textbf{R5}] \textbf{Agent functional typing.} The ontology must represent the functional role an agent plays within the coordination structure by distinguishing between general-purpose agents, manager/orchestrator agents, and agents that serve as proxies for human input (independently of how this role is expressed in framework-specific class hierarchies).
+    
+\end{enumerate}
+
+
+\section{Perception Layer and Task Definition}
+
+The perception layer is responsible for ingesting external inputs from the environment and translating them into internal representations that the agent can reason about \cite{fi17090404}. While early foundation models relied almost exclusively on text, modern agentic systems are increasingly equipped with multi-modal perception capabilities, processing inputs including textual descriptions, visual images, auditory signals and spatial coordinates \cite{lietal2024} \cite{wissuchek2025exploringagenticartificialintelligence}. 
+
+Critically, agentic systems do not rely on rigid, explicit commands. Tthey act upon abstract, high-level user goals. The perception layer translates these goals, alongside multi-modal context, into structured internal representations that drive the agent's behavior \cite{fi17090404}. It therefore constitutes the boundary at which human intent enters the agent system and takes on a computationally tractable form.
+
+In the broader agentic AI literature, the perception layer describes how agents ingest and internalize external input at runtime. At the design-time abstraction level addressed by this thesis, the concern is how developers specify the tasks and actions an agent system should perform \cite{derouiche2025agenticaiframeworksarchitectures}. The following analysis examines how the three frameworks define tasks, assign them to agents and express dependencies and output expectations.
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+
+CrewAI lets developers define a {Task} as a specific assignment completed by an agent. Similar to the {Agent} , tasks can be defined as YAML  configuration or directly in the code.
+
+On a source code level, a task is created with two required parameters: {description}, a natural language statement of what the task entails and {expected\_output}, a description of what the completed task should produce. Tasks are optionally assigned to a specific agent via the {agent} parameter; if no agent is assigned, a hierarchical process can delegate tasks based on agent roles.
+
+Tasks can depend on other tasks through the {context} attribute, which accepts a list of tasks whose outputs should be available as input. CrewAI also supports task-level tool assignment, allowing a task to override the agent's default tools, as well as output formatting through structured types such as {output\_pydantic} and {output\_json} \cite{crewai_docs_2025}.
+
+
+\subsubsection{AutoGen}
+
+In AutoGen, there is no dedicated task class or configuration object. Instead, a task is expressed as a message passed to an agent or team at through the {run} or {run\_stream} methods via the {task} parameter, which accepts a plain string. The task description, expected output and any constraints must all be encoded within this single string. There is no built-in mechanism for defining task dependencies, structured output formats, or guardrails at the task level; such logic must be implemented through agent orchestration or custom code \cite{autogen_docs_2025}.
+
+
+\subsubsection{LangGraph}
+
+LangGraph does not have an explicit task concept. What other frameworks model as a task is instead encoded in the graph structure itself: a node's function body contains the instructions (typically as part of the prompt passed to the language model) and the graph's edges define the execution order and dependencies between steps. Task descriptions, expected outputs and constraints are embedded within node implementations rather than declared as separate, configurable objects \cite{langgraph_docs_2025}.
+
+
+\subsection{Synthesis and Requirements}
+
+The framework analysis of task definitions revealed three distinct abstraction levels. CrewAI provides tasks as first-class, richly configurable objects with dedicated attributes for descriptions, expected outputs, agent assignment, dependencies, guardrails and structured output types. AutoGen reduces a task to a plain string passed at runtime, with no structural separation between the task description and its constraints. LangGraph has no explicit task concept; task logic is distributed across node functions and graph edges.
+
+From this analysis, the following representational requirements can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R6}] \textbf{Task as a first-class ontological concept.} The ontology must represent tasks as distinct entities with their own properties, even when the source framework does not model them explicitly. For AutoGen, this requires extracting task semantics from run method; for LangGraph, from node function bodies and associated prompts.
+
+    \item[\textbf{R7}] \textbf{Agent-task assignment.} The ontology must represent the relationship between a task and the agent responsible for its execution. This includes explicit assignment (CrewAI's {agent} parameter), implicit assignment through orchestration (AutoGen's team routing) and structural assignment through graph topology (LangGraph's node-to-function binding).
+
+    \item[\textbf{R8}] \textbf{Data dependencies.} The ontology must capture ordering and data dependencies between tasks. CrewAI models these explicitly through the {context} attribute, LangGraph encodes them as graph edges and AutoGen relies on sequential team execution or manual orchestration. The semantic representation must normalize these into a unified dependency model.
+
+    \item[\textbf{R9}] \textbf{Expected output.} The ontology must represent the expected output of a task, both as a natural language description and, where available, as a structured schema definition. 
+\end{enumerate}
+
+
+\section{Coordination Mechanism	}
+
+When tasks exceed the capacity of a single agent, Agentic AI employs MAS, where specialized agents coordinate their efforts to solve complex problems \cite{botti2025agenticaimultiagenticreinventing}. The architecture of this coordination typically falls into several structural categories: centralized orchestration, where a single supervisor agent decomposes tasks and routes them to sub-agents; hierarchical structures, where agents operate in a tree-like command flow; and decentralized or peer-to-peer networks, where agents negotiate and collaborate directly without a central authority \cite{fi17090404} \cite{lietal2024}.
+
+Beyond structural organization, the mechanisms of coordination are defined by the interaction paradigms among agents, which can be cooperative, adversarial (debate), or mixed  \cite{lietal2024}. In cooperative teamwork, agents share information and divide labor to reach a common goal. Conversely, adversarial debate involves agents presenting and defending conflicting viewpoints to cross-validate reasoning, reduce hallucinations and refine solutions \cite{guo2024largelanguagemodelbased}. To efficiently manage the flow of information during these collaborative processes, systems often utilize a Shared Message Pool, a publish-subscribe mechanism allowing agents to extract only the information relevant to their specific roles without requiring direct point-to-point communication \cite{hong2024metagptmetaprogrammingmultiagent}.
+
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+
+CrewAI implements coordination at two distinct levels: \textit{Crews} for organizing agents around a shared set of tasks and \textit{Flows} for orchestrating multiple crews and coding tasks into larger workflows.
+
+A Crew is a team of agents assigned to a list of tasks, governed by a \textit{process} that determines execution order. CrewAI provides two process types: {sequential}, where tasks are executed in the order they are defined with the output of one task serving as context for the next and {hierarchical}, where a manager agent dynamically delegates tasks to other agents based on their roles and capabilities. The process type is set at crew creation via the {process} parameter. In hierarchical mode, either a {manager\_llm} or a custom {manager\_agent} must be specified.
+
+Flows operate at a higher abstraction level, connecting multiple crews, individual agents and arbitrary Python functions into event-driven workflows. A Flow is defined as a Python class inheriting from {Flow}, with methods decorated as entry points ({@start}), listeners ({@listen}), or routers ({@router}). Listeners are triggered when a specified method completes, enabling sequential chaining. Conditional logic is supported through {or\_} (trigger when any dependency completes), {and\_} (trigger when all dependencies complete) and router methods that return string labels to direct execution to different branches. Flows maintain their own state, which can be either unstructured (dictionary) or structured (Pydantic model) and is accessible across all methods in the flow \cite{crewai_docs_2025}.
+
+
+\subsubsection{AutoGen}
+
+AutoGen implements coordination through \textit{teams}, which are groups of agents that share a conversation context and take turns responding according to a defined interaction pattern. A team is instantiated by passing a list of agents and a termination condition that determines when execution stops.
+
+AutoGen provides several team presets, each implementing a different speaker selection strategy:
+
+\begin{itemize}
+    \item {RoundRobinGroupChat}: Agents take turns in a fixed round-robin order. Each agent broadcasts its response to all other agents, maintaining a shared context.
+    \item {SelectorGroupChat}: A language model selects the next speaker after each message, enabling dynamic, model-driven delegation.
+    \item {MagenticOneGroupChat}: A generalist multi-agent configuration designed for solving open-ended web and file-based tasks.
+    \item {Swarm}: Agents use {HandoffMessage} to explicitly signal transitions to specific other agents, enabling developer-defined handoff patterns.
+\end{itemize}
+
+\begin{lstlisting}[language=autogen, caption={AutoGen {RoundRobinGroupChat} with combined termination conditions.}, label={lst:autogen-roundrobin}]
+
+termination = (
+    TextMentionTermination("DONE")
+    | MaxMessageTermination(max_messages=6)
+)
+
+team = RoundRobinGroupChat(
+    participants=[researcher, critic],
+    termination_condition=termination,
+)
+
+\end{lstlisting}
+
+Termination conditions control when a team stops executing. These are passed at team creation and include conditions such as {TextMentionTermination} (stops when a specific word appears), {TextMessageTermination} (stops when a specific agent produces a text message) and {ExternalTermination} (stops from outside the team). Conditions can be combined using bitwise operators \cite{autogen_docs_2025}.
+
+
+\subsubsection{LangGraph}
+
+LangGraph encodes all coordination logic explicitly through a directed graph composed of nodes and edges. There is no dedicated team, crew, or orchestration abstraction. The graph itself is the coordination mechanism. Nodes represent discrete computational steps (agent calls, tool execution, routing logic) and edges define the transitions between them. This gives developers full control over the execution flow but requires all coordination patterns to be manually constructed.
+
+On a source code level, a graph is built using the {StateGraph} class, which is parameterized with a typed state schema. Nodes are added via {add\_node} and transitions are defined through {add\_edge} for unconditional transitions or {add\_conditional\_edges} for branching based on the output of a node. Conditional edges accept a routing function that inspects the current state and returns the name of the next node to execute.
+
+LangGraph provides prebuilt utilities that implement common coordination patterns. The {create\_react\_agent} function constructs a ReAct-style loop where an agent node and a tool node alternate until the agent produces a final response. For multi-agent coordination, developers manually compose multiple agent nodes within a single graph and define the routing logic between them \cite{langgraph_docs_2025}.
+
+
+\subsection{Synthesis and Requirements}
+
+The framework analysis of coordination revealed three fundamentally different paradigms. Despite these differences, all three frameworks ultimately express the same fundamental coordination concerns: which agents participate, in what order they act and under what conditions execution branches or terminates. The difference is whether these concerns are declared through configuration (CrewAI's process type), selected from presets (AutoGen's team types), or constructed from primitives (LangGraph's nodes and edges).
+
+From this analysis, the following representational requirements can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R10}] \textbf{Coordination pattern as a named concept.} The ontology must represent coordination patterns (sequential, hierarchical, round-robin, swarm, selector-based) as identifiable concepts, regardless of whether they are selected from a preset (CrewAI, AutoGen) or manually constructed in a graph (LangGraph). This enables cross-framework comparison at the architectural level.
+
+    \item[\textbf{R11}] \textbf{Agent-to-coordination binding.} The ontology must capture which agents participate in a coordination structure and how they are bound to it. Either as members of a crew with assigned tasks (CrewAI), as participants in a team (AutoGen), or as nodes within a graph (LangGraph).
+
+    \item[\textbf{R12}] \textbf{Termination conditions.} All three frameworks define conditions under which execution stops, though the mechanisms differ: CrewAI relies on task completion and flow structure, AutoGen uses explicit termination condition objects and LangGraph terminates when a node routes to the {END} sentinel. The ontology must capture termination semantics independently of these framework-specific mechanisms.
+
+    \item[\textbf{R13}] \textbf{Multi-level coordination.} CrewAI's separation of crews (inner coordination) and flows (outer orchestration) has no direct equivalent in AutoGen or LangGraph, where a single abstraction handles both levels. The ontology must be able to represent nested coordination structures so that a CrewAI flow containing multiple crews can be captured without flattening the hierarchy, while also representing the single-level coordination of the other frameworks.
+    
+    \item[\textbf{R14}] \textbf{Workflow step structure with typed transitions.} The ontology must represent the execution structure of a coordination pattern as a sequence of discrete steps with typed transitions. This includes distinguishing entry points, exit points, and intermediate steps; representing unconditional and conditional transitions with associated routing logic; and linking each step to its associated task where applicable.
+
+\end{enumerate}
+
+
+\section{Reasoning Engine}
+ 
+The reasoning engine acts as the cognitive core of the agent, transforming high-level goals into actionable steps through multi-step reasoning and planning \cite{lietal2024}. In contrast to traditional models that provide immediate, single-step responses, agentic AI performs a step-by-step solution process that includes problem analysis, planning, solving, reflection and validation \cite{schneider2025generativeagenticaisurvey}. 
+ 
+To implement this robust cognition, systems employ structured reasoning frameworks such as Chain of Thought (CoT), Tree of Thoughts (ToT) and Graph of Thoughts (GoT) \cite{lietal2024}. These architectural frameworks allow agents to explore multiple partial reasoning chains concurrently, evaluate the viability of intermediate results and perform self-correction before committing to a final action \cite{schneider2025generativeagenticaisurvey}. Furthermore, reasoning processes can be categorized into one-step decision-making, where a task is decomposed and executed in a single logical flow and multi-step reasoning, which requires iterative reasoning cycles that maintain long-term consistency with the overall objective \cite{guo2024largelanguagemodelbased}. 
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+
+CrewAI provides reasoning as an explicit, configurable feature at the agent level. On a source code level, this is achieved by setting a boolean flag {reasoning} in the agent definition. When set to {True}, the agent reflects on a given task, evaluates possible approaches and refines its plan before executing an action. This reflection cycle repeats until the agent converges on a satisfactory plan or a configurable {max\_reasoning\_attempts} threshold, defined as an integer in the agent definition, is reached. Reasoning in CrewAI is therefore a framework-managed capability that is toggled per agent independently of the underlying language model \cite{crewai_docs_2025}.
+
+\subsubsection{AutoGen}
+
+In AutoGen, reasoning is not exposed as a dedicated framework feature but is integrated into its conversation-based architectural paradigm. Whether and how an agent reasons depends primarily on the capabilities of the underlying language model. If a reasoning-capable model such as {o3-mini} is selected as the model client, the model itself handles multi-step reasoning internally without additional framework configuration. Alternatively, reasoning can be achieved architecturally by introducing a dedicated planning agent that decomposes a task into sub-steps using a language model before delegating them to other agents. In this case, reasoning emerges from the orchestration of multiple agents rather than from a single agent's configuration \cite{autogen_docs_2025}.
+
+\subsubsection{LangGraph}
+
+LangGraph does not provide a built-in reasoning mechanism at the agent or node level. Since LangGraph models agentic behavior as explicit graph structures, reasoning patterns must be manually constructed by the developer through the graph topology itself. A Chain of Thought pattern, for instance, can be implemented as a sequence of nodes where each node performs one reasoning step and passes its output via the shared state to the next. More complex patterns such as reflection or self-correction require the developer to define conditional edges that loop back to previous nodes based on evaluation criteria. LangGraph therefore offers maximum flexibility in designing reasoning workflows but places the full architectural decision making on the developer, as no reasoning behavior is provided by default \cite{langgraph_docs_2025}.
+
+\subsection{Synthesis and Requirements}
+
+The framework analysis of reasoning capabilities revealed three different abstraction levels. CrewAI treats reasoning as a framework-managed, declarative feature that is toggled per agent through a boolean flag and bounded by a configurable iteration limit. AutoGen delegates reasoning either to the underlying language model's native capabilities or to the architectural composition of multiple agents, where a dedicated planning agent orchestrates task decomposition. LangGraph provides no built-in reasoning mechanism and instead requires developers to manually encode reasoning patterns through the graph topology itself.
+
+From this analysis, the following representational requirement for reasoning can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R15}] \textbf{Reasoning as capability and pattern.} The ontology must represent reasoning on three dimensions: (1) whether an agent has reasoning enabled as a declarative capability, (2) which reasoning pattern is employed if identifiable, and (3) whether reasoning originates from the framework, the language model's native capabilities, or the system's graph topology.
+\end{enumerate}
+
+
+\section{Memory Architecture}
+
+Memory provides agents with temporal continuity and the foundational knowledge required to navigate complex environments \cite{fi17090404}. The architecture is typically divided into distinct functional durations. Short-term memory (or working memory) maintains the immediate conversational or task context within the language model's context window constraints \cite{derouiche2025agenticaiframeworksarchitectures} \cite{schneider2025generativeagenticaisurvey}. Long-term memory, conversely, captures persistent data across sessions, allowing the agent to recall historical interactions, user preferences and learned knowledge over time \cite{derouiche2025agenticaiframeworksarchitectures}.
+ 
+Beyond duration, long-term memory can be functionally categorized into semantic memory for storing facts and reasoning paths, procedural memory for recalling specific task flows and strategies and episodic memory for retaining detailed contextual snapshots of specific past events \cite{derouiche2025agenticaiframeworksarchitectures}. To manage and access this amount of information, agents frequently utilize Retrieval-Augmented Generation (RAG) and external vector databases. These systems retrieve relevant text snippets based on semantic similarity and append them to the agent's prompts, thereby reducing hallucinations and supporting dynamic learning \cite{guo2024largelanguagemodelbased} \cite{schneider2025generativeagenticaisurvey}. Memory operations also involve active reflection, where agents summarize and distill past experiences to continually enhance their cognitive abilities and adaptability \cite{lietal2024}. 
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+
+CrewAI provides an integrated {Memory} class that supports short-term, long-term, entity and external memory types. This class uses a language model to analyze content at storage time, inferring scope, categories and importance. The memory system can be used as a standalone component, at the agent level, at the crew level and within flows.
+
+At the crew level, all agents in a crew share the crew's memory unless an individual agent has its own. After each task, the crew automatically extracts facts from the task output and stores them. Before the next task, relevant context is recalled from memory and injected into the task prompt at runtime. At the agent level, agents can maintain private memory that is not shared with the rest of the crew. Standalone memory acts as a general-purpose knowledge base that is independent of any specific agent or crew \cite{crewai_docs_2025}.
+
+
+\subsubsection{AutoGen}
+
+AutoGen provides a {Memory} protocol that defines a standard interface for storing and retrieving contextual information. The protocol specifies methods for adding entries, querying relevant content, updating an agent's model context and clearing the store. The simplest implementation is {ListMemory}, which maintains memory entries in chronological order and appends them to the model's context before each task execution.
+
+On a source code level, memory is assigned to an agent by passing a list of memory instances during agent instantiation via the {memory} parameter. At runtime, the agent queries its memory stores before processing a task and the retrieved content is injected into the model context as a system message. Memory in AutoGen is therefore agent-scoped: each agent manages its own memory instances independently.
+
+For more advanced use cases, AutoGen provides memory extensions such as ChromaDBVectorMemory and {RedisMemory}, which implement the same {Memory} protocol but use vector similarity search for retrieval rather than chronological ordering. Since all implementations conform to the same protocol, they are interchangeable at the source code level without modifying the agent's logic \cite{autogen_docs_2025}.
+
+\subsubsection{LangGraph}
+
+LangGraph implements memory through two distinct mechanisms that map to different persistence scopes. Short-term memory is provided through \textit{checkpointers}, which persist the graph's state across invocations within the same thread. On a source code level, a checkpointer is instantiated and passed to the graph at compile time via the {checkpointer} parameter. Each invocation is associated with a {thread\_id} and the checkpointer automatically saves and restores the full graph state between turns, enabling multi-turn conversations.
+
+Long-term memory is implemented through a separate \textit{store} abstraction, which persists data across threads and sessions. A store is similarly passed to the graph at compile time via the {store} parameter. Unlike the checkpointer, which operates transparently on the entire graph state, the store must be explicitly accessed within node functions to read and write memory entries. Entries are organized into namespaces, typically scoped by user or application context \cite{langgraph_docs_2025}.
+
+
+\subsection{Synthesis and Requirements}
+
+CrewAI provides a unified memory system that operates at both crew and agent level, with automatic fact extraction and injection at runtime. AutoGen exposes memory through a protocol-based interface that is strictly agent-scoped, with no built-in shared memory across agents. LangGraph separates memory into two distinct mechanisms (i.e. checkpointers for short-term state persistence and stores for long-term data) both scoped to the graph as a whole and accessed explicitly within node functions.
+
+From this analysis, the following representational requirements can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R16}] \textbf{Memory scope as an explicit property.} The ontology must represent at which level memory is owned and accessible: agent-private, shared among a group, or global to the system.
+
+    \item[\textbf{R17}] \textbf{Separation of short-term and long-term persistence.} The ontology must represent the lifecycle of memory, whether it persists within a single execution, across executions within a thread, or across all sessions independently of how a given framework packages its memory features.
+
+\end{enumerate}
+
+
+\section{Tool Integration}
+
+Tool integration significantly expands an agent's capabilities beyond its static, pre-trained knowledge by enabling it to interact directly with external systems and physical or digital environments \cite{schneider2025generativeagenticaisurvey}. By dynamically invoking functionalities such as web browsers, calculators, code interpreters and specialized APIs, agents can retrieve real-time data, perform complex computations and execute software commands \cite{lietal2024} \cite{schneider2025generativeagenticaisurvey}. The process of utilizing a tool involves several seamless sub-tasks: intent recognition to determine when a tool is needed, function selection to choose the most appropriate tool, parameter-value mapping to extract required arguments and the actual execution and response generation \cite{yehudai2025surveyevaluationllmbasedagents}.
+
+Advanced agentic systems are not just limited to using pre-existing tools; they also demonstrate the ability to autonomously select, combine and even create new tools. Because language models can generate executable code, agents can write new Python utility functions or scripts on the fly, verify them through unit tests and deploy them as custom tools to solve novel problems. This dynamic tool integration reduces computational errors, enhances the interpretability of the agent's actions and embeds operational rules in a clear, reliable manner \cite{schneider2025generativeagenticaisurvey}.
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+CrewAI defines a tool as a skill or function that agents can utilise to perform actions. Tools can be assigned at two levels: at the agent level, where they become available across all tasks the agent executes and at the task level, where they override the agent's default tool set for that specific task.
+
+On a source code level, custom tools are created either by subclassing {BaseTool} or by using the {@tool} decorator on a function. When subclassing, the developer defines a {name}, a {description}, an input schema via {args\_schema} (a Pydantic model) and implements the {\_run} method containing the tool's logic. When using the decorator, the function's docstring serves as the tool description that the agent uses to decide when to invoke it. CrewAI also provides a large library of pre-built tools (e.g. {SerperDevTool}, {FileReadTool}, {PDFSearchTool}) that can be instantiated and assigned to agents or tasks without custom implementation \cite{crewai_docs_2025}.
+
+
+\subsubsection{AutoGen}
+
+AutoGen enables tool use through the {AssistantAgent}, which accepts tools via the {tools} parameter. A tool is most commonly defined as a Python function, which the agent automatically converts into a {FunctionTool} at runtime. The tool schema — including name, description and parameter types — is automatically generated from the function's signature and docstring and provided to the language model during execution.
+
+Beyond individual tools, AutoGen introduces the concept of a \textit{Workbench}, which is a collection of tools that share state and resources. The primary example is {McpWorkbench}, which connects to a Model Context Protocol (MCP) server and exposes its tools to the agent. A workbench is passed to the agent via the {workbench} parameter and operates alongside any individually assigned tools \cite{autogen_docs_2025}.
+
+
+
+\subsubsection{LangGraph}
+LangGraph implements tool use through LangChain's tool infrastructure. Tools are defined as Python functions using the {@tool} decorator, where the function's docstring serves as the description and type hints define the input schema. For more complex inputs, a Pydantic model or JSON schema can be specified via the {args\_schema} parameter.
+
+Tools are integrated into the graph through a prebuilt {ToolNode}, which handles tool execution, parallel tool calls and error handling. The {ToolNode} is added to the graph like any other node and connected to the model node via a conditional edge ({tools\_condition}) that routes execution to the tool node only when the model generates a tool call \cite{langgraph_docs_2025}.
+
+\subsection{Synthesis and Requirements}
+All three frameworks share the fundamental concept of a tool as a callable function with a name, description and typed input schema that is exposed to a language model. The definition mechanism is also convergent: all frameworks support defining tools as decorated Python functions with auto-generated schemas. The key differences lie in how tools are assigned, scoped and integrated into the execution flow.
+
+From this analysis, the following representational requirements can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R18}] \textbf{Tool as a framework-independent concept.} The ontology must represent tools as entities with a name, description and input schema, independent of the framework-specific definition mechanism (decorator, subclass, or function).
+
+    \item[\textbf{R19}] \textbf{Tool assignment scope.} The ontology must capture at which level a tool is bound: to an individual agent (all frameworks), to a specific task (CrewAI), or to a graph node (LangGraph). 
+\end{enumerate}
+
+\section{Guardrails and Governance Mechanisms}
+
+Because agentic AI operates with high autonomy in dynamic environments, robust guardrails are essential to ensure that systems act safely, predictably and in alignment with human values. Guardrails consist of embedded technical constraints. Including goal safety protocols, schema validators and fail-safe mechanisms—that monitor and validate agent outputs before execution, preventing harmful actions or deviations from assigned objectives. By incorporating node validation, retry logic and early-stage trust layers, developers can secure agent workflows and mitigate risks like malicious code execution or data privacy breaches  \cite{deepaketal2025} \cite{derouiche2025agenticaiframeworksarchitectures}.
+
+On a broader systemic level, governance frameworks dictate the degree of human oversight and accountability required for agentic operations. This is frequently implemented through Human-in-the-Loop (HITL) architectures, where a human must explicitly approve critical decisions, or Human-on-the-Loop (HOTL) designs, where humans monitor autonomous execution with the power to intervene via override protocols. Governance also heavily relies on Explainable AI (XAI) techniques and comprehensive audit trails to log reasoning steps and tool invocations, ensuring that the agent's decision-making process remains transparent, legally compliant and accountable when errors occur \cite{deepaketal2025}. 
+
+\subsection{Framework Analysis}
+
+\subsubsection{CrewAI}
+CrewAI implements guardrails at the task level through the {guardrail} and {guardrails} parameters. Two types are supported: function-based guardrails, which are Python functions that receive a {TaskOutput} and return a tuple indicating success or failure with feedback and LLM-based guardrails, which are string descriptions that the agent's language model evaluates against the output. Multiple guardrails can be chained sequentially, with each receiving the output of the previous one. A configurable {guardrail\_max\_retries} parameter limits how many times an agent reattempts a task after guardrail failure \cite{crewai_docs_2025}.
+
+\subsubsection{AutoGen}
+AutoGen does not provide a dedicated guardrail mechanism at the task or agent level. Output validation must be implemented by the developer, typically through a dedicated critic agent that evaluates outputs and provides feedback within the team's conversational flow. This is a common architectural pattern in AutoGen rather than a framework feature: a validator agent is included as a team participant and a {TextMentionTermination} condition (e.g. listening for ``APPROVE'') controls when execution stops.
+
+Human-in-the-loop is supported through two complementary mechanisms. First, a {UserProxyAgent} can be included as a participant in a team, prompting the user for input during its turn via a configurable input function. This approach is synchronous and blocks the team's execution until the user responds. Second, the team can be configured to pause after a set number of agent turns using the {max\_turns} parameter, or to stop when an agent issues a {HandoffMessage} targeting the user, detected by a {HandoffTermination} condition. In both cases, the team preserves its state after stopping and can be resumed with user feedback passed as the {task} parameter in the next call to {run} \cite{autogen_docs_2025}.
+
+
+\subsubsection{LangGraph}
+LangGraph does not provide built-in guardrails but offers comprehensive mechanisms for human-in-the-loop through its {interrupt} function. Unlike static breakpoints (which pause before or after specific nodes at compile time), interrupts are dynamic: they can be placed anywhere within a node's logic and can be conditional based on application state. When {interrupt} is called, graph execution is suspended, the current state is saved via the checkpointer and a payload is surfaced to the caller. Execution resumes when the caller re-invokes the graph with a {Command(resume=...)} containing the human's response, which becomes the return value of the {interrupt} call inside the node.
+
+This mechanism supports several human-in-the-loop patterns at the source code level: approval workflows where a node pauses for a binary approve/reject decision, review-and-edit patterns where a human can modify LLM outputs before they are committed to state and input validation loops where an interrupt repeatedly prompts the user until valid input is received. Interrupts can also be placed inside tool functions, causing the tool to pause for approval whenever it is invoked.
+
+Guardrail-like validation must be implemented as a dedicated node in the graph that inspects the state and routes execution to either the next step or back to the producing node via conditional edges \cite{langgraph_docs_2025}.
+
+\subsection{Synthesis and Requirements}
+The frameworks diverge significantly in how they handle validation and human oversight. CrewAI provides guardrails as a first-class, configurable feature at the task level with built-in retry logic and supports human-in-the-loop through task-level flags and flow-level decorators. AutoGen has no dedicated guardrail mechanism; validation is achieved through critic agents participating in the conversational flow, while human-in-the-loop is supported through {UserProxyAgent} participation, {max\_turns} pausing and {HandoffTermination} conditions. LangGraph requires guardrail logic to be encoded as validation nodes with conditional edges and provides a dynamic {interrupt} function that can be placed anywhere within node logic for human review, approval, or input validation.
+
+From this analysis, the following representational requirements can be derived:
+
+\begin{enumerate}
+    \item[\textbf{R20}] \textbf{Guardrails as a task-level property.} The ontology must represent that a task or step has associated validation logic, regardless of whether it is implemented as a task parameter (CrewAI), a validator agent (AutoGen), or a conditional node (LangGraph). The representation captures that validation exists and what criteria it checks, without modeling the implementation mechanism itself.
+
+    \item[\textbf{R21}] \textbf{Human-in-the-loop as an explicit checkpoint.} The ontology must represent points in the workflow where human review or input is required. This includes CrewAI's {human\_input} flag and {@human\_feedback} decorator, AutoGen's {UserProxyAgent} and {HandoffTermination} targeting the user and LangGraph's {interrupt} calls within nodes. The semantic representation captures the presence and position of human checkpoints so that the transformation method can reconstruct an equivalent mechanism in the target framework.
+\end{enumerate}
+
+\section{Consolidated Requirements}
+
+The preceding sections analyzed how each agentic AI concept is realized across CrewAI, AutoGen, and LangGraph at the source code level. From the synthesis of each concept area, a total of 21 representational requirements 
+were derived. Each requirement specifies what the semantic representation must capture to enable framework-independent modeling of the corresponding concept. Table~\ref{tab:requirements} consolidates these requirements across all seven concept areas. Together, they define the scope and acceptance criteria for the ontology engineering phase that follows.
+
+\begin{small}
+\begin{longtable}{@{}p{0.6cm} p{1.9cm} p{7.0cm} p{4.1cm}@{}}
+\caption{Representational Requirements for a Semantic Model of Agentic AI Systems}
+\label{tab:requirements}\\
+ 
+\toprule
+\textbf{ID} & \textbf{Concept} & \textbf{Requirement} & \textbf{Traceability} \\
+\midrule
+\endfirsthead
+ 
+\toprule
+\textbf{ID} & \textbf{Concept} & \textbf{Requirement} & \textbf{Traceability} \\
+\midrule
+\endhead
+ 
+\midrule
+\multicolumn{4}{r}{\textit{Continued on next page}} \\
+\endfoot
+ 
+\bottomrule
+\endlastfoot
+ 
+R1 & Agent Def.
+   & \textbf{Framework-independent agent identity.} The ontology must represent agent identity as a separable concept that can be populated either from explicit configuration attributes (as in CrewAI and AutoGen) or inferred from prompt-level content within computational nodes (as in LangGraph).
+   & \cite{wooldridge-2009,botti2025agenticaimultiagenticreinventing,wissuchek2025exploringagenticartificialintelligence,ekelhart2026agento,crewai_docs_2025,autogen_docs_2025,langgraph_docs_2025} \\
+ 
+R2 & Agent Def.
+   & \textbf{Distinction between orchestration-relevant and model-relevant attributes.} The ontology must distinguish between agent attributes that serve the orchestration layer and those that instruct the language model. A single agent may carry both types of directive simultaneously.
+   & \cite{schneider2025generativeagenticaisurvey,derouiche2025agenticaiframeworksarchitectures,wu2023autogenenablingnextgenllm,autogen_docs_2025} \\
+ 
+R3 & Agent Def.
+   & \textbf{Prompt decomposition into structured components.} The ontology must decompose natural language prompt content into structured components so that equivalent prompts can be reconstructed for different target frameworks from these components.
+   & \cite{guo2024largelanguagemodelbased,derouiche2025agenticaiframeworksarchitectures,ekelhart2026agento} \\
+ 
+R4 & Agent Def.
+   & \textbf{Flexible attribute cardinality.} The ontology must define a minimal set of identity properties while accommodating framework-specific extensions without loss of information.
+   & \cite{derouiche2025agenticaiframeworksarchitectures,ekelhart2026agento,crewai_docs_2025,autogen_docs_2025,langgraph_concepts} \\
+ 
+R5 & Agent Def.
+   & \textbf{Agent functional typing.} The ontology must represent the functional role an agent plays within the coordination structure by distinguishing between general-purpose agents, manager/orchestrator agents and agents that serve as proxies for human input.
+   & \cite{botti2025agenticaimultiagenticreinventing,Sapkota_2026,wu2023autogenenablingnextgenllm,crewai_docs_2025} \\
+ 
+\midrule
+ 
+R6 & Perception / Task
+   & \textbf{Task as a first-class ontological concept.} The ontology must represent tasks as distinct entities with their own properties, even when the source framework does not model them explicitly.
+   & \cite{hong2024metagptmetaprogrammingmultiagent,arunkumar2026,fi17090404,crewai_docs_2025,dwivedietal2026} \\
+ 
+R7 & Perception / Task
+   & \textbf{Agent-Task assignment.} The ontology must represent the relationship between a task and the agent responsible for its execution, including explicit assignment, implicit assignment through orchestration and structural assignment through graph topology.
+   & \cite{guo2024largelanguagemodelbased,lietal2024,arunkumar2026,crewai_docs_2025,langgraph_docs_2025,dwivedietal2026} \\
+ 
+R8 & Perception / Task
+   & \textbf{Data dependencies.} The ontology must capture ordering and data dependencies between tasks and normalize these into a unified dependency model.
+   & \cite{guo2024largelanguagemodelbased,hong2024metagptmetaprogrammingmultiagent,crewai_docs_2025,langgraph_stategraph} \\
+ 
+R9 & Perception / Task
+   & \textbf{Expected outputs.} The ontology must represent the expected output of a task, both as a natural language description and, where available, as a structured schema definition.
+   & \cite{hong2024metagptmetaprogrammingmultiagent,arunkumar2026,petrova2025semanticwebmasagentic,crewai_docs_2025} \\
+ 
+\midrule
+ 
+R10 & Coordination
+    & \textbf{Coordination pattern as a named concept.} The ontology must represent coordination patterns (sequential, hierarchical, round-robin, swarm, selector-based) as identifiable concepts regardless of whether they are selected from a preset or manually constructed in a graph.
+    & \cite{guo2024largelanguagemodelbased,arunkumar2026,chen2025surveyllmbasedmultiagentsystem,crewai_docs_2025,autogen_docs_2025,Borghofetal2025} \\
+ 
+R11 & Coordination
+    & \textbf{Agent-to-coordination binding.} The ontology must capture which agents participate in a coordination structure and how they are bound to it.
+    & \cite{lietal2024,wu2023autogenenablingnextgenllm,crewai_docs_2025,autogen_docs_2025,langgraph_concepts,lovenetal2026} \\
+ 
+R12 & Coordination
+    & \textbf{Termination conditions.} The ontology must capture termination semantics independently of framework-specific mechanisms.
+    & \cite{wu2023autogenenablingnextgenllm,autogen_docs_2025,langgraph_concepts} \\
+ 
+R13 & Coordination
+    & \textbf{Multi-level coordination.} The ontology must represent nested coordination structures so that a CrewAI flow containing multiple crews can be captured without flattening the hierarchy, while also representing single-level coordination.
+    & \cite{Sapkota_2026,lietal2024,crewai_docs_2025,lovenetal2026} \\
+ 
+R14 & Coordination
+    & \textbf{Workflow step structure with typed transitions.} The ontology must represent the execution structure as a sequence of discrete steps with typed transitions, distinguishing entry points, exit points, intermediate steps, unconditional and conditional transitions with associated routing logic.
+    & \cite{arunkumar2026,langgraph_concepts,langgraph_stategraph,clark-2026,Borghofetal2025} \\
+ 
+\midrule
+ 
+R15 & Reasoning
+    & \textbf{Reasoning as capability, pattern and origin.} The ontology must represent whether an agent has reasoning enabled, which reasoning pattern is employed if identifiable and whether reasoning originates from the framework, the model or the system topology.
+    & \cite{schneider2025generativeagenticaisurvey,yao2023react,NISA202669,yehudai2025surveyevaluationllmbasedagents,crewai_docs_2025} \\
+ 
+\midrule
+ 
+R16 & Memory
+    & \textbf{Memory scope as an explicit property.} The ontology must represent at which level memory is owned and accessible: agent-private, shared among a group or global to the system.
+    & \cite{lietal2024,derouiche2025agenticaiframeworksarchitectures,crewai_docs_2025,autogen_docs_2025} \\
+ 
+R17 & Memory
+    & \textbf{Separation of short-term and long-term persistence.} The ontology must represent the lifecycle of memory independently of how a given framework packages its memory features.
+    & \cite{derouiche2025agenticaiframeworksarchitectures,Sapkota_2026,schneider2025generativeagenticaisurvey,crewai_docs_2025,langgraph_docs_2025} \\
+ 
+\midrule
+ 
+R18 & Tools
+    & \textbf{Tool as a framework-independent concept.} The ontology must represent tools as entities with a name, description and input schema, independent of the framework-specific definition mechanism.
+    & \cite{yehudai2025surveyevaluationllmbasedagents,schneider2025generativeagenticaisurvey,petrova2025semanticwebmasagentic,yao2023react,crewai_docs_2025,autogen_docs_2025} \\
+ 
+R19 & Tools
+    & \textbf{Tool assignment scope.} The ontology must capture at which level a tool is bound: to an individual agent, to a specific task or to a graph node.
+    & \cite{hong2024metagptmetaprogrammingmultiagent,crewai_docs_2025,autogen_docs_2025,langgraph_prebuilt} \\
+ 
+\midrule
+ 
+R20 & Guardrails
+    & \textbf{Guardrails as a task-level property.} The ontology must represent that a task has associated validation logic, regardless of whether it is implemented as a task parameter, a validator agent or a conditional node.
+    & \cite{deepaketal2025,derouiche2025agenticaiframeworksarchitectures,miehling2025agenticaineedssystems,crewai_docs_2025,olujimietal2025} \\
+ 
+R21 & Guardrails
+    & \textbf{Human-in-the-loop as an explicit checkpoint.} The ontology must represent points in the workflow where human review or input is required, capturing the presence and position of human checkpoints.
+    & \cite{deepaketal2025,Allam2025AgenticAF,wu2023autogenenablingnextgenllm,crewai_docs_2025,langgraph_docs_2025} \\
+ 
+\end{longtable}
+\end{small}
+
+\chapter{A Framework-Agnostic Semantic Representation}
+\label{chap:ontology}
+The previous chapter analyzed how agentic AI concepts are realized across three frameworks and derived a set of representational requirements from those findings. These requirements describe what a framework-independent 
+semantic representation must be able to express in order to support interoperability. This chapter presents the ontology developed to meet those requirements. The ontology is the first of the two artefacts of this thesis. Its purpose is specific: it serves as the common intermediate representation into which framework-specific source code is extracted and from which framework-specific source code is generated. 
+
+The ontology is developed following the Ontology Development 101 methodology proposed by \cite{onto101}. The first step of this methodology is to determine the domain and scope of the ontology. The domain is agentic AI systems and the ability to represent cross-framework implementation details. 
+
+\section{Scope and Competency Questions}
+
+ The scope is defined through competency questions, as introduced by \cite{gruningerandfox}. Competency questions are natural language queries that a fully populated ontology must be able to answer. They act as boundary conditions: if a populated ontology instance cannot answer a competency question, either the ontology is missing a required concept or the extraction has not captured it  \cite{onto101}. In this thesis, the competency questions are derived directly from the requirements established in Chapter~\ref{chap:requirements}. The corresponding competency question can be found in \ref{tab:competency-questions}.
+
+
+It is also important to be clear about what the ontology does not capture. Runtime state, execution history and dynamic behavior that only shows when a system runs are outside scope. This includes conversation histories, 
+dynamically selected speakers in AutoGen's {SelectorGroupChat} and the actual values passed through LangGraph's shared state.
+
+\section{Reuse Evaluation}
+
+The ontology is not built from scratch. AgentO \cite{ekelhart2026agento} provides the conceptual foundation, defining core classes such as \texttt{LLMAgent}, \texttt{Task}, \texttt{Tool}, \texttt{Prompt} and \texttt{WorkflowStep} along with 22 object properties and 10 datatype properties. Where AgentO's existing vocabulary satisfies a requirement, it is reused without modification. Where it falls short, new classes and properties are introduced. All extensions are strictly additive: no existing AgentO class is removed or structurally modified and no existing property has its domain or range altered.
+ 
+To determine where extensions are needed, we evaluated each requirement from Chapter~\ref{chap:requirements} against AgentO's vocabulary. Table~\ref{tab:competency-coverage} summarises the results. Of the 21 requirements, AgentO fully covers 4 (R1, R4, R6, R11) through its existing agent identity, flexible cardinality, task and team membership classes. Eight requirements are partially covered: the relevant classes exist but lack properties needed for cross-framework transformation, such as distinguishing orchestration-facing from model-facing prompts (R2) or recording how task-agent binding was determined (R7). The remaining nine requirements address concepts entirely absent from AgentO, including coordination patterns, termination conditions, reasoning strategies, guardrails and human-in-the-loop checkpoints. The extensions derived from this analysis are detailed in the following section.
+
+
+% ===================================================================
+% Ontology Engineering: Defining Classes and Properties
+% (Steps 4 and 5 of Ontology Development 101)
+% ============================================================
+\section{Defining Classes and Properties}
+\label{sec:agentoscin-classes}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{graphics/agentoscin_overview.pdf}
+    \caption{Excerpt: AgentOscin Concepts and Object Properties}
+    \label{fig:agentoscin}
+\end{figure}
+
+
+This section presents AgentOscin, the ontology developed in this thesis. 
+Figure~\ref{fig:agentoscin} shows the resulting class structure 
+and the principal object properties that connect them. Classes shown in 
+gray are inherited from AgentO~\cite{ekelhart2026agento} without modification. Classes 
+and properties shown in blue are introduced by AgentOscin to satisfy 
+requirements that AgentO does not cover. Each extension is annotated with 
+the requirement it addresses (R1 - R21).
+
+The rest of this section walks through the seven concept groups in 
+the order established in Chapter~\ref{chap:requirements}. 
+
+\subsection{Agent Definition}
+
+\label{sec:agentoscin-agent}
+
+AgentO already provides the \texttt{LLMAgent} and \texttt{Prompt} classes, 
+which together cover R1 (framework-independent agent identity) and R4 
+(flexible attribute cardinality) without modification. AgentOscin extends 
+this baseline with three properties that carry the remaining agent-level 
+requirements.
+
+The property \texttt{agentType} (R5) types each agent by its functional 
+role in the coordination structure rather than by its implementation 
+class. The decision to model this as a property rather than as a subclass 
+hierarchy reflects the cross-framework variability of the concept: a 
+manager agent in CrewAI is structurally different from a 
+\texttt{UserProxyAgent} in AutoGen, and both differ from a routing node 
+in LangGraph~\cite{crewai_docs_2025,autogen_docs_2025,langgraph_concepts}. A property-based encoding allows 
+the same \texttt{LLMAgent} individual to be classified consistently 
+regardless of how its host framework expresses the role.
+
+R2 (orchestration- versus model-relevant directives) and R3 (prompt 
+decomposition) are handled at the \texttt{Prompt} level rather than at 
+the agent level. Distinguishing the directive function of a prompt 
+fragment is an attribute of the prompt itself, not of the agent that 
+carries it, and decomposing a prompt into structured components only 
+makes sense once the prompt is treated as a first-class entity. 
+AgentO's existing \texttt{Prompt} class is therefore retained as the 
+attachment point for these properties.
+
+\subsection{Perception and Task Definition}
+\label{sec:agentoscin-task}
+
+The \texttt{Task} class is inherited from AgentO and satisfies R6 
+directly. AgentOscin adds four properties that capture task-level 
+information not represented in AgentO.
+
+\texttt{performedByAgent} (R7) records the agent responsible for a task. 
+The associated property \texttt{hasDelegationStrategy} encodes how that 
+assignment was determined: explicit assignment in the source 
+configuration, structural assignment through graph topology, or 
+delegation deferred to runtime. Recording the strategy alongside the 
+assignment preserves a distinction that is otherwise lost when the 
+ontology is queried, since a CrewAI hierarchical process and a CrewAI 
+sequential process produce structurally similar 
+\texttt{performedByAgent} assertions for different reasons~\cite{crewai_docs_2025}.
+
+\texttt{hasDependencyType} (R8) normalizes the three frameworks' 
+distinct dependency mechanisms into a unified property. CrewAI's 
+\texttt{context} attribute, LangGraph's edges, and AutoGen's implicit 
+sequential ordering are heterogeneous on the surface but encode the same 
+underlying relation between tasks~\cite{crewai_docs_2025,langgraph_concepts, autogen_docs_2025}. The 
+\texttt{hasDependencyType} value distinguishes these origins so that the 
+generation direction can produce code in each target.
+
+\texttt{hasExpectedOutput} and \texttt{hasOutputSchema} (R9) separate 
+the natural-language description of an expected output from its 
+structured schema. The separation reflects the observation that all 
+three frameworks support the former while only CrewAI consistently 
+supports the latter, and that conflating them would force the ontology 
+to either lose information or produce unreliable schemas during 
+generation.
+
+\subsection{Coordination}
+\label{sec:agentoscin-coordination}
+
+The coordination concept group is the most extensively modified part of 
+the ontology, reflecting the fact that AgentO does not represent 
+coordination patterns or termination semantics as first-class concepts. 
+Five new classes and several supporting properties are introduced.
+
+\texttt{CoordinationPattern} (R10) reifies the coordination strategy as 
+a named concept rather than encoding it as a string-valued property on 
+\texttt{Team}. The reification is a deliberate choice. A property-valued 
+encoding would prevent reasoning over the pattern itself, for instance 
+asking whether two teams use compatible coordination strategies or 
+whether a given pattern is supported by a target framework. With 
+\texttt{CoordinationPattern} as a class, individual patterns 
+(\texttt{Sequential}, \texttt{Hierarchical}, \texttt{RoundRobin}, 
+\texttt{Selector}, \texttt{Swarm}) can be defined as instances and 
+queried directly.
+
+\texttt{TerminationCondition} (R12) follows the same modeling principle. 
+AutoGen's termination conditions are first-class objects in the source 
+language and combine using bitwise operators~\cite{autogen_docs_2025}; representing 
+them as ontology individuals preserves this compositional structure. 
+
+The triple \texttt{AgenticSystem}, \texttt{Orchestration}, \texttt{Team} 
+(R13) provides the multi-level coordination structure required to 
+represent CrewAI flows containing multiple crews without flattening the 
+hierarchy. \texttt{AgenticSystem} is the top-level container, 
+\texttt{Orchestration} represents the outer flow and \texttt{Team} 
+represents the inner coordination unit. A flat AutoGen team or a single 
+LangGraph graph is represented as an \texttt{AgenticSystem} containing 
+exactly one \texttt{Team} and no \texttt{Orchestration}, ensuring that 
+the same ontological structure accommodates both nested and single-level 
+cases.
+
+\texttt{WorkflowPattern} and \texttt{WorkflowStep} (R14) decompose the 
+internal execution structure of a coordination unit. The 
+\texttt{WorkflowStep} hierarchy distinguishes \texttt{StartStep}, 
+\texttt{EndStep} and \texttt{ConditionalStep} as subclasses, attaching 
+the routing logic property \texttt{hasRoutingLogic} at the 
+\texttt{ConditionalStep} level. This avoids polluting unconditional 
+steps with a property they cannot use and lets the generator emit 
+unconditional or conditional transitions based on the step's class 
+rather than on a runtime check.
+
+R11 (agent-to-coordination binding) is satisfied by the existing 
+\texttt{containsAgent} relation from \texttt{AgenticSystem} together 
+with the \texttt{performedByAgent} relation on tasks. No new property 
+is required.
+
+\subsection{Reasoning}
+\label{sec:agentoscin-reasoning}
+
+R15 requires three distinct pieces of information to be representable: 
+whether reasoning is enabled, what pattern it follows, and where the 
+capability originates. AgentOscin models this with one new class and 
+three properties on \texttt{LLMAgent}. The data property 
+\texttt{hasReasoningEnabled} records the boolean enablement, 
+\texttt{hasReasoningOrigin} records whether the capability comes from 
+the framework, the underlying language model or the system topology, 
+and \texttt{employsReasoningPattern} links to a 
+\texttt{ReasoningPattern} individual when one can be identified.
+
+Modeling reasoning origin as a property rather than encoding it 
+implicitly in the agent's class is a deliberate choice driven by the 
+extraction direction. CrewAI exposes reasoning as a configurable agent 
+flag~\cite{crewai_docs_2025}, AutoGen leaves it to the underlying 
+model~\cite{autogen_docs_2025} and LangGraph requires it to be constructed in the 
+graph topology~\cite{langgraph_concepts}. These are observable distinctions in the 
+source code but they do not warrant separate agent classes, since the 
+agent itself remains structurally identical across the three cases.
+
+\subsection{Memory}
+\label{sec:agentoscin-memory}
+
+The memory concept group introduces the \texttt{MemoryBinding} class to 
+satisfy R16 (memory scope) and R17 (persistence separation). The 
+binding is a reified relation between an \texttt{LLMAgent} and a 
+\texttt{Memory} individual rather than a direct property. Reification 
+is required because the same memory store can be bound at different 
+scopes in different parts of a system. A CrewAI crew-level memory and a 
+CrewAI agent-level memory may reference the same underlying 
+store~\cite{crewai_docs_2025} but differ in their access scope, and a direct 
+property between agent and memory cannot distinguish these cases.
+
+\texttt{hasMemoryScope} on \texttt{MemoryBinding} records whether the 
+binding is agent-private, group-shared or system-global. 
+\texttt{hasPersistenceScope} records whether the memory persists within 
+a single execution, across executions on a thread, or across all 
+sessions. Separating these dimensions preserves the lifecycle 
+distinctions captured in LangGraph's checkpointer-versus-store 
+split~\cite{langgraph_concepts} while allowing the same dimensional vocabulary to 
+describe CrewAI's and AutoGen's memory configurations.
+
+\subsection{Tools}
+\label{sec:agentoscin-tools}
+
+R18 (framework-independent tool concept) is largely covered by 
+AgentO's existing \texttt{Tool} class. AgentOscin adds 
+\texttt{hasInputSchema} to capture the typed input specification that 
+all three frameworks generate from Python type hints, Pydantic models 
+or JSON schemas. The property is a concrete extension rather than a 
+class because the schema is structural metadata about the tool, not an 
+entity in its own right.
+
+R19 (tool assignment scope) is satisfied by introducing two distinct 
+properties: \texttt{agentToolUsage} and \texttt{taskToolUsage}. 
+Modeling the assignment as two separate properties rather than as a 
+single property with a scope qualifier reflects the semantics of the 
+target frameworks: agent-level and task-level tool assignment are not 
+the same relation and conflating them would force the generator to 
+infer scope at code emission time.
+
+\subsection{Guardrails and Governance}
+\label{sec:agentoscin-guardrails}
+
+The governance concept group introduces two new classes to satisfy R20 
+and R21, both of which describe concepts entirely absent from AgentO.
+
+\texttt{Guardrail} (R20) attaches to \texttt{Task} via the 
+\texttt{hasGuardrail} property and carries \texttt{hasGuardrailType} 
+to distinguish function-based, LLM-based and structural validation 
+mechanisms. The class-level modeling is necessary because a task may 
+have multiple guardrails chained sequentially~\cite{crewai_docs_2025}, which a 
+flat property could not represent.
+
+\texttt{HumanCheckpoint} (R21) attaches to \texttt{Task} via 
+\texttt{hasHumanCheckpoint} and carries \texttt{hasCheckpointType} to 
+distinguish the three observed checkpoint mechanisms: approval, 
+review-and-edit and input-validation. Modeling human-in-the-loop as a 
+positional checkpoint rather than as a boolean flag captures the 
+information needed by R21, namely the position of the checkpoint in 
+the workflow rather than merely its existence.
+
+The auxiliary class \texttt{HumanAgent} extends the agent hierarchy to 
+represent users participating in agentic systems through proxies such 
+as AutoGen's \texttt{UserProxyAgent}~\cite{autogen_docs_2025}. The 
+\texttt{humanParticipatedIn} relation links a \texttt{HumanAgent} to 
+the tasks or checkpoints it interacts with, enabling the ontology to 
+distinguish agent-driven and human-driven contributions to a workflow 
+without reclassifying users as ordinary agents.
+
+\subsection{Summary}
+\label{sec:agentoscin-summary}
+
+AgentOscin extends AgentO with nine new classes and a corresponding set 
+of object and data properties, all introduced as additive extensions 
+that leave the AgentO baseline structurally intact. Every extension 
+traces back to a requirement in Chapter~\ref{chap:requirements} and is 
+positioned in Figure~\ref{fig:agentoscin} alongside its 
+requirement tag. The next chapter shows how the resulting vocabulary 
+is exercised by the bidirectional transformation method, both as a 
+target for extraction from framework-specific source code and as a 
+source for code regeneration.
+
+\chapter{Bidirectional Transformation Method}
+\label{chap:transformation}
+
+This chapter presents the transformation method that links framework-specific source code to the semantic representation developed in Chapter~\ref{chap:ontology}. The method is grounded in the OSCIN
+framework~\cite{oscin} for ontology-based source code interoperability, with two extensions motivated by the specific characteristics of the agentic AI domain. Section~\ref{sec:method-overview} maps the OSCIN phases to this thesis context and states the scoping decisions. Section~\ref{sec:extraction} presents the extraction direction: three framework-specific extractors that transform Python source code into ontology instances. Section~\ref{sec:generation} presents the generation direction, which is based on a a template-based code synthesiser that transforms ontology instances into executable source code. 
+
+
+\section{OSCIN Instantiation}
+\label{subsec:oscin-mapping}
+
+The OSCIN method~\cite{oscin} defines five phases for achieving ontology-based source code interoperability: (1)~Specification, which defines the transformation scope; (2)~Subdomain Semantic Abstraction, which constructs the domain ontology; (3)~Language Syntactic Abstraction, which defines parsers for each source language; (4)~Language Semantic Abstraction, which maps syntactic structures to ontology instances; and (5)~Application Perspective, which implements domain-specific operations over the populated ontology. Table~\ref{tab:oscin-mapping} maps these phases to the thesis.
+
+\begin{table}[htbp]
+\centering
+\caption{Mapping of OSCIN phases to the thesis context.}
+\label{tab:oscin-mapping}
+\small
+\begin{tabularx}{\textwidth}{@{} l l X @{}}
+\toprule
+\textbf{OSCIN Phase} & \textbf{Thesis Chapter} & \textbf{Instantiation} \\
+\midrule
+1. Specification
+  & Ch.~3 (Methodology)
+  & Subdomain: agentic AI systems. Language: Python.
+    Frameworks: CrewAI, LangGraph, AutoGen v0.4.
+    Perspective: cross-framework interoperability. \\
+\addlinespace
+2. Subdomain Semantic Abstraction
+  & Ch.~\ref{chap:ontology}
+  & AgentOscin ontology: ~new classes, ~object properties,
+    ~data properties extending AgentO. \\
+\addlinespace
+3. Language Syntactic Abstraction
+  & \S\ref{sec:extraction}
+  & Python {ast} module provides the parser. Framework-specific
+    AST patterns are defined per extractor. \\
+\addlinespace
+4. Language Semantic Abstraction
+  & \S\ref{sec:extraction2}
+  & Deterministic AST mapping for structural constructs \\
+\addlinespace
+5. Application Perspective
+  & \S\ref{sec:generation}
+  & Code generation from ontology instances into CrewAI.
+    \textbf{Extension of OSCIN} (generation direction). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\subsection{Extraction Method}
+
+In this phase, framework-specific source code patterns are mapped to a unified semantic representation. These mappings serve as the foundation for the automated transformation into the domain ontology. 
+
+The extraction process is structured into three distinct layers to ensure framework-agnostic extensibility:
+
+\begin{enumerate} \item \textbf{Framework-Specific Parsing (Layer 1):} Individual parsers use Python's \texttt{ast} (Abstract Syntax Tree) module to statically analyze source files.  
+
+\item \textbf{Shared Intermediate Representation (Layer 2):} The output of Layer 1 is mapped to a set of framework-neutral dataclasses (e.g., \texttt{ExtractedAgent}, \texttt{ExtractedTask}, \texttt{ExtractedFlow}). This Shared Intermediate Representation (SIR) acts as a structural contract, abstracting away framework-specific terminology. 
+
+\item \textbf{Ontology Population (Layer 3):} A framework-agnostic populator takes the SIR objects as input to instantiate individuals within the \textit{AgentOscin} ontology using \texttt{rdflib} \cite{rdflib_docs}. 
+\end{enumerate}
+
+\subsubsection{Framework-Specific Parsing via Static Analysis (Layer 1)}
+\label{sec:extraction}
+
+The first layer employs static program analysis to interpret the syntactic topology of the framework-specific source-code. By utilizing Python's built-in ast module, the parser constructs an Abstract Syntax Tree of the target source files \cite{python_ast_docs}. The parsers implement the Visitor pattern (via ast.walk or ast.NodeVisitor) to traverse the tree and identify framework-specific syntactic structures. For instance, the AutoGenParser scans for variable assignments where the value is an instantiation of AssistantAgent, extracting the arguments passed to the constructor. Conversely, the CrewAIParser detects classes decorated with @CrewBase and extracts functions decorated with @agent or @task, simultaneously resolving external YAML configuration files bound to the class attributes.
+
+\begin{lstlisting}[language=Python, caption={Simplified AST traversal for AutoGen agent extraction.}, label={lst:ast_parse}] for node in ast.walk(tree): # Detect assignment operations (e.g., researcher = AssistantAgent(...)) if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call): if getattr(node.value.func, "id", "") == "AssistantAgent": agent_name = extract_kwarg(node.value, "name") sys_msg = extract_kwarg(node.value, "system_message")
+
+        # Map to Shared Intermediate Representation
+        extracted_agents.append(ExtractedAgent(
+            role=agent_name,
+            backstory=sys_msg
+        ))
+\end{lstlisting}
+
+\subsubsection{Shared Intermediate Representation (Layer 2)}
+
+To decouple the extraction logic from the ontology population logic, Layer 1 maps all framework-specific abstractions into a Shared Intermediate Representation (SIR). The SIR is implemented as a set of strictly typed Python dataclasses. This layer acts as an ontological proxy. This proxy normalizes framework implementations into a unified schema. For example, both an AutoGen AssistantAgent and a LangGraph add\_node() invocation are reduced to an ExtractedAgent object, capturing only the semantic essence required by the ontology (e.g., role, tools, language model).
+
+\subsubsection{Ontology Population and Semantic Assertion (Layer 3)}
+\label{sec:extraction2}
+
+The final layer iterates over the SIR objects to populate the \textit{AgentOscin} ontology using the rdflib library. This process involves minting unique Uniform Resource Identifiers (URIs) for each extracted construct and asserting Resource Description Framework (RDF) triples.
+
+The populator enforces the semantic rules defined in the TBox (schema). For example, when instantiating an agent, the populator creates an individual of type agentoscin:LLMAgent, generates an associated agentoscin:Prompt individual to store the backstory, and asserts an agentoscin:useLanguageModel object property linking the agent to its designated LLM.
+
+\begin{lstlisting}[language=Python, caption={Ontology population mapping SIR objects to OWL individuals using RDFLib.}, label={lst:rdflib_pop}] for agent in sir.agents: agent_uri = EX[f"Agent_{sanitize(agent.name)}"]
+
+# Assert Class Type
+graph.add((agent_uri, RDF.type, AGENTOSCIN.LLMAgent))
+graph.add((agent_uri, AGENTOSCIN.agentRole, Literal(agent.role)))
+
+# Assert Prompt Object Property
+if agent.backstory:
+    prompt_uri = EX[f"AgentPrompt_{sanitize(agent.name)}"]
+    graph.add((prompt_uri, RDF.type, AGENTOSCIN.Prompt))
+    graph.add((prompt_uri, AGENTOSCIN.promptContext, Literal(agent.backstory)))
+    graph.add((agent_uri, AGENTOSCIN.agentPrompt, prompt_uri))
+\end{lstlisting}
+
+
+\subsection{Source Code Generation and Interoperability}
+\label{sec:generation}
+
+In this thesis, we extend the scope of this final phase. Rather than strictly querying the ontology for analytical purposes, we utilize the semantic graph as a middleman to enable bidirectional interoperability. This is achieved through the reverse transformation: translating the populated, semantically enriched \textit{AgentOscin} ontology back into executable source code for Agentic AI frameworks.
+
+The generation pipeline operates in a reversed three-layer process:
+
+\begin{enumerate}
+    \item \textbf{Ontology Reading (Layer 1):} A framework-agnostic reader utilizes \texttt{rdflib} to parse the serialized OWL ontology (e.g., Turtle format). It traverses the semantic ABox graph, identifying instances of core conceptual classes (e.g., \texttt{agentoscin:LLMAgent}, \texttt{agentoscin:WorkflowStep}) and resolving their associated object properties. This effectively acts as an advanced realization of OSCIN's Application Perspective Phase.
+    
+    \item \textbf{Shared Intermediate Representation (Layer 2):} The queried semantic data is reconstructed into the identical Shared Intermediate Representation (SIR) dataclasses used during extraction. By utilizing the SIR as a central pivot point, the architecture inherently supports an $N \times M$ translation matrix without requiring direct, tightly-coupled framework-to-framework translation logic.
+    
+    \item \textbf{Framework-Specific Generation (Layer 3):} Dedicated generator modules (e.g., \texttt{AutoGenGenerator}, \texttt{LangGraphGenerator}) consume the populated SIR objects. Using templating engines (e.g., Jinja2) and abstract syntax manipulation, this layer synthesizes the syntactically correct boilerplate, configuration files, and orchestrational logic required by the target framework.
+\end{enumerate}
+
+\subsubsection{Ontology Reading and IR Reconstruction (Layers 1 \& 2)}
+
+The reader component serves as the semantic-to-syntactic bridge. It executes graph queries to traverse the assertions, systematically resolving linked entities. For instance, when querying an \texttt{agentoscin:LLMAgent}, the reader must also traverse the \texttt{agentoscin:agentPrompt} object property to retrieve the role and backstory, and the \texttt{agentoscin:useLanguageModel} property to retrieve the LLM configuration.
+
+\begin{lstlisting}[language=Python, caption={Reconstructing the Shared Intermediate Representation from OWL individuals using RDFLib graph queries.}, label={lst:rdflib_read}]
+for agent_uri in graph.subjects(RDF.type, AGENTOSCIN.LLMAgent):
+    # Query literal data properties
+    role = graph.value(agent_uri, AGENTOSCIN.agentRole)
+    
+    # Traverse object properties for complex relationships
+    prompt_uri = graph.value(agent_uri, AGENTOSCIN.agentPrompt)
+    backstory = graph.value(prompt_uri, AGENTOSCIN.promptContext) if prompt_uri else None
+    
+    llm_uri = graph.value(agent_uri, AGENTOSCIN.useLanguageModel)
+    llm_model = graph.value(llm_uri, AGENTOSCIN.hasTitle) if llm_uri else "gpt-4o"
+    
+    # Reconstruct the framework-neutral dataclass
+    extracted_agents.append(ExtractedAgent(
+        name=generate_variable_name(role),
+        role=str(role),
+        backstory=str(backstory) if backstory else None,
+        llm=str(llm_model),
+        tools=[] # Tools are resolved via separate graph traversal
+    ))
+\end{lstlisting}
+
+\subsubsection{Framework-Specific Code Generation (Layer 3)}
+The framework-specific generators are responsible for rendering the SIR into source code. This process accounts for the architectural paradigms of the target framework. For instance, if the target is CrewAI, the generator produces both a Python execution script and the accompanying \texttt{agents.yaml} and \texttt{tasks.yaml} configuration files. If the target is AutoGen, the generator synthesizes a conversational AgentChat implementation, converting the generic agents into explicit \texttt{AssistantAgent} instantiations.
+
+\begin{lstlisting}[language=Python, caption={Generating AutoGen-specific agent instantiations from the neutral SIR.}, label={lst:autogen_gen}]
+def generate_autogen_agents(agents: List[ExtractedAgent]) -> str:
+    code_blocks = []
+    for agent in agents:
+        # Map SIR fields to AutoGen AssistantAgent syntax
+        code_blocks.append(f"""
+{agent.name} = AssistantAgent(
+    name="{agent.name.capitalize()}",
+    model_client=OpenAIChatCompletionClient(model="{agent.llm}"),
+    system_message="{agent.backstory}"
+)""")
+    return "\n".join(code_blocks)
+\end{lstlisting}
+
+
+
+
+
+
+% =====================================================================
+\chapter{Evaluation}\label{ch:evaluation}
+% =====================================================================
+
+
+
+
+\begin{table}[ht]
+\centering
+\caption{AgentO competency coverage against derived requirements.}
+\label{tab:competency-coverage}
+\renewcommand{\arraystretch}{1.1}
+\small
+\begin{tabular}{l c l}
+\toprule
+\textbf{Requirement} & \textbf{Cov.} & \textbf{Key extension} \\
+\midrule
+\multicolumn{3}{l}{\textit{Agent Definition}} \\
+R1~~Agent identity              & $\bullet$ & --- \\
+R2~~Directive distinction       & $\circ$   & \texttt{hasDirectiveFunction} \\
+R3~~Prompt decomposition        & $\circ$   & \texttt{hasSourceAttribute} \\
+R4~~Flexible cardinality        & $\bullet$ & --- \\
+R5~~Agent functional typing     & $\circ$   & \texttt{agentType} \\
+\midrule
+\multicolumn{3}{l}{\textit{Perception Layer}} \\
+R6~~Task as first-class         & $\bullet$ & --- \\
+R7~~Task-agent assignment       & $\circ$   & \texttt{hasDelegationStrategy} \\
+R8~~Task dependencies           & $\times$  & \texttt{dependsOn} \\
+R9~~Task output                 & $\circ$   & \texttt{hasExpectedOutput}, \texttt{hasOutputSchema} \\
+\midrule
+\multicolumn{3}{l}{\textit{Coordination}} \\
+R10~Coordination patterns       & $\times$  & \texttt{CoordinationPattern} hierarchy \\
+R11~Agent-coordination binding  & $\bullet$ & --- \\
+R12~Termination conditions      & $\times$  & \texttt{TerminationCondition} hierarchy \\
+R13~Multi-level coordination    & $\times$  & \texttt{Orchestration}, \texttt{AgenticSystem} \\
+R14~Workflow step structure     & $\circ$   & \texttt{ConditionalStep}, \texttt{hasRoutingLogic} \\
+\midrule
+\multicolumn{3}{l}{\textit{Reasoning}} \\
+R15~Reasoning capability        & $\times$  & \texttt{ReasoningPattern} hierarchy \\
+\midrule
+\multicolumn{3}{l}{\textit{Memory}} \\
+R16~Memory scope                & $\circ$   & \texttt{MemoryBinding}, \texttt{hasMemoryScope} \\
+R17~Persistence separation      & $\circ$   & \texttt{hasPersistenceScope} \\
+\midrule
+\multicolumn{3}{l}{\textit{Tools}} \\
+R18~Tool as concept             & $\circ$   & \texttt{hasInputSchema} \\
+R19~Tool assignment scope       & $\times$  & \texttt{taskToolUsage} \\
+\midrule
+\multicolumn{3}{l}{\textit{Guardrails \& Governance}} \\
+R20~Guardrails                  & $\times$  & \texttt{Guardrail}, \texttt{hasGuardrail} \\
+R21~Human-in-the-loop           & $\times$  & \texttt{HumanCheckpoint} \\
+\bottomrule
+\end{tabular}
+ 
+\vspace{4pt}
+\footnotesize
+$\bullet$~= fully covered (4) \quad $\circ$~= partially covered (8) \quad $\times$~= not covered (9)
+\end{table}
+
+
+
+\begin{small}
+\begin{longtable}{l l l p{7.5cm}}
+\caption{Competency Questions derived from Representational Requirements}
+\label{tab:competency-questions} \\
+
+\toprule
+\textbf{CQ} & \textbf{Req.} & \textbf{Concept} & \textbf{Competency Question} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{CQ} & \textbf{Req.} & \textbf{Concept} & \textbf{Competency Question} \\
+\midrule
+\endhead
+
+\midrule
+\multicolumn{4}{r}{\textit{Continued on next page}} \\
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+CQ-1  & R1  & Agent Def.
+      & Which agents are defined in this system and what identifies each one? \\
+
+CQ-2  & R2  & Agent Def.
+      & Which of an agent's prompts guide the orchestration layer and which instruct the language model? \\
+
+CQ-3  & R3  & Agent Def.
+      & What are the instruction, context and output indicator components of a given agent's prompt? \\
+
+CQ-4  & R4  & Agent Def.
+      & Which agent properties are explicitly specified and which are left undefined across different framework representations? \\
+
+CQ-5  & R5  & Agent Def.
+      & Is a given agent a general-purpose worker, a manager or a proxy for human input? \\
+
+\midrule
+
+CQ-6  & R6  & Perception
+      & What tasks does this system define and what does each task instruct the assigned agent to do? \\
+
+CQ-7  & R7  & Perception
+      & Which agent is responsible for a given task and how was that assignment determined? \\
+
+CQ-8  & R8  & Perception
+      & Which tasks must complete before a given task can start and what is the nature of that dependency? \\
+
+CQ-9  & R9  & Perception
+      & What output is a task expected to produce and is a structured output schema defined for it? \\
+
+\midrule
+
+CQ-10 & R10 & Coordination
+      & What coordination pattern does a given team follow? \\
+
+CQ-11 & R11 & Coordination
+      & Which agents belong to a given team and how are they bound to its coordination structure? \\
+
+CQ-12 & R12 & Coordination
+      & Under what conditions does a team's execution stop? \\
+
+CQ-13 & R13 & Coordination
+      & Does a team contain sub-teams and if so how are they nested? \\
+
+CQ-14 & R14 & Coordination
+      & What is the step-by-step execution structure of a team's workflow and where does it branch conditionally? \\
+
+\midrule
+
+CQ-15 & R15 & Reasoning
+      & Does an agent use reasoning, what pattern does it follow and where does that capability originate? \\
+
+\midrule
+
+CQ-16 & R16 & Memory
+      & Is an agent's memory private, shared with the team or accessible system-wide? \\
+
+CQ-17 & R17 & Memory
+      & Does a given memory persist only during execution, across threads or across all sessions? \\
+
+\midrule
+
+CQ-18 & R18 & Tools
+      & What tools are available in this system and what inputs does each one expect? \\
+
+CQ-19 & R19 & Tools
+      & Is a given tool bound at the agent level or overridden for a specific task? \\
+
+\midrule
+
+CQ-20 & R20 & Guardrails
+      & Does a task have validation guardrails and what type of check do they perform? \\
+
+CQ-21 & R21 & Guardrails
+      & At which points in the workflow must a human provide input or approval? \\
+
+\end{longtable}
+\end{small}
+
+\section{Extraction Evaluation}
+
+
+
+\section{Generation Evaluation}
+
+
+\section{Round-Trip and Cross-Framework Evaluation}
+\section{Comparison with LLM-Based Baseline}
+\section{Discussion of Results}
+
+
+\chapter{Discussion}
+
+\section{Interpretation of Findings}
+\section{Threats to Validity}
+\section{Relation to Research Questions}
+
+
+\chapter{Conclusion}
+
+\section{Summary of Contributions}
+\section{Limitations and Future Work}
+
+
+
+
+
+
+\backmatter
+
+% Declaration of AI tools (per statement of originality).
+\begin{aitools}
+% TODO (English): Briefly describe if/which AI tools supported writing/formatting and how you ensured academic integrity.
+\end{aitools}
+
+
+% Lists of figures/tables/algorithms
+\listoffigures
+\cleardoublepage
+\listoftables
+\listofalgorithms
+\addcontentsline{toc}{chapter}{List of Algorithms}
+
+% Index (remove if not used)
+\printindex
+
+% Glossaries & acronyms
+\printglossaries
+
+% Bibliography (keep as is or switch to biblatex in your project setup)
+\bibliographystyle{alpha}
+\bibliography{intro} % TODO: replace with your .bib file
+
+\end{document}

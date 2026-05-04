@@ -116,6 +116,11 @@ class LangGraphGenerator(BaseCodeGenerator):
 
     def _generate_main(self) -> None:
         """Generate main.py with StateGraph construction."""
+        # Determine the state class name from the ontology, falling back to "State"
+        self._state_name = "State"
+        if self.reader.flow and self.reader.flow.state_model:
+            self._state_name = self.reader.flow.state_model
+
         # Determine if any agent has a system prompt
         has_system_prompts = any(a.backstory for a in self.reader.agents.values())
         # Any team with memory triggers a checkpointer in the compiled graph.
@@ -214,6 +219,12 @@ class LangGraphGenerator(BaseCodeGenerator):
         if self.reader.flow:
             for step in self.reader.flow.steps:
                 func_name = self._to_snake(step.method_name)
+
+                # Skip ToolNode steps — they are handled by the prebuilt
+                # ToolNode instantiation and don't need a standalone function.
+                if self._is_tool_node_step(step):
+                    continue
+
                 # Check if this step has routing logic (router or start+conditional)
                 has_routing = (
                     step.return_values or step.edge_mapping
@@ -238,7 +249,7 @@ class LangGraphGenerator(BaseCodeGenerator):
             [
                 "",
                 "# Build the graph",
-                "graph = StateGraph(State)",
+                f"graph = StateGraph({self._state_name})",
                 "",
             ]
         )
@@ -277,6 +288,7 @@ class LangGraphGenerator(BaseCodeGenerator):
     def _generate_state_class(self) -> list[str]:
         """Generate the State TypedDict from semantic layer state fields."""
         state_fields: dict[str, str] = {}
+        state_name = getattr(self, "_state_name", "State")
         if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
             state_fields = self.reader.flow.state_fields or {}
 
@@ -286,8 +298,8 @@ class LangGraphGenerator(BaseCodeGenerator):
         # Annotated[list, add_messages] reducer.
         lines = [
             "",
-            "class State(TypedDict):",
-            '    """Graph state."""',
+            f"class {state_name}(TypedDict):",
+            f'    """Graph state."""',
         ]
         if "messages" in state_fields:
             lines.append(f"    messages: {state_fields['messages']}")
@@ -329,7 +341,7 @@ class LangGraphGenerator(BaseCodeGenerator):
             team_name = team.team_class_name if team else "SubGraph"
             return [
                 "",
-                f"def {func_name}(state: State) -> dict:",
+                f"def {func_name}(state: {self._state_name}) -> dict:",
                 f'    """Subgraph node: {step.method_name}"""',
                 f"    # TODO: Initialize and invoke the {team_name} compiled subgraph here",
                 f'    return {{"messages": []}}',
@@ -351,7 +363,7 @@ class LangGraphGenerator(BaseCodeGenerator):
 
         lines = [
             "",
-            f"def {func_name}(state: State) -> dict:",
+            f"def {func_name}(state: {self._state_name}) -> dict:",
             f'    """{docstring}"""',
         ]
 
@@ -368,7 +380,7 @@ class LangGraphGenerator(BaseCodeGenerator):
             )
             
         # Get dynamic task prompt
-        task = self._find_task_for_agent(agent)
+        task = self._find_task_for_step(step)
         task_prompt_code = None
         if task and task.description and "Perform " not in task.description:
             import re
@@ -397,7 +409,7 @@ class LangGraphGenerator(BaseCodeGenerator):
         lines.extend(messages_init)
 
         # Find associated task to get expected output
-        task = self._find_task_for_agent(agent)
+        task = self._find_task_for_step(step)
         return_dict = '{"messages": [response]}'
         if task and task.expected_output:
             keys = [k.strip() for k in task.expected_output.split(',')]
@@ -420,7 +432,7 @@ class LangGraphGenerator(BaseCodeGenerator):
         """Render a node function for a fallback agent (no flow)."""
         lines = [
             "",
-            f"def {func_name}(state: State) -> dict:",
+            f"def {func_name}(state: {self._state_name}) -> dict:",
             f'    """{agent.role}: {agent.goal}"""',
         ]
 
@@ -457,7 +469,7 @@ class LangGraphGenerator(BaseCodeGenerator):
         """Render a routing function for conditional edges."""
         lines = [
             "",
-            f"def {func_name}(state: State) -> str:",
+            f"def {func_name}(state: {self._state_name}) -> str:",
             f'    """Router: {step.method_name}"""',
         ]
 
@@ -499,6 +511,9 @@ class LangGraphGenerator(BaseCodeGenerator):
         """Generate graph nodes and edges from flow structure."""
         # Add nodes
         for step in self.reader.flow.steps:
+            # Skip ToolNode steps — added separately below via ToolNode prebuilt
+            if self._is_tool_node_step(step):
+                continue
             func_name = self._to_snake(step.method_name)
             lines.append(f'graph.add_node("{step.method_name}", {func_name})')
 
@@ -509,6 +524,10 @@ class LangGraphGenerator(BaseCodeGenerator):
         lines.append("")
 
         # Add edges based on flow structure
+        # Track which source nodes already have conditional edges emitted,
+        # so we don't add a redundant unconditional add_edge alongside them.
+        conditional_sources: set[str] = set()
+
         for step in self.reader.flow.steps:
             if step.step_type == "start":
                 lines.append(f'graph.add_edge(START, "{step.method_name}")')
@@ -518,6 +537,7 @@ class LangGraphGenerator(BaseCodeGenerator):
                     router_name = f"route_{self._to_snake(step.method_name)}"
                     mapping_entries = self._build_mapping_entries(step)
                     if mapping_entries:
+                        conditional_sources.add(step.method_name)
                         lines.append(
                             f"graph.add_conditional_edges(\n"
                             f'    "{step.method_name}",\n'
@@ -538,6 +558,7 @@ class LangGraphGenerator(BaseCodeGenerator):
 
                 mapping_entries = self._build_mapping_entries(step)
                 if mapping_entries:
+                    conditional_sources.add(source)
                     lines.append(
                         f"graph.add_conditional_edges(\n"
                         f'    "{source}",\n'
@@ -548,7 +569,11 @@ class LangGraphGenerator(BaseCodeGenerator):
                     )
             elif step.step_type == "regular":
                 for dep in step.dependencies:
-                    lines.append(f'graph.add_edge("{dep}", "{step.method_name}")')
+                    # Skip adding an unconditional edge from a source that
+                    # already has conditional edges — the routing function
+                    # handles all outgoing transitions from that source.
+                    if dep not in conditional_sources:
+                        lines.append(f'graph.add_edge("{dep}", "{step.method_name}")')
 
         # End edges: listen steps with no outgoing edges
         has_outgoing = set()
@@ -576,13 +601,35 @@ class LangGraphGenerator(BaseCodeGenerator):
             if step.step_type == "listen" and step.method_name not in has_outgoing:
                 lines.append(f'graph.add_edge("{step.method_name}", END)')
 
-        # Add tool-agent loop edges if tools exist
+        # Add tool-agent loop edges if tools exist.
+        # Standard LangGraph pattern: if a tool-using agent node calls tools,
+        # control goes to the "tools" node, then back to the same agent.
+        # We use conditional edges from tool-using agent nodes to route to
+        # either "tools" (if the response contains tool calls) or the next
+        # node. From "tools", we add_edge back to the calling agent.
         if self.reader.tools:
-            # Find steps that use agents with tools
+            agent_tool_map = {}
             for step in self.reader.flow.steps:
                 agent = self._find_agent_for_step(step)
                 if agent and agent.tools:
-                    lines.append(f'graph.add_edge("tools", "{step.method_name}")')
+                    agent_tool_map[step.method_name] = agent
+                elif step.associated_agent_key and step.associated_agent_key in self.reader.agents:
+                    agent = self.reader.agents[step.associated_agent_key]
+                    if agent.tools:
+                        agent_tool_map[step.method_name] = agent
+
+            # For each tool-using agent node, the agent function already
+            # handles tool binding. Add edge from "tools" back to each
+            # tool-using agent node (the calling node resumes after tools).
+            for node_name in agent_tool_map:
+                lines.append(f'graph.add_edge("tools", "{node_name}")')
+        elif not self.reader.flow:
+            # Sequential fallback: add edge from tools back to each
+            # tool-using agent when no flow is defined.
+            for key in list(self.reader.agents.keys()):
+                agent = self.reader.agents.get(key)
+                if agent and agent.tools:
+                    lines.append(f'graph.add_edge("tools", "{key}")')
 
     def _generate_sequential_graph(self, lines: list[str]) -> None:
         """Generate a sequential graph when no flow is defined."""
@@ -630,13 +677,34 @@ class LangGraphGenerator(BaseCodeGenerator):
                 entries.append(f'        "{rv}": "{rv}"')
         return entries
 
+    def _is_tool_node_step(self, step) -> bool:
+        """Return True if the step represents a ToolNode (not a real agent node).
+
+        ToolNode steps are identified by: no associated agent in the ontology
+        AND the step name matches a known tool-node naming pattern. We also
+        require that tools actually exist (otherwise a node named 'tools' that
+        has no ToolNode backing should still get a regular function).
+        """
+        if not self.reader.tools:
+            return False
+        # No agent backing this step
+        if hasattr(step, "associated_agent_key") and step.associated_agent_key:
+            if step.associated_agent_key in self.reader.agents:
+                return False
+        # Name-based: the parser names ToolNodes "tools" or "tool_node" etc.
+        tool_node_names = {"tools", "tool_node", "tool"}
+        return step.method_name.lower() in tool_node_names
+
     def _find_agent_for_step(self, step) -> object | None:
         """Find the agent associated with a flow step."""
+        # First try the explicit association from the ontology
+        if hasattr(step, "associated_agent_key") and step.associated_agent_key:
+            if step.associated_agent_key in self.reader.agents:
+                return self.reader.agents[step.associated_agent_key]
+        # Then try name-based matching
         step_key = self._to_snake(step.method_name).replace("-", "_")
-        # Try direct match
         if step_key in self.reader.agents:
             return self.reader.agents[step_key]
-        # Try step.method_name directly
         if step.method_name in self.reader.agents:
             return self.reader.agents[step.method_name]
         return None
@@ -648,6 +716,24 @@ class LangGraphGenerator(BaseCodeGenerator):
             if task.agent_key == agent.agent_key:
                 return task
         return None
+
+    def _find_task_for_step(self, step) -> object | None:
+        """Find the task associated with a flow step.
+
+        First try matching step name to task key, then fall back
+        to the agent-level lookup. This handles cases where an
+        agent has multiple tasks and each step maps to a specific one.
+        """
+        step_name = step.method_name
+        snake_name = self._to_snake(step_name)
+        # Direct name match
+        if step_name in self.reader.tasks:
+            return self.reader.tasks[step_name]
+        if snake_name in self.reader.tasks:
+            return self.reader.tasks[snake_name]
+        # Fall back to the task assigned to the step's agent
+        agent = self._find_agent_for_step(step)
+        return self._find_task_for_agent(agent)
 
     def _get_model_var_for_agent(self, agent) -> str:
         """Get the appropriate model variable for an agent."""
