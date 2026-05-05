@@ -27,6 +27,7 @@ CSV row by merging every ``row(result)`` dict.
 from evaluation.metrics import (  # noqa: F401
     ast_diff,
     execution_trace,
+    extraction_coverage,
     mapping_conformance,
     syntax_validity,
     ttl_fuzzy_match,
@@ -42,4 +43,5 @@ ALL_METRICS = {
     "syntax_validity": syntax_validity,
     "execution_trace": execution_trace,
     "mapping_conformance": mapping_conformance,
+    "extraction_coverage": extraction_coverage,
 }

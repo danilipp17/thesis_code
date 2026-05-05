@@ -36,12 +36,14 @@ from evaluation.pipelines._common import (
 )
 from evaluation.pipelines.roundtrip import run_roundtrip
 from evaluation.metrics import ttl_pairwise, ttl_fuzzy_match, ast_diff
+from evaluation.metrics import extraction_coverage
 from oscin.evaluator import compute_pairwise, compute_intrinsic
 from gui.components import FRAMEWORKS, capture_logs
 
 log = logging.getLogger("oscin.eval.gui")
 
 GUI_OUT_ROOT = PROJECT_ROOT / "output" / "gui" / "evaluation"
+EVAL_FULL_ROOT = PROJECT_ROOT / "output" / "eval_full"
 
 EXAMPLES_ROOT = PROJECT_ROOT / "examples"
 
@@ -434,6 +436,113 @@ def _run_llm_cross_fw(
 
 
 # ===================================================================
+# Extraction coverage runner
+# ===================================================================
+
+def _run_extraction_coverage(
+    frameworks: list[str],
+    progress_bar,
+    status_text,
+    ttl_source: str = "fresh",  # "fresh" = extract now, "cached" = use eval_full
+) -> list[dict]:
+    """Run extraction coverage for selected frameworks.
+
+    Measures how well the extraction captures source code elements.
+    """
+    examples = [(fw, ex) for fw, ex in ALL_EXAMPLES if fw in frameworks]
+    results = []
+    total = len(examples)
+
+    for i, (fw, ex) in enumerate(examples):
+        progress_bar.progress(i / total, text=f"[{i+1}/{total}] {fw}/{ex}")
+        status_text.text(f"Extraction coverage: {fw}/{ex}")
+
+        example_root = _resolve_example_root(fw, ex)
+        source_dir = resolve_source_dir(example_root)
+
+        # Find or create the extracted TTL
+        ttl_path = None
+        if ttl_source == "cached":
+            # Try loading from eval_full
+            cached = EVAL_FULL_ROOT / "ast_same_fw" / fw / ex / "ttl1.ttl"
+            if cached.exists():
+                ttl_path = cached
+
+        if ttl_path is None:
+            # Extract fresh
+            work = GUI_OUT_ROOT / "extraction_coverage" / fw / ex
+            work.mkdir(parents=True, exist_ok=True)
+            ttl_path = work / "extracted.ttl"
+            if not ttl_path.exists():
+                try:
+                    ns = default_namespace(ex)
+                    system_name = default_system_name(ex)
+                    run_oscin([
+                        "extract", str(source_dir),
+                        "--framework", fw,
+                        "--system-name", system_name,
+                        "--namespace", ns,
+                        "--output", str(ttl_path),
+                        "--no-report",
+                    ])
+                except Exception as e:
+                    results.append({
+                        "Framework": fw,
+                        "Example": ex,
+                        "Overall": None,
+                        "Element F1": None,
+                        "Rel. Recall": None,
+                        "Content Recall": None,
+                        "Status": f"✗ extract failed: {e}",
+                    })
+                    continue
+
+        # Run coverage metric
+        try:
+            cov = extraction_coverage.compute(str(source_dir), str(ttl_path), fw)
+            if "error" in cov:
+                results.append({
+                    "Framework": fw,
+                    "Example": ex,
+                    "Overall": None,
+                    "Element F1": None,
+                    "Rel. Recall": None,
+                    "Content Recall": None,
+                    "Status": f"✗ {cov['error']}",
+                })
+            else:
+                # Build per-element detail columns
+                elem = cov.get("element_coverage", {})
+                results.append({
+                    "Framework": fw,
+                    "Example": ex,
+                    "Overall": cov["overall_score"],
+                    "Element F1": cov["element_macro_f1"],
+                    "Rel. Recall": cov["relationship_avg_recall"],
+                    "Content Recall": cov["content_recall"],
+                    "Agents F1": elem.get("agents", {}).get("f1"),
+                    "Tasks F1": elem.get("tasks", {}).get("f1"),
+                    "Tools F1": elem.get("tools", {}).get("f1"),
+                    "Teams F1": elem.get("teams", {}).get("f1"),
+                    "Steps F1": elem.get("flow_steps", {}).get("f1"),
+                    "Status": "✓",
+                })
+        except Exception as e:
+            results.append({
+                "Framework": fw,
+                "Example": ex,
+                "Overall": None,
+                "Element F1": None,
+                "Rel. Recall": None,
+                "Content Recall": None,
+                "Status": f"✗ {e}",
+            })
+
+    progress_bar.progress(1.0, text="Done")
+    return results
+
+
+# ===================================================================
 # Aggregation helpers
 # ===================================================================
 
@@ -442,28 +551,33 @@ def _compute_aggregates(results: list[dict], group_col: str = "Framework") -> li
     from collections import defaultdict
     import statistics
 
+    if not results:
+        return []
+
     groups: dict[str, list[dict]] = defaultdict(list)
     for row in results:
         groups[row[group_col]].append(row)
 
-    metric_cols = ["Triple F1", "Aligned F1", "Property F1", "Individual F1", "Literal Overlap"]
-    if "AST F1" in (results[0] if results else {}):
-        metric_cols.append("AST F1")
-    if "Fuzzy Avg" in (results[0] if results else {}):
-        metric_cols.append("Fuzzy Avg")
+    # Auto-detect numeric metric columns (exclude Status, Framework, Example, etc.)
+    skip_cols = {group_col, "Status", "Example", "N", "Direction"}
+    first_row = results[0]
+    metric_cols = [
+        k for k, v in first_row.items()
+        if k not in skip_cols and isinstance(v, (int, float, type(None)))
+    ]
 
     agg_rows = []
     for group_name, rows in sorted(groups.items()):
         agg = {group_col: group_name, "N": len(rows)}
         for col in metric_cols:
-            vals = [r[col] for r in rows if r[col] is not None]
+            vals = [r[col] for r in rows if r.get(col) is not None]
             agg[f"{col} (mean)"] = round(statistics.mean(vals), 3) if vals else None
         agg_rows.append(agg)
 
     # Overall row
     all_agg = {group_col: "**Overall**", "N": len(results)}
     for col in metric_cols:
-        vals = [r[col] for r in results if r[col] is not None]
+        vals = [r[col] for r in results if r.get(col) is not None]
         all_agg[f"{col} (mean)"] = round(statistics.mean(vals), 3) if vals else None
     agg_rows.append(all_agg)
 
@@ -473,8 +587,6 @@ def _compute_aggregates(results: list[dict], group_col: str = "Framework") -> li
 # ===================================================================
 # Load prior results from output/eval_full/
 # ===================================================================
-
-EVAL_FULL_ROOT = PROJECT_ROOT / "output" / "eval_full"
 
 
 def _load_prior_ast_same_fw() -> list[dict] | None:
@@ -630,7 +742,7 @@ def render_evaluation_tab():
         # Evaluation type
         eval_type = st.radio(
             "Evaluation type",
-            options=["Same-framework roundtrip", "Cross-framework roundtrip", "Both"],
+            options=["Same-framework roundtrip", "Cross-framework roundtrip", "Extraction coverage", "Both"],
             key="eval_type",
             horizontal=False,
         )
@@ -739,11 +851,18 @@ source → LLM extract → TTL₁ → LLM generate → source′ → AST extract
             for src, _ in cross_directions
         )
 
-        st.markdown(f"""
+        if eval_type == "Extraction coverage":
+            st.markdown(f"""
 **Scope:**
-- Same-fw examples: **{n_same}** {'(selected)' if eval_type != 'Cross-framework roundtrip' else '(skipped)'}
-- Cross-fw examples: **{n_cross}** {'(selected)' if eval_type != 'Same-framework roundtrip' else '(skipped)'}
-        """)
+- Examples to evaluate: **{n_same}**
+- Measures how completely the extraction captures source elements into TTL
+            """)
+        else:
+            st.markdown(f"""
+**Scope:**
+- Same-fw examples: **{n_same}** {'(selected)' if eval_type not in ('Cross-framework roundtrip',) else '(skipped)'}
+- Cross-fw examples: **{n_cross}** {'(selected)' if eval_type not in ('Same-framework roundtrip', 'Extraction coverage') else '(skipped)'}
+            """)
 
     # --- Run / Load buttons ---
     st.divider()
@@ -786,7 +905,17 @@ source → LLM extract → TTL₁ → LLM generate → source′ → AST extract
 
         with capture_logs() as cap:
             try:
-                if eval_mode == "Deterministic (AST)":
+                if eval_type == "Extraction coverage":
+                    # Extraction coverage (works for both AST and LLM modes)
+                    status_text.text("Phase: Extraction coverage analysis")
+                    ttl_src = "cached" if EVAL_FULL_ROOT.is_dir() else "fresh"
+                    cov_results = _run_extraction_coverage(
+                        selected_fws, progress_bar, status_text,
+                        ttl_source=ttl_src,
+                    )
+                    st.session_state["eval_coverage_results"] = cov_results
+
+                elif eval_mode == "Deterministic (AST)":
                     # Same-fw
                     if eval_type in ("Same-framework roundtrip", "Both"):
                         status_text.text("Phase: AST same-framework roundtrip")
@@ -841,8 +970,9 @@ def _render_results():
     """Render stored evaluation results."""
     same_results = st.session_state.get("eval_same_fw_results")
     cross_results = st.session_state.get("eval_cross_fw_results")
+    coverage_results = st.session_state.get("eval_coverage_results")
 
-    if not same_results and not cross_results:
+    if not same_results and not cross_results and not coverage_results:
         return
 
     st.divider()
@@ -937,6 +1067,57 @@ def _render_results():
             file_name="eval_cross_fw_results.json",
             mime="application/json",
             key="eval_download_cross",
+        )
+
+    # --- Extraction coverage results ---
+    if coverage_results:
+        st.subheader("Extraction Coverage Results")
+        st.caption(
+            "Measures how completely the extraction captures source code elements "
+            "(agents, tasks, tools, teams, flow steps), their relationships, and "
+            "string content into the ontology TTL."
+        )
+
+        # Aggregate by framework
+        agg = _compute_aggregates(coverage_results, "Framework")
+        st.markdown("**Aggregate (mean by framework):**")
+        st.dataframe(agg, use_container_width=True, hide_index=True)
+
+        # Per-example table
+        with st.expander("Per-example details", expanded=True):
+            display_rows = []
+            for row in coverage_results:
+                display_row = {}
+                for k, v in row.items():
+                    if isinstance(v, float):
+                        display_row[k] = round(v, 3)
+                    else:
+                        display_row[k] = v
+                display_rows.append(display_row)
+
+            st.dataframe(
+                display_rows,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Overall": st.column_config.NumberColumn(format="%.3f"),
+                    "Element F1": st.column_config.NumberColumn(format="%.3f"),
+                    "Rel. Recall": st.column_config.NumberColumn(format="%.3f"),
+                    "Content Recall": st.column_config.NumberColumn(format="%.3f"),
+                    "Agents F1": st.column_config.NumberColumn(format="%.3f"),
+                    "Tasks F1": st.column_config.NumberColumn(format="%.3f"),
+                    "Tools F1": st.column_config.NumberColumn(format="%.3f"),
+                    "Teams F1": st.column_config.NumberColumn(format="%.3f"),
+                    "Steps F1": st.column_config.NumberColumn(format="%.3f"),
+                },
+            )
+
+        st.download_button(
+            "Download results (JSON)",
+            data=json.dumps(coverage_results, indent=2, default=str),
+            file_name="eval_coverage_results.json",
+            mime="application/json",
+            key="eval_download_coverage",
         )
 
     # --- Logs ---
