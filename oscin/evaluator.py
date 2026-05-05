@@ -35,7 +35,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, XSD
 
 from oscin.namespaces import AGENTOSCIN
@@ -183,7 +183,7 @@ def _get_used_properties(g: Graph) -> set[str]:
 
 
 def _get_abox_triples(g: Graph) -> int:
-    """Count ABox triples only."""
+    """Count ABox triples only (excluding blank node triples)."""
     count = 0
     for s, p, o in g:
         if _is_tbox_triple(s, p, o):
@@ -191,20 +191,35 @@ def _get_abox_triples(g: Graph) -> int:
         # Skip triples where subject is an ontology-level URI
         if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
             continue
+        # Skip blank node triples (OWL list serialization artifacts)
+        if isinstance(s, BNode) or isinstance(o, BNode):
+            continue
         count += 1
     return count
 
 
-def _get_normalized_triples(g: Graph) -> set[tuple[str, str, str]]:
+def _get_normalized_triples(
+    g: Graph, *, skip_blank_nodes: bool = True
+) -> set[tuple[str, str, str]]:
     """
     Normalize ABox triples to (subject_local, predicate_local, object_repr)
     for comparison. Object is either a local name (URI) or literal value.
+
+    Parameters
+    ----------
+    skip_blank_nodes : bool
+        If True (default), triples where the subject OR object is a blank node
+        are excluded. These arise from OWL list serialization (rdf:first/rest)
+        and have non-deterministic IDs that never match across independent
+        serializations, artificially depressing Triple F1 by 5-15%.
     """
     triples = set()
     for s, p, o in g:
         if _is_tbox_triple(s, p, o):
             continue
         if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+            continue
+        if skip_blank_nodes and (isinstance(s, BNode) or isinstance(o, BNode)):
             continue
 
         s_name = _local_name(s) if isinstance(s, URIRef) else str(s)
@@ -222,12 +237,14 @@ def _get_normalized_triples(g: Graph) -> set[tuple[str, str, str]]:
 
 
 def _get_literal_values(g: Graph) -> set[str]:
-    """Collect all literal string values from ABox triples."""
+    """Collect all literal string values from ABox triples (excluding blank node triples)."""
     values = set()
     for s, p, o in g:
         if _is_tbox_triple(s, p, o):
             continue
         if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+            continue
+        if isinstance(s, BNode) or isinstance(o, BNode):
             continue
         if isinstance(o, Literal) and str(o).strip():
             # Normalize whitespace for comparison
@@ -482,6 +499,9 @@ def _compute_aligned_triple_metric(
         if _is_tbox_triple(s, p, o):
             continue
         if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+            continue
+        # Skip blank node triples (non-deterministic IDs from OWL lists)
+        if isinstance(s, BNode) or isinstance(o, BNode):
             continue
         s_n = rewrite_node(s)
         o_n = rewrite_node(o)

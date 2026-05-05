@@ -1,0 +1,26 @@
+screen_resume:
+  description: >
+    Review the submitted resume against the job description for {position}.
+    Identify matching qualifications, relevant experience, and any gaps.
+    Produce a structured candidate summary.
+  expected_output: >
+    A candidate summary including: matched skills, experience level,
+    education fit, and an overall screening score from 1-10.
+
+conduct_technical_interview:
+  description: >
+    Based on the screening results, prepare and conduct a technical
+    assessment. Ask questions relevant to the {position} role and
+    evaluate the candidate's problem-solving approach.
+  expected_output: >
+    A technical assessment report with scores for: problem solving,
+    system design, coding ability, and communication skills.
+
+make_hiring_decision:
+  description: >
+    Review all assessment data including screening results and technical
+    interview scores. Make a final recommendation: hire, reject, or
+    request additional interview.
+  expected_output: >
+    A hiring recommendation with detailed justification, including
+    strengths, concerns, and suggested compensation band if recommending hire.

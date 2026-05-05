@@ -47,6 +47,7 @@ from gui.components import (
     zip_download_button,
     FRAMEWORKS,
 )
+from gui.evaluation_tab import render_evaluation_tab
 
 GUI_OUT_ROOT = PROJECT_ROOT / "output" / "gui"
 
@@ -88,8 +89,8 @@ with st.sidebar:
 
 st.title("OSCIN transformation front-end")
 
-tab_extract, tab_generate, tab_roundtrip = st.tabs(
-    ["Extract", "Generate", "Round-trip"]
+tab_extract, tab_generate, tab_roundtrip, tab_evaluate = st.tabs(
+    ["Extract", "Generate", "Round-trip", "Evaluate"]
 )
 
 with tab_extract:
@@ -589,3 +590,6 @@ with tab_roundtrip:
             _render_rt_pane(left_view, "left")
         with side_r:
             _render_rt_pane(right_view, "right")
+
+with tab_evaluate:
+    render_evaluation_tab()
