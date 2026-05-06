@@ -1,0 +1,289 @@
+# =====================================================================
+# Competency-question SPARQL queries for agentoscin (extends agentO)
+# =====================================================================
+# Run against a graph that has BOTH ontologies loaded plus an instance
+# (A-Box) file describing a concrete agentic system. The catalog
+# resolves agento: locally; the instance file should declare prefixes
+# matching the headers below.
+# =====================================================================
+
+PREFIX :        <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/>
+PREFIX agento:  <http://www.w3id.org/agentic-ai/onto#>
+PREFIX beam:    <http://w3id.org/beam/core#>
+PREFIX prov:    <http://www.w3.org/ns/prov#>
+PREFIX p-plan:  <http://purl.org/net/p-plan#>
+PREFIX rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:    <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:     <http://www.w3.org/2001/XMLSchema#>
+
+
+# ---------------------------------------------------------------------
+# CQ-1 (R1, Agent Def.) — Which agents are defined and what identifies them?
+# ---------------------------------------------------------------------
+SELECT ?agent ?id ?role ?type ?label WHERE {
+    ?agent a agento:LLMAgent .
+    OPTIONAL { ?agent agento:agentID    ?id    }
+    OPTIONAL { ?agent agento:agentRole  ?role  }
+    OPTIONAL { ?agent :agentType        ?type  }
+    OPTIONAL { ?agent rdfs:label        ?label }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-2 (R2) — Orchestration-layer prompts vs language-model prompts
+# ---------------------------------------------------------------------
+# Convention: agento:agentPrompt → instructs the orchestration layer
+#             agento:taskPrompt  → instructs the language model
+SELECT ?agent ?promptKind ?prompt ?directive WHERE {
+    {
+        ?agent agento:agentPrompt ?prompt .
+        BIND("orchestration" AS ?promptKind)
+    } UNION {
+        ?task agento:taskPrompt ?prompt ;
+              agento:performedByAgent ?agent .
+        BIND("language-model" AS ?promptKind)
+    }
+    OPTIONAL { ?prompt :hasDirectiveFunction ?directive }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-3 (R3) — Prompt components (instruction, context, output indicator)
+# ---------------------------------------------------------------------
+SELECT ?agent ?prompt ?instruction ?context ?outputIndicator WHERE {
+    ?agent agento:hasPrompt ?prompt .
+    OPTIONAL { ?prompt agento:promptInstruction      ?instruction     }
+    OPTIONAL { ?prompt agento:promptContext          ?context         }
+    OPTIONAL { ?prompt agento:promptOutputIndicator  ?outputIndicator }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-4 (R4) — Which agent properties are specified vs left undefined?
+# ---------------------------------------------------------------------
+# Returns one row per agent with a literal "yes"/"no" per property.
+SELECT ?agent
+       (IF(BOUND(?id),     "yes","no") AS ?hasID)
+       (IF(BOUND(?role),   "yes","no") AS ?hasRole)
+       (IF(BOUND(?type),   "yes","no") AS ?hasType)
+       (IF(BOUND(?lm),     "yes","no") AS ?hasLanguageModel)
+       (IF(BOUND(?prompt), "yes","no") AS ?hasPrompt)
+       (IF(BOUND(?goal),   "yes","no") AS ?hasGoal)
+       (IF(BOUND(?reason), "yes","no") AS ?hasReasoningPattern)
+       (IF(BOUND(?mem),    "yes","no") AS ?hasMemoryBinding)
+WHERE {
+    ?agent a agento:LLMAgent .
+    OPTIONAL { ?agent agento:agentID            ?id     }
+    OPTIONAL { ?agent agento:agentRole          ?role   }
+    OPTIONAL { ?agent :agentType                ?type   }
+    OPTIONAL { ?agent agento:useLanguageModel   ?lm     }
+    OPTIONAL { ?agent agento:hasPrompt          ?prompt }
+    OPTIONAL { ?agent agento:hasGoal            ?goal   }
+    OPTIONAL { ?agent :employsReasoningPattern  ?reason }
+    OPTIONAL { ?agent :hasMemoryBinding         ?mem    }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-5 (R5) — Worker, manager or human-input proxy?
+# ---------------------------------------------------------------------
+SELECT ?agent ?role ?type ?classification WHERE {
+    ?agent a agento:LLMAgent .
+    OPTIONAL { ?agent agento:agentRole ?role }
+    OPTIONAL { ?agent :agentType       ?type }
+    BIND(
+        IF(REGEX(COALESCE(?type, ?role, ""), "manager|orchestrat|supervisor", "i"), "manager",
+        IF(REGEX(COALESCE(?type, ?role, ""), "human|proxy",                   "i"), "human-proxy",
+        IF(BOUND(?role)||BOUND(?type),                                              "worker",
+                                                                                    "unspecified")))
+        AS ?classification)
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-6 (R6, Perception) — Tasks defined and what each one instructs
+# ---------------------------------------------------------------------
+SELECT ?task ?description ?instruction WHERE {
+    ?task a agento:Task .
+    OPTIONAL { ?task :hasDescription ?description }
+    OPTIONAL {
+        ?task agento:taskPrompt/agento:promptInstruction ?instruction
+    }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-7 (R7) — Which agent performs a task and how was it assigned?
+# ---------------------------------------------------------------------
+SELECT ?task ?agent ?delegationStrategy WHERE {
+    ?task a agento:Task ;
+          agento:performedByAgent ?agent .
+    OPTIONAL { ?task :hasDelegationStrategy ?delegationStrategy }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-8 (R8) — Predecessor tasks and the nature of the dependency
+# ---------------------------------------------------------------------
+SELECT ?task ?predecessor ?dependencyType WHERE {
+    ?task :dependsOn ?predecessor .
+    OPTIONAL { ?task :hasDependencyType ?dependencyType }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-9 (R9) — Expected output & structured output schema per task
+# ---------------------------------------------------------------------
+SELECT ?task ?expectedOutput ?schema ?schemaDefinition WHERE {
+    ?task a agento:Task .
+    OPTIONAL { ?task :hasExpectedOutput ?expectedOutput }
+    OPTIONAL {
+        ?task :hasOutputSchema ?schema .
+        OPTIONAL { ?schema :hasSchemaDefinition ?schemaDefinition }
+    }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-10 (R10, Coordination) — Coordination pattern of a team
+# ---------------------------------------------------------------------
+SELECT ?team ?pattern WHERE {
+    ?team a agento:Team ;
+          :employsCoordinationPattern ?pattern .
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-11 (R11) — Members of a team and the team's coordination
+# ---------------------------------------------------------------------
+SELECT ?team ?member ?pattern WHERE {
+    ?team a agento:Team ;
+          agento:hasAgentMember ?member .
+    OPTIONAL { ?team :employsCoordinationPattern ?pattern }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-12 (R12) — Termination conditions (with composite expansion)
+# ---------------------------------------------------------------------
+SELECT ?team ?condition ?conditionType ?operator ?subCondition WHERE {
+    ?team :hasTerminationCondition ?condition .
+    ?condition a ?conditionType .
+    FILTER(?conditionType != :TerminationCondition)
+    OPTIONAL { ?condition :hasOperator     ?operator     }
+    OPTIONAL { ?condition :hasSubCondition ?subCondition }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-13 (R13) — Sub-teams and nesting (transitive)
+# ---------------------------------------------------------------------
+# Walk containsTeam / orchestratesTeam transitively.
+SELECT ?parent ?child WHERE {
+    ?parent (:containsTeam|:orchestratesTeam)+ ?child .
+    ?child a agento:Team .
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-14 (R14) — Step-by-step workflow and conditional branches
+# ---------------------------------------------------------------------
+SELECT ?pattern ?step ?order ?nextStep ?routingLogic WHERE {
+    ?pattern a agento:WorkflowPattern ;
+             agento:hasWorkflowStep ?step .
+    OPTIONAL { ?step agento:stepOrder ?order }
+    OPTIONAL { ?step agento:nextStep  ?nextStep }
+    OPTIONAL {
+        ?step a :ConditionalStep ;
+              :hasRoutingLogic ?routingLogic .
+    }
+}
+ORDER BY ?pattern ?order
+
+
+# ---------------------------------------------------------------------
+# CQ-15 (R15, Reasoning) — Reasoning pattern, enabled flag, origin
+# ---------------------------------------------------------------------
+SELECT ?agent ?reasoningEnabled ?pattern ?patternType ?origin WHERE {
+    ?agent a agento:LLMAgent .
+    OPTIONAL { ?agent :hasReasoningEnabled    ?reasoningEnabled }
+    OPTIONAL {
+        ?agent :employsReasoningPattern ?pattern .
+        ?pattern a ?patternType .
+        FILTER(?patternType != :ReasoningPattern)
+    }
+    OPTIONAL { ?agent :hasReasoningOrigin     ?origin }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-16 (R16, Memory) — Memory scope: private / team / system-wide
+# ---------------------------------------------------------------------
+SELECT ?owner ?ownerKind ?binding ?memory ?scope WHERE {
+    ?owner :hasMemoryBinding ?binding .
+    ?binding :bindsMemory     ?memory .
+    OPTIONAL { ?binding :hasMemoryScope ?scope }
+    BIND(
+        IF(EXISTS{?owner a agento:LLMAgent},     "agent-private",
+        IF(EXISTS{?owner a agento:Team},         "team-shared",
+        IF(EXISTS{?owner a :AgenticSystem},      "system-wide",
+                                                 "other")))
+        AS ?ownerKind)
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-17 (R17) — Memory persistence scope (execution / thread / global)
+# ---------------------------------------------------------------------
+SELECT ?memory ?persistenceScope WHERE {
+    ?memory a agento:Memory .
+    OPTIONAL { ?memory :hasPersistenceScope ?persistenceScope }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-18 (R18, Tools) — Tools and their input schemas
+# ---------------------------------------------------------------------
+SELECT ?tool ?label ?inputSchema ?implRef WHERE {
+    ?tool a agento:Tool .
+    FILTER NOT EXISTS { ?tool a agento:LLMAgent }   # exclude agents-as-tools
+    OPTIONAL { ?tool rdfs:label                  ?label       }
+    OPTIONAL { ?tool :hasInputSchema             ?inputSchema }
+    OPTIONAL { ?tool :hasImplementationReference ?implRef     }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-19 (R19) — Agent-level vs task-level tool binding
+# ---------------------------------------------------------------------
+SELECT ?tool ?bindingLevel ?subject WHERE {
+    {
+        ?subject agento:agentToolUsage ?tool .
+        BIND("agent" AS ?bindingLevel)
+    } UNION {
+        ?subject :taskToolUsage ?tool .
+        BIND("task"  AS ?bindingLevel)
+    }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-20 (R20, Guardrails) — Guardrail presence and type per task
+# ---------------------------------------------------------------------
+SELECT ?task ?guardrail ?guardrailType ?validationLogic ?maxRetries WHERE {
+    ?task :hasGuardrail ?guardrail .
+    OPTIONAL { ?guardrail :hasGuardrailType   ?guardrailType   }
+    OPTIONAL { ?guardrail :hasValidationLogic ?validationLogic }
+    OPTIONAL { ?guardrail :hasMaxRetries      ?maxRetries      }
+}
+
+
+# ---------------------------------------------------------------------
+# CQ-21 (R21) — Human-in-the-loop checkpoints in the workflow
+# ---------------------------------------------------------------------
+SELECT ?task ?checkpoint ?position ?checkpointType ?mandatory WHERE {
+    ?task :hasHumanCheckpoint ?checkpoint .
+    OPTIONAL { ?checkpoint :hasCheckpointPosition ?position       }
+    OPTIONAL { ?checkpoint :hasCheckpointType     ?checkpointType }
+    OPTIONAL { ?checkpoint :isMandatory           ?mandatory      }
+}

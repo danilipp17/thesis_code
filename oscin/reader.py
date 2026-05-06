@@ -37,6 +37,7 @@ from oscin.intermediate import (
     ExtractedTool,
 )
 from oscin.namespaces import (
+    AGENTO,
     AGENTOSCIN,
     CALLS_CREW,
     COORD_CUSTOM,
@@ -171,9 +172,9 @@ class OntologyReader:
 
     def _read_tools(self) -> None:
         """Read all Tool individuals."""
-        for tool_uri in self.g.subjects(RDF.type, AGENTOSCIN.Tool):
+        for tool_uri in self.g.subjects(RDF.type, AGENTO.Tool):
             # Skip LLMAgents that are also typed as Tool (via subclass)
-            if (tool_uri, RDF.type, AGENTOSCIN.LLMAgent) in self.g:
+            if (tool_uri, RDF.type, AGENTO.LLMAgent) in self.g:
                 continue
 
             name = self._str_value(tool_uri, HAS_TITLE) or ""
@@ -204,32 +205,32 @@ class OntologyReader:
 
     def _read_agents(self) -> None:
         """Read all LLMAgent individuals."""
-        for agent_uri in self.g.subjects(RDF.type, AGENTOSCIN.LLMAgent):
-            role = self._str_value(agent_uri, AGENTOSCIN.agentRole) or ""
+        for agent_uri in self.g.subjects(RDF.type, AGENTO.LLMAgent):
+            role = self._str_value(agent_uri, AGENTO.agentRole) or ""
             # agentID is the stable source-level identifier (populator writes
             # the original key here). Do NOT fall back to role — role is
             # human-readable and may contain spaces, which would break URI
             # stability. Empty means "no explicit identifier in TTL".
-            agent_id = self._str_value(agent_uri, AGENTOSCIN.agentID) or ""
+            agent_id = self._str_value(agent_uri, AGENTO.agentID) or ""
 
             # Goal — follow hasAgentGoal → Goal → dcterms:description
             goal = ""
-            for goal_uri in self.g.objects(agent_uri, AGENTOSCIN.hasAgentGoal):
+            for goal_uri in self.g.objects(agent_uri, AGENTO.hasAgentGoal):
                 goal = self._str_value(goal_uri, HAS_DESCRIPTION) or ""
 
             # Backstory — follow agentPrompt → Prompt → promptContext
             backstory = ""
-            for prompt_uri in self.g.objects(agent_uri, AGENTOSCIN.agentPrompt):
-                backstory = self._str_value(prompt_uri, AGENTOSCIN.promptContext) or ""
+            for prompt_uri in self.g.objects(agent_uri, AGENTO.agentPrompt):
+                backstory = self._str_value(prompt_uri, AGENTO.promptContext) or ""
 
             # LLM — follow useLanguageModel → LanguageModel → dcterms:title
             llm = None
-            for lm_uri in self.g.objects(agent_uri, AGENTOSCIN.useLanguageModel):
+            for lm_uri in self.g.objects(agent_uri, AGENTO.useLanguageModel):
                 llm = self._str_value(lm_uri, HAS_TITLE)
 
             # Tools — follow agentToolUsage → Tool URIs
             tool_keys = []
-            for tool_uri in self.g.objects(agent_uri, AGENTOSCIN.agentToolUsage):
+            for tool_uri in self.g.objects(agent_uri, AGENTO.agentToolUsage):
                 tool_key = self._tool_uri_to_key.get(str(tool_uri))
                 if tool_key:
                     tool_keys.append(tool_key)
@@ -281,7 +282,7 @@ class OntologyReader:
 
             # Knowledge sources (via hasKnowledge → KnowledgeBase)
             knowledge_sources: list[str] = []
-            for kb_uri in self.g.objects(agent_uri, AGENTOSCIN.hasKnowledge):
+            for kb_uri in self.g.objects(agent_uri, AGENTO.hasKnowledge):
                 kb_title = self._str_value(kb_uri, HAS_TITLE)
                 if kb_title:
                     knowledge_sources.append(kb_title)
@@ -292,16 +293,16 @@ class OntologyReader:
             # Directive function — on the agent's prompt
             directive_function = ""
             prompt_source = ""
-            for _prompt_uri in self.g.objects(agent_uri, AGENTOSCIN.agentPrompt):
+            for _prompt_uri in self.g.objects(agent_uri, AGENTO.agentPrompt):
                 directive_function = self._str_value(_prompt_uri, AGENTOSCIN.hasDirectiveFunction) or ""
                 prompt_source = self._str_value(_prompt_uri, AGENTOSCIN.hasSourceAttribute) or ""
 
             # Config — verbose, allow_delegation
             verbose = self._config_value(
-                agent_uri, AGENTOSCIN.hasAgentConfig, "verbose"
+                agent_uri, AGENTO.hasAgentConfig, "verbose"
             )
             allow_deleg = self._config_value(
-                agent_uri, AGENTOSCIN.hasAgentConfig, "allow_delegation"
+                agent_uri, AGENTO.hasAgentConfig, "allow_delegation"
             )
 
             # Prefer agentID (source-level identifier written by populator) so
@@ -340,22 +341,22 @@ class OntologyReader:
 
     def _read_tasks(self) -> None:
         """Read all Task individuals."""
-        for task_uri in self.g.subjects(RDF.type, AGENTOSCIN.Task):
+        for task_uri in self.g.subjects(RDF.type, AGENTO.Task):
             expected_output = (
                 self._str_value(task_uri, AGENTOSCIN.hasExpectedOutput) or ""
             )
 
             # Agent assignment — follow performedByAgent → agent URI
             agent_key = None
-            for agent_uri in self.g.objects(task_uri, AGENTOSCIN.performedByAgent):
+            for agent_uri in self.g.objects(task_uri, AGENTO.performedByAgent):
                 agent_key = self._agent_uri_to_key.get(str(agent_uri))
 
             # Description — follow taskPrompt → Prompt → promptInstruction
             description = ""
             source_attribute = ""
-            for prompt_uri in self.g.objects(task_uri, AGENTOSCIN.taskPrompt):
+            for prompt_uri in self.g.objects(task_uri, AGENTO.taskPrompt):
                 description = (
-                    self._str_value(prompt_uri, AGENTOSCIN.promptInstruction) or ""
+                    self._str_value(prompt_uri, AGENTO.promptInstruction) or ""
                 )
                 source_attribute = (
                     self._str_value(prompt_uri, AGENTOSCIN.hasSourceAttribute) or ""
@@ -472,12 +473,12 @@ class OntologyReader:
 
     def _read_teams(self) -> None:
         """Read all Team individuals."""
-        for team_uri in self.g.subjects(RDF.type, AGENTOSCIN.Team):
+        for team_uri in self.g.subjects(RDF.type, AGENTO.Team):
             title = self._str_value(team_uri, HAS_TITLE) or ""
 
             # Agent members
             agent_keys = []
-            for agent_uri in self.g.objects(team_uri, AGENTOSCIN.hasAgentMember):
+            for agent_uri in self.g.objects(team_uri, AGENTO.hasAgentMember):
                 ak = self._agent_uri_to_key.get(str(agent_uri))
                 if ak:
                     agent_keys.append(ak)
@@ -502,7 +503,7 @@ class OntologyReader:
 
             # Workflow steps → task_keys (ordered by stepOrder)
             task_keys = []
-            for wp_uri in self.g.objects(team_uri, AGENTOSCIN.hasWorkflowPattern):
+            for wp_uri in self.g.objects(team_uri, AGENTO.hasWorkflowPattern):
                 steps = self._read_workflow_steps(wp_uri)
                 for step_name, step_task_key in steps:
                     if step_task_key:
@@ -510,9 +511,9 @@ class OntologyReader:
 
             # Verbose config
             verbose = False
-            for config_uri in self.g.objects(team_uri, AGENTOSCIN.hasSystemConfig):
-                ck = self._str_value(config_uri, AGENTOSCIN.configKey)
-                cv = self._str_value(config_uri, AGENTOSCIN.configValue)
+            for config_uri in self.g.objects(team_uri, AGENTO.hasSystemConfig):
+                ck = self._str_value(config_uri, AGENTO.configKey)
+                cv = self._str_value(config_uri, AGENTO.configValue)
                 if ck == "verbose" and cv == "true":
                     verbose = True
 
@@ -605,7 +606,7 @@ class OntologyReader:
 
             # Knowledge sources attached at team level
             team_knowledge: list[str] = []
-            for kb_uri in self.g.objects(team_uri, AGENTOSCIN.hasKnowledge):
+            for kb_uri in self.g.objects(team_uri, AGENTO.hasKnowledge):
                 kb_title = self._str_value(kb_uri, HAS_TITLE)
                 if kb_title:
                     team_knowledge.append(kb_title)
@@ -667,7 +668,7 @@ class OntologyReader:
 
             # Workflow steps
             steps: list[ExtractedFlowStep] = []
-            for wp_uri in self.g.objects(orch_uri, AGENTOSCIN.hasWorkflowPattern):
+            for wp_uri in self.g.objects(orch_uri, AGENTO.hasWorkflowPattern):
                 steps = self._read_flow_steps(wp_uri)
 
             # Fallback heuristic: if no step carries a calls_crew value
@@ -707,14 +708,14 @@ class OntologyReader:
         step_info: dict[str, dict] = {}
 
         # Phase 1: Collect step info
-        for step_uri in self.g.objects(wp_uri, AGENTOSCIN.hasWorkflowStep):
+        for step_uri in self.g.objects(wp_uri, AGENTO.hasWorkflowStep):
             name = self._str_value(step_uri, HAS_TITLE) or self._local_name(step_uri)
-            order = self._int_value(step_uri, AGENTOSCIN.stepOrder) or 0
+            order = self._int_value(step_uri, AGENTO.stepOrder) or 0
 
             # Determine step type from RDF type
-            is_start = (step_uri, RDF.type, AGENTOSCIN.StartStep) in self.g
+            is_start = (step_uri, RDF.type, AGENTO.StartStep) in self.g
             is_conditional = (step_uri, RDF.type, AGENTOSCIN.ConditionalStep) in self.g
-            is_end = (step_uri, RDF.type, AGENTOSCIN.EndStep) in self.g
+            is_end = (step_uri, RDF.type, AGENTO.EndStep) in self.g
 
             # A step can be both start and conditional (LangGraph pattern:
             # entry node with conditional edges). EndStep is mutually
@@ -748,7 +749,7 @@ class OntologyReader:
 
             # Collect nextStep targets
             next_names = []
-            for next_uri in self.g.objects(step_uri, AGENTOSCIN.nextStep):
+            for next_uri in self.g.objects(step_uri, AGENTO.nextStep):
                 next_names.append(str(next_uri))
 
             # Original literal decorator arguments (e.g. CrewAI
@@ -817,7 +818,7 @@ class OntologyReader:
             # inferred predecessors from inverse nextStep edges. The literal
             # arguments come first so the generator emits them as-written.
             dec_args = list(info.get("decorator_args") or [])
-            if info["step_type"] in ("regular", "conditional"):
+            if info["step_type"] != "start":
                 for pred in listened_by.get(name, []):
                     if pred not in dec_args:
                         dec_args.append(pred)
@@ -865,12 +866,12 @@ class OntologyReader:
         Returns sorted list of (step_title, associated_task_key).
         """
         steps: list[tuple[int, str, Optional[str]]] = []
-        for step_uri in self.g.objects(wp_uri, AGENTOSCIN.hasWorkflowStep):
-            order = self._int_value(step_uri, AGENTOSCIN.stepOrder) or 0
+        for step_uri in self.g.objects(wp_uri, AGENTO.hasWorkflowStep):
+            order = self._int_value(step_uri, AGENTO.stepOrder) or 0
             title = self._str_value(step_uri, HAS_TITLE) or ""
 
             task_key = None
-            for task_uri in self.g.objects(step_uri, AGENTOSCIN.hasAssociatedTask):
+            for task_uri in self.g.objects(step_uri, AGENTO.hasAssociatedTask):
                 task_key = self._task_uri_to_key.get(str(task_uri))
                 if not task_key:
                     # Fallback: derive from URI
@@ -917,9 +918,9 @@ class OntologyReader:
         its configValue if configKey matches.
         """
         for config_uri in self.g.objects(subject, config_property):
-            ck = self._str_value(config_uri, AGENTOSCIN.configKey)
+            ck = self._str_value(config_uri, AGENTO.configKey)
             if ck == config_key:
-                return self._str_value(config_uri, AGENTOSCIN.configValue)
+                return self._str_value(config_uri, AGENTO.configValue)
         return None
 
     @staticmethod

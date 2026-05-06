@@ -38,7 +38,7 @@ from pathlib import Path
 from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, XSD
 
-from oscin.namespaces import AGENTOSCIN
+from oscin.namespaces import AGENTOSCIN, is_ontology_uri
 
 log = logging.getLogger("oscin")
 
@@ -125,7 +125,7 @@ def _is_tbox_triple(s, p, o) -> bool:
         return True
     if p == RDF.type and o in TBOX_TYPES:
         return True
-    if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+    if isinstance(s, URIRef) and is_ontology_uri(s):
         # Triples where the subject is an ontology-level URI (not instance)
         if p == RDF.type and o in TBOX_TYPES:
             return True
@@ -165,7 +165,7 @@ def _get_abox_individuals(g: Graph) -> dict[str, set[str]]:
     for s, _, o in g.triples((None, RDF.type, None)):
         if o in TBOX_TYPES:
             continue
-        if isinstance(s, URIRef) and not str(s).startswith(str(AGENTOSCIN)):
+        if isinstance(s, URIRef) and not is_ontology_uri(s):
             result[_class_name(o)].add(_local_name(s))
     return dict(result)
 
@@ -177,7 +177,7 @@ def _get_used_properties(g: Graph) -> set[str]:
         if _is_tbox_triple(s, p, o):
             continue
         p_str = str(p)
-        if str(AGENTOSCIN) in p_str:
+        if is_ontology_uri(p_str):
             props.add(_local_name(p))
     return props
 
@@ -189,7 +189,7 @@ def _get_abox_triples(g: Graph) -> int:
         if _is_tbox_triple(s, p, o):
             continue
         # Skip triples where subject is an ontology-level URI
-        if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+        if isinstance(s, URIRef) and is_ontology_uri(s):
             continue
         # Skip blank node triples (OWL list serialization artifacts)
         if isinstance(s, BNode) or isinstance(o, BNode):
@@ -217,7 +217,7 @@ def _get_normalized_triples(
     for s, p, o in g:
         if _is_tbox_triple(s, p, o):
             continue
-        if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+        if isinstance(s, URIRef) and is_ontology_uri(s):
             continue
         if skip_blank_nodes and (isinstance(s, BNode) or isinstance(o, BNode)):
             continue
@@ -242,7 +242,7 @@ def _get_literal_values(g: Graph) -> set[str]:
     for s, p, o in g:
         if _is_tbox_triple(s, p, o):
             continue
-        if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+        if isinstance(s, URIRef) and is_ontology_uri(s):
             continue
         if isinstance(s, BNode) or isinstance(o, BNode):
             continue
@@ -284,7 +284,7 @@ def compute_intrinsic(g: Graph) -> IntrinsicMetrics:
     for s, p, o in g:
         if _is_tbox_triple(s, p, o):
             continue
-        if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+        if isinstance(s, URIRef) and is_ontology_uri(s):
             continue
         if isinstance(o, Literal):
             m.literals_count += 1
@@ -391,7 +391,7 @@ def _individual_classes(g: Graph) -> dict[URIRef, set[URIRef]]:
     for s, _, o in g.triples((None, RDF.type, None)):
         if not isinstance(s, URIRef):
             continue
-        if str(s).startswith(str(AGENTOSCIN)):
+        if is_ontology_uri(s):
             continue
         if isinstance(o, URIRef) and o in TBOX_TYPES:
             continue
@@ -498,7 +498,7 @@ def _compute_aligned_triple_metric(
     for s, p, o in candidate:
         if _is_tbox_triple(s, p, o):
             continue
-        if isinstance(s, URIRef) and str(s).startswith(str(AGENTOSCIN)):
+        if isinstance(s, URIRef) and is_ontology_uri(s):
             continue
         # Skip blank node triples (non-deterministic IDs from OWL lists)
         if isinstance(s, BNode) or isinstance(o, BNode):

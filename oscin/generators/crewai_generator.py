@@ -612,7 +612,10 @@ class {crew_class}:
                 if ft in ("string", "integer", "boolean", "number", "array", "object"):
                     py_type = self._json_type_to_python(ft)
                 else:
-                    py_type = ft or "Any"
+                    # Sanitize framework-specific types that don't exist in
+                    # CrewAI/Pydantic context (e.g. LangGraph/LangChain types
+                    # leaking through cross-framework translation).
+                    py_type = self._sanitize_state_type(ft) or "Any"
                 default = self._default_for_type(py_type)
                 if default is None:
                     lines.append(f"    {field_name}: {py_type} = None")
@@ -787,6 +790,40 @@ if __name__ == "__main__":
     # -----------------------------------------------------------
     # Type mapping helper
     # -----------------------------------------------------------
+
+    @staticmethod
+    def _sanitize_state_type(ft: str) -> str:
+        """Sanitize framework-specific type annotations for CrewAI/Pydantic.
+
+        LangGraph/LangChain types like ``Annotated[Sequence[BaseMessage], add_messages]``
+        are not valid in a CrewAI Flow state (Pydantic BaseModel). This method maps
+        them to plain Python/Pydantic equivalents.
+        """
+        if not ft:
+            return "Any"
+
+        # Exact matches for common LangGraph state patterns
+        _FRAMEWORK_TYPE_MAP = {
+            "Annotated[Sequence[BaseMessage], add_messages]": "list",
+            "Annotated[list, add_messages]": "list",
+            "Annotated[Sequence[BaseMessage], operator.add]": "list",
+            "Annotated[list, operator.add]": "list",
+            "List[Union[HumanMessage, AIMessage]]": "list",
+            "Sequence[BaseMessage]": "list",
+            "list[BaseMessage]": "list",
+        }
+        if ft in _FRAMEWORK_TYPE_MAP:
+            return _FRAMEWORK_TYPE_MAP[ft]
+
+        # Pattern-based: anything with Annotated[..., add_messages/operator.add]
+        if "Annotated[" in ft and ("add_messages" in ft or "operator." in ft):
+            return "list"
+
+        # Pattern-based: anything referencing BaseMessage/HumanMessage/AIMessage
+        if any(msg in ft for msg in ("BaseMessage", "HumanMessage", "AIMessage")):
+            return "list"
+
+        return ft
 
     @staticmethod
     def _json_type_to_python(json_type: str) -> str:

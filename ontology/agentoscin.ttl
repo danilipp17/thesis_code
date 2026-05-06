@@ -4,990 +4,557 @@
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix p-plan: <http://purl.org/net/p-plan#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
 @base <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
 
-<http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> rdf:type owl:Ontology .
+<http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> rdf:type owl:Ontology ;
+                                                                       owl:imports <http://www.w3id.org/agentic-ai/onto> ;
+                                                                       dc:creator "Dani Lippmann" ;
+                                                                       dc:title "AgentOSCIn — Extension of the Agentic AI Ontology" ;
+                                                                       dc:description "Extension of agentO adding agentic-system orchestration, coordination & reasoning patterns, memory bindings, guardrails, human checkpoints, termination conditions, schemas, and framework-mapping properties."@en ;
+                                                                       rdfs:label "AgentOSCIn Ontology" ;
+                                                                       owl:versionInfo 0.1 .
 
 #################################################################
 #    Object Properties
 #################################################################
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin#hasAgentMemoryBinding
+###  bindsMemory
+:bindsMemory rdf:type owl:ObjectProperty ;
+             rdfs:domain :MemoryBinding ;
+             rdfs:range agento:Memory ;
+             rdfs:comment "Links a memory binding to the memory it binds." ;
+             rdfs:label "binds memory" .
+
+
+###  containsAgent
+:containsAgent rdf:type owl:ObjectProperty ;
+               rdfs:domain :AgenticSystem ;
+               rdfs:range agento:LLMAgent ;
+               rdfs:comment "Relates an agentic system to an agent it contains." ;
+               rdfs:label "contains agent" .
+
+
+###  containsOrchestration
+:containsOrchestration rdf:type owl:ObjectProperty ;
+                       rdfs:domain :AgenticSystem ;
+                       rdfs:range :Orchestration ;
+                       rdfs:comment "Relates an agentic system to its orchestration." ;
+                       rdfs:label "contains orchestration" .
+
+
+###  containsTeam
+:containsTeam rdf:type owl:ObjectProperty ;
+              rdfs:domain :AgenticSystem ;
+              rdfs:range agento:Team ;
+              rdfs:comment "Relates an agentic system to a team it contains." ;
+              rdfs:label "contains team" .
+
+
+###  dependsOn
+:dependsOn rdf:type owl:ObjectProperty ;
+           rdfs:domain agento:Task ;
+           rdfs:range agento:Task ;
+           rdfs:comment "Indicates that one task depends on another." ;
+           rdfs:label "depends on" .
+
+
+###  employsCoordinationPattern
+:employsCoordinationPattern rdf:type owl:ObjectProperty ;
+                            rdfs:domain agento:Team ;
+                            rdfs:range :CoordinationPattern ;
+                            rdfs:comment "Relates a team to the coordination pattern it employs." ;
+                            rdfs:label "employs coordination pattern" .
+
+
+###  employsReasoningPattern
+:employsReasoningPattern rdf:type owl:ObjectProperty ;
+                         rdfs:domain agento:LLMAgent ;
+                         rdfs:range :ReasoningPattern ;
+                         rdfs:comment "Relates an agent to the reasoning pattern it employs." ;
+                         rdfs:label "employs reasoning pattern" .
+
+
+###  hasAgentMemoryBinding
 :hasAgentMemoryBinding rdf:type owl:ObjectProperty ;
                        rdfs:subPropertyOf :hasMemoryBinding ;
-                       rdfs:domain :Agent ;
-                       rdfs:range :MemoryBinding .
+                       rdfs:domain agento:LLMAgent ;
+                       rdfs:range :MemoryBinding ;
+                       rdfs:comment "Memory binding attached to an individual agent." ;
+                       rdfs:label "has agent memory binding" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentPrompt
-:agentPrompt rdf:type owl:ObjectProperty ;
-             rdfs:subPropertyOf :hasPrompt .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentResourceUsage
-:agentResourceUsage rdf:type owl:ObjectProperty ;
-                    rdfs:subPropertyOf :resourceUsage ;
-                    rdfs:domain :LLMAgent ;
-                    rdfs:range :Resource .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentToolUsage
-:agentToolUsage rdf:type owl:ObjectProperty ;
-                rdfs:subPropertyOf :toolUsage ;
-                rdfs:domain :LLMAgent ;
-                rdfs:range :Tool .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/bindsMemory
-:bindsMemory rdf:type owl:ObjectProperty ;
-             rdfs:subPropertyOf owl:topObjectProperty ;
-             rdfs:domain :MemoryBinding ;
-             rdfs:range :Memory .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/containsAgent
-:containsAgent rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf owl:topObjectProperty ;
-               rdfs:domain :AgenticSystem ;
-               rdfs:range :LLMAgent .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/containsOrchestration
-:containsOrchestration rdf:type owl:ObjectProperty ;
-                       rdfs:subPropertyOf owl:topObjectProperty ;
-                       rdfs:domain :AgenticSystem ;
-                       rdfs:range :Orchestration .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/containsResource
-:containsResource rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf owl:topObjectProperty ;
-                  rdfs:domain :Environment ;
-                  rdfs:range :Resource .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/containsTeam
-:containsTeam rdf:type owl:ObjectProperty ;
-              rdfs:subPropertyOf owl:topObjectProperty ;
-              rdfs:domain :AgenticSystem ;
-              rdfs:range :Team .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/contributesToGoal
-:contributesToGoal rdf:type owl:ObjectProperty ;
-                   rdfs:subPropertyOf owl:topObjectProperty ;
-                   rdfs:domain :Objective ;
-                   rdfs:range :Goal .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/contributesToObjective
-:contributesToObjective rdf:type owl:ObjectProperty ;
-                        rdfs:subPropertyOf owl:topObjectProperty ;
-                        rdfs:domain :Task ;
-                        rdfs:range :Objective .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/dependsOn
-:dependsOn rdf:type owl:ObjectProperty ;
-           rdfs:subPropertyOf owl:topObjectProperty ;
-           rdfs:domain :Task ;
-           rdfs:range :Task .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/employsCoordinationPattern
-:employsCoordinationPattern rdf:type owl:ObjectProperty ;
-                            rdfs:subPropertyOf owl:topObjectProperty ;
-                            rdfs:domain :Team ;
-                            rdfs:range :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/employsReasoningPattern
-:employsReasoningPattern rdf:type owl:ObjectProperty ;
-                         rdfs:subPropertyOf owl:topObjectProperty ;
-                         rdfs:domain :LLMAgent ;
-                         rdfs:range :ReasoningPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAgentCapability
-:hasAgentCapability rdf:type owl:ObjectProperty ;
-                    rdfs:subPropertyOf :hasCapability .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAgentConfig
-:hasAgentConfig rdf:type owl:ObjectProperty ;
-                rdfs:subPropertyOf :hasConfig .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAgentGoal
-:hasAgentGoal rdf:type owl:ObjectProperty ;
-              rdfs:subPropertyOf :hasGoal .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAgentMember
-:hasAgentMember rdf:type owl:ObjectProperty ;
-                rdfs:subPropertyOf owl:topObjectProperty ;
-                rdfs:domain :Team ;
-                rdfs:range :LLMAgent .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAssociatedAgent
+###  hasAssociatedAgent
 :hasAssociatedAgent rdf:type owl:ObjectProperty ;
-                    rdfs:subPropertyOf owl:topObjectProperty ;
-                    rdfs:domain :WorkflowStep ;
-                    rdfs:range :LLMAgent ;
-                    rdfs:comment "Links a workflow step to the agent that executes it (e.g. a LangGraph node function implemented by a specific LLMAgent).".
+                    rdfs:domain agento:WorkflowStep ;
+                    rdfs:range agento:LLMAgent ;
+                    rdfs:comment "Links a workflow step to the agent that executes it (e.g. a LangGraph node function implemented by a specific LLMAgent)." ;
+                    rdfs:label "has associated agent" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAssociatedTask
-:hasAssociatedTask rdf:type owl:ObjectProperty ;
-                   rdfs:subPropertyOf owl:topObjectProperty ;
-                   rdfs:domain :WorkflowStep ;
-                   rdfs:range :Task .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasCapability
-:hasCapability rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf owl:topObjectProperty ;
-               rdfs:domain :Tool ;
-               rdfs:range :Capability .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasConfig
-:hasConfig rdf:type owl:ObjectProperty ;
-           rdfs:subPropertyOf owl:topObjectProperty ;
-           rdfs:domain :Agent ,
-                       :AgenticSystem ,
-                       :Capability ,
-                       :Context ,
-                       :CoordinationPattern ,
-                       :Guardrail ,
-                       :HumanCheckpoint ,
-                       :MemoryBinding ,
-                       :Orchestration ,
-                       :Plan ,
-                       :Prompt ,
-                       :ReasoningPattern ,
-                       :Resource ,
-                       :Schema ,
-                       :Step ,
-                       :System ,
-                       :Task ,
-                       :TerminationCondition ,
-                       :Tool ;
-           rdfs:range :Config .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasEnvironmentConfig
-:hasEnvironmentConfig rdf:type owl:ObjectProperty ;
-                      rdfs:subPropertyOf :hasConfig .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasGoal
-:hasGoal rdf:type owl:ObjectProperty ;
-         rdfs:subPropertyOf owl:topObjectProperty ;
-         rdfs:domain :LLMAgent ,
-                     :Team ;
-         rdfs:range :Goal .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasGuardrail
+###  hasGuardrail
 :hasGuardrail rdf:type owl:ObjectProperty ;
-              rdfs:subPropertyOf owl:topObjectProperty ;
-              rdfs:domain :Task ;
-              rdfs:range :Guardrail .
+              rdfs:domain agento:Task ;
+              rdfs:range :Guardrail ;
+              rdfs:comment "Associates a guardrail with a task." ;
+              rdfs:label "has guardrail" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasHumanCheckpoint
+###  hasHumanCheckpoint
 :hasHumanCheckpoint rdf:type owl:ObjectProperty ;
-                    rdfs:subPropertyOf owl:topObjectProperty ;
-                    rdfs:domain :Task ;
-                    rdfs:range :HumanCheckpoint .
+                    rdfs:domain agento:Task ;
+                    rdfs:range :HumanCheckpoint ;
+                    rdfs:comment "Associates a human-in-the-loop checkpoint with a task." ;
+                    rdfs:label "has human checkpoint" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasKnowledge
-:hasKnowledge rdf:type owl:ObjectProperty ;
-              rdfs:subPropertyOf owl:topObjectProperty ;
-              rdfs:domain :LLMAgent ;
-              rdfs:range :KnowledgeBase .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMemoryBinding
+###  hasMemoryBinding
 :hasMemoryBinding rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf owl:topObjectProperty ;
-                  rdfs:domain :LLMAgent ;
-                  rdfs:range :MemoryBinding .
+                  rdfs:range :MemoryBinding ;
+                  rdfs:comment "Associates a subject (agent, team, system) with a memory binding." ;
+                  rdfs:label "has memory binding" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasObjective
-:hasObjective rdf:type owl:ObjectProperty ;
-              rdfs:subPropertyOf owl:topObjectProperty ;
-              rdfs:domain :LLMAgent ,
-                          :Team ;
-              rdfs:range :Objective .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasOutputSchema
+###  hasOutputSchema
 :hasOutputSchema rdf:type owl:ObjectProperty ;
-                 rdfs:subPropertyOf owl:topObjectProperty ;
-                 rdfs:domain :Orchestration ,
-                             :Task ;
-                 rdfs:range :Schema .
+                 rdfs:domain [ rdf:type owl:Class ;
+                               owl:unionOf ( :Orchestration
+                                             agento:Task
+                                           )
+                             ] ;
+                 rdfs:range :Schema ;
+                 rdfs:comment "Specifies the schema of the structured output produced by an orchestration or task." ;
+                 rdfs:label "has output schema" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasPrompt
-:hasPrompt rdf:type owl:ObjectProperty ;
-           rdfs:subPropertyOf owl:topObjectProperty ;
-           rdfs:domain :LLMAgent ,
-                       :Task ;
-           rdfs:range :Prompt .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasRelatedPattern
-:hasRelatedPattern rdf:type owl:ObjectProperty ;
-                   rdfs:subPropertyOf owl:topObjectProperty ;
-                   rdfs:domain :WorkflowPattern ;
-                   rdfs:range :WorkflowPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSubCondition
+###  hasSubCondition
 :hasSubCondition rdf:type owl:ObjectProperty ;
-                 rdfs:subPropertyOf owl:topObjectProperty ;
                  rdfs:domain :CompositeTermination ;
-                 rdfs:range :TerminationCondition .
+                 rdfs:range :TerminationCondition ;
+                 rdfs:comment "A sub-condition combined within a composite termination condition." ;
+                 rdfs:label "has sub condition" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSubPattern
-:hasSubPattern rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf :hasRelatedPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSystemConfig
-:hasSystemConfig rdf:type owl:ObjectProperty ;
-                 rdfs:subPropertyOf :hasConfig .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTeamGoal
-:hasTeamGoal rdf:type owl:ObjectProperty ;
-             rdfs:subPropertyOf :hasGoal .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTeamMemoryBinding
+###  hasTeamMemoryBinding
 :hasTeamMemoryBinding rdf:type owl:ObjectProperty ;
                       rdfs:subPropertyOf :hasMemoryBinding ;
-                      rdfs:domain :Team ;
-                      rdfs:range :MemoryBinding .
+                      rdfs:domain agento:Team ;
+                      rdfs:range :MemoryBinding ;
+                      rdfs:comment "Memory binding attached to a team." ;
+                      rdfs:label "has team memory binding" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTerminationCondition
+###  hasTerminationCondition
 :hasTerminationCondition rdf:type owl:ObjectProperty ;
-                         rdfs:subPropertyOf owl:topObjectProperty ;
-                         rdfs:domain :Team ;
-                         rdfs:range :TerminationCondition .
+                         rdfs:domain agento:Team ;
+                         rdfs:range :TerminationCondition ;
+                         rdfs:comment "Relates a team to a termination condition that ends its execution." ;
+                         rdfs:label "has termination condition" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasToolConfig
-:hasToolConfig rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf :hasConfig .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasWorkflowPattern
-:hasWorkflowPattern rdf:type owl:ObjectProperty ;
-                    rdfs:subPropertyOf owl:topObjectProperty ;
-                    rdfs:domain :Orchestration ;
-                    rdfs:range :WorkflowPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasWorkflowStep
-:hasWorkflowStep rdf:type owl:ObjectProperty ;
-                 rdfs:subPropertyOf owl:topObjectProperty ;
-                 rdfs:domain :WorkflowPattern ;
-                 rdfs:range :WorkflowStep .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/humanParticipatedIn
-:humanParticipatedIn rdf:type owl:ObjectProperty ;
-                     rdfs:subPropertyOf owl:topObjectProperty ;
-                     rdfs:domain :HumanAgent ;
-                     rdfs:range :Task .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/interactsWith
-:interactsWith rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf owl:topObjectProperty ;
-               rdfs:domain :LLMAgent ;
-               rdfs:range :LLMAgent .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/memoryBoundTo
+###  memoryBoundTo
 :memoryBoundTo rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf owl:topObjectProperty ;
                rdfs:domain :MemoryBinding ;
-               rdfs:range :AgenticSystem ,
-                          :LLMAgent ,
-                          :Team .
+               rdfs:range [ rdf:type owl:Class ;
+                            owl:unionOf ( :AgenticSystem
+                                          agento:LLMAgent
+                                          agento:Team
+                                        )
+                          ] ;
+               rdfs:comment "Links a memory binding to the agent, team, or system that owns it." ;
+               rdfs:label "memory bound to" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/nextPattern
-:nextPattern rdf:type owl:ObjectProperty ;
-             rdfs:subPropertyOf :hasRelatedPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/nextStep
-:nextStep rdf:type owl:ObjectProperty ;
-          rdfs:subPropertyOf :relatedStep .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/operatesIn
-:operatesIn rdf:type owl:ObjectProperty ;
-            rdfs:subPropertyOf owl:topObjectProperty ;
-            rdfs:domain :LLMAgent ;
-            rdfs:range :Environment .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/orchestratesTeam
+###  orchestratesTeam
 :orchestratesTeam rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf owl:topObjectProperty ;
                   rdfs:domain :Orchestration ;
-                  rdfs:range :Team .
+                  rdfs:range agento:Team ;
+                  rdfs:comment "Relates an orchestration to the team it orchestrates." ;
+                  rdfs:label "orchestrates team" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/performedBy
-:performedBy rdf:type owl:ObjectProperty ;
-             rdfs:subPropertyOf owl:topObjectProperty ;
-             rdfs:domain :Task .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/performedByAgent
-:performedByAgent rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf :performedBy ;
-                  rdfs:domain :Task ;
-                  rdfs:range :LLMAgent .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/producedResource
-:producedResource rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf owl:topObjectProperty ;
-                  rdfs:domain :Task ;
-                  rdfs:range :Resource .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/relatedStep
-:relatedStep rdf:type owl:ObjectProperty ;
-             rdfs:subPropertyOf owl:topObjectProperty ;
-             rdfs:domain :WorkflowStep ;
-             rdfs:range :WorkflowStep .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/requiresCapability
-:requiresCapability rdf:type owl:ObjectProperty ;
-                    rdfs:subPropertyOf owl:topObjectProperty ;
-                    rdfs:domain :Task ;
-                    rdfs:range :Capability .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/requiresResource
-:requiresResource rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf owl:topObjectProperty ;
-                  rdfs:domain :Task ;
-                  rdfs:range :Resource .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/resourceUsage
-:resourceUsage rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf owl:topObjectProperty ;
-               rdfs:domain :Tool ;
-               rdfs:range :Resource .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/taskPrompt
-:taskPrompt rdf:type owl:ObjectProperty ;
-            rdfs:subPropertyOf :hasPrompt .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/taskToolUsage
+###  taskToolUsage
 :taskToolUsage rdf:type owl:ObjectProperty ;
-               rdfs:subPropertyOf :toolUsage ;
-               rdfs:domain :Task ;
-               rdfs:range :Tool .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/toolUsage
-:toolUsage rdf:type owl:ObjectProperty ;
-           rdfs:subPropertyOf owl:topObjectProperty ;
-           rdfs:range :Tool .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/useLanguageModel
-:useLanguageModel rdf:type owl:ObjectProperty ;
-                  rdfs:subPropertyOf owl:topObjectProperty ;
-                  rdfs:domain :LLMAgent ;
-                  rdfs:range :LanguageModel .
+               rdfs:subPropertyOf agento:toolUsage ;
+               rdfs:domain agento:Task ;
+               rdfs:range agento:Tool ;
+               rdfs:comment "A tool used in the execution of a task." ;
+               rdfs:label "task tool usage" .
 
 
 #################################################################
 #    Data properties
 #################################################################
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentID
-:agentID rdf:type owl:DatatypeProperty ;
-         rdfs:subPropertyOf owl:topDataProperty ;
-         rdfs:domain :LLMAgent .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentRole
-:agentRole rdf:type owl:DatatypeProperty ;
-           rdfs:subPropertyOf owl:topDataProperty ;
-           rdfs:domain :LLMAgent ;
-           rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/agentType
+###  agentType
 :agentType rdf:type owl:DatatypeProperty ;
-           rdfs:subPropertyOf owl:topDataProperty ;
-           rdfs:domain :LLMAgent ;
-           rdfs:range xsd:string .
+           rdfs:domain agento:LLMAgent ;
+           rdfs:range xsd:string ;
+           rdfs:label "agent type" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/configKey
-:configKey rdf:type owl:DatatypeProperty ;
-           rdfs:subPropertyOf owl:topDataProperty ;
-           rdfs:domain :Config ;
-           rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/configValue
-:configValue rdf:type owl:DatatypeProperty ;
-             rdfs:subPropertyOf owl:topDataProperty ;
-             rdfs:domain :Config ;
-             rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/envType
-:envType rdf:type owl:DatatypeProperty ;
-         rdfs:subPropertyOf owl:topDataProperty ;
-         rdfs:domain :Environment ;
-         rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasCheckpointPosition
-:hasCheckpointPosition rdf:type owl:DatatypeProperty ;
-                       rdfs:subPropertyOf owl:topDataProperty ;
-                       rdfs:domain :HumanCheckpoint ;
-                       rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasCheckpointType
-:hasCheckpointType rdf:type owl:DatatypeProperty ;
-                   rdfs:subPropertyOf owl:topDataProperty ;
-                   rdfs:domain :HumanCheckpoint ;
-                   rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDelegationStrategy
-:hasDelegationStrategy rdf:type owl:DatatypeProperty ;
-                       rdfs:subPropertyOf owl:topDataProperty ;
-                       rdfs:domain :Task ;
-                       rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDependencyType
-:hasDependencyType rdf:type owl:DatatypeProperty ;
-                   rdfs:subPropertyOf owl:topDataProperty ;
-                   rdfs:domain :Task ;
-                   rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDescription
-:hasDescription rdf:type owl:DatatypeProperty ;
-                rdfs:subPropertyOf owl:topDataProperty ;
-                rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDirectiveFunction
-:hasDirectiveFunction rdf:type owl:DatatypeProperty ;
-                      rdfs:subPropertyOf owl:topDataProperty ;
-                      rdfs:domain :Prompt ;
-                      rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasExpectedOutput
-:hasExpectedOutput rdf:type owl:DatatypeProperty ;
-                   rdfs:subPropertyOf owl:topDataProperty ;
-                   rdfs:domain :Task ;
-                   rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasGuardrailType
-:hasGuardrailType rdf:type owl:DatatypeProperty ;
-                  rdfs:subPropertyOf owl:topDataProperty ;
-                  rdfs:domain :Guardrail ;
-                  rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasImplementationReference
-:hasImplementationReference rdf:type owl:DatatypeProperty ;
-                            rdfs:subPropertyOf owl:topDataProperty ;
-                            rdfs:domain :Tool ;
-                            rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasInputSchema
-:hasInputSchema rdf:type owl:DatatypeProperty ;
-                rdfs:subPropertyOf owl:topDataProperty ;
-                rdfs:domain :Tool ;
-                rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMaxReasoningAttempts
-:hasMaxReasoningAttempts rdf:type owl:DatatypeProperty ;
-                         rdfs:subPropertyOf owl:topDataProperty ;
-                         rdfs:domain :LLMAgent ;
-                         rdfs:range xsd:integer .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMaxRetries
-:hasMaxRetries rdf:type owl:DatatypeProperty ;
-               rdfs:subPropertyOf owl:topDataProperty ;
-               rdfs:domain :Guardrail ;
-               rdfs:range xsd:integer .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMaxTurns
-:hasMaxTurns rdf:type owl:DatatypeProperty ;
-             rdfs:subPropertyOf owl:topDataProperty ;
-             rdfs:domain :TurnLimitTermination ;
-             rdfs:range xsd:integer .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMemoryScope
-:hasMemoryScope rdf:type owl:DatatypeProperty ;
-                rdfs:subPropertyOf owl:topDataProperty ;
-                rdfs:domain :MemoryBinding ;
-                rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasOperator
-:hasOperator rdf:type owl:DatatypeProperty ;
-             rdfs:subPropertyOf owl:topDataProperty ;
-             rdfs:domain :CompositeTermination ;
-             rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasPersistenceScope
-:hasPersistenceScope rdf:type owl:DatatypeProperty ;
-                     rdfs:subPropertyOf owl:topDataProperty ;
-                     rdfs:domain :Memory ;
-                     rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasReasoningEnabled
-:hasReasoningEnabled rdf:type owl:DatatypeProperty ;
-                     rdfs:subPropertyOf owl:topDataProperty ;
-                     rdfs:domain :LLMAgent ;
-                     rdfs:range xsd:boolean .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasReasoningOrigin
-:hasReasoningOrigin rdf:type owl:DatatypeProperty ;
-                    rdfs:subPropertyOf owl:topDataProperty ;
-                    rdfs:domain :LLMAgent ;
-                    rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasReference
-:hasReference rdf:type owl:DatatypeProperty ;
-              rdfs:subPropertyOf owl:topDataProperty ;
-              rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasEdgeMapping
-:hasEdgeMapping rdf:type owl:DatatypeProperty ;
-                rdfs:subPropertyOf owl:topDataProperty ;
-                rdfs:domain :WorkflowStep ;
-                rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasDecoratorArgument
-:hasDecoratorArgument rdf:type owl:DatatypeProperty ;
-                      rdfs:subPropertyOf owl:topDataProperty ;
-                      rdfs:domain :WorkflowStep ;
-                      rdfs:range xsd:string ;
-                      rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasAggregationCombinator
-:hasAggregationCombinator rdf:type owl:DatatypeProperty ;
-                           rdfs:subPropertyOf owl:topDataProperty ;
-                           rdfs:domain :WorkflowStep ;
-                           rdfs:range xsd:string ;
-                           rdfs:comment "Combinator used to aggregate multiple predecessor steps in the source decorator (e.g. CrewAI @listen(or_(step_a, step_b)) stores \"or_\"). Values: \"or_\", \"and_\", or empty for single-predecessor steps." .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/callsCrew
+###  callsCrew
 :callsCrew rdf:type owl:DatatypeProperty ;
-            rdfs:subPropertyOf owl:topDataProperty ;
-            rdfs:domain :WorkflowStep ;
-            rdfs:range xsd:string ;
-            rdfs:comment "Key of the team/crew invoked by this workflow step (e.g. CrewAI @listen method calling crew.kickoff()). Enables per-step crew binding through the ontology round-trip." .
+           rdfs:domain agento:WorkflowStep ;
+           rdfs:range xsd:string ;
+           rdfs:comment "Key of the team/crew invoked by this workflow step (e.g. CrewAI @listen method calling crew.kickoff()). Enables per-step crew binding through the ontology round-trip." ;
+           rdfs:label "calls crew" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasRoutingLogic
+###  hasAggregationCombinator
+:hasAggregationCombinator rdf:type owl:DatatypeProperty ;
+                          rdfs:domain agento:WorkflowStep ;
+                          rdfs:range xsd:string ;
+                          rdfs:comment "Combinator used to aggregate multiple predecessor steps in the source decorator (e.g. CrewAI @listen(or_(step_a, step_b)) stores \"or_\"). Values: \"or_\", \"and_\", or empty for single-predecessor steps." ;
+                          rdfs:label "has aggregation combinator" .
+
+
+###  hasCheckpointPosition
+:hasCheckpointPosition rdf:type owl:DatatypeProperty ;
+                       rdfs:domain :HumanCheckpoint ;
+                       rdfs:range xsd:string ;
+                       rdfs:label "has checkpoint position" .
+
+
+###  hasCheckpointType
+:hasCheckpointType rdf:type owl:DatatypeProperty ;
+                   rdfs:domain :HumanCheckpoint ;
+                   rdfs:range xsd:string ;
+                   rdfs:label "has checkpoint type" .
+
+
+###  hasDecoratorArgument
+:hasDecoratorArgument rdf:type owl:DatatypeProperty ;
+                      rdfs:domain agento:WorkflowStep ;
+                      rdfs:range xsd:string ;
+                      rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." ;
+                      rdfs:label "has decorator argument" .
+
+
+###  hasDelegationStrategy
+:hasDelegationStrategy rdf:type owl:DatatypeProperty ;
+                       rdfs:domain agento:Task ;
+                       rdfs:range xsd:string ;
+                       rdfs:label "has delegation strategy" .
+
+
+###  hasDependencyType
+:hasDependencyType rdf:type owl:DatatypeProperty ;
+                   rdfs:domain agento:Task ;
+                   rdfs:range xsd:string ;
+                   rdfs:label "has dependency type" .
+
+
+###  hasDescription
+:hasDescription rdf:type owl:DatatypeProperty ;
+                rdfs:range xsd:string ;
+                rdfs:label "has description" .
+
+
+###  hasDirectiveFunction
+:hasDirectiveFunction rdf:type owl:DatatypeProperty ;
+                      rdfs:domain agento:Prompt ;
+                      rdfs:range xsd:string ;
+                      rdfs:label "has directive function" .
+
+
+###  hasEdgeMapping
+:hasEdgeMapping rdf:type owl:DatatypeProperty ;
+                rdfs:domain agento:WorkflowStep ;
+                rdfs:range xsd:string ;
+                rdfs:label "has edge mapping" .
+
+
+###  hasExpectedOutput
+:hasExpectedOutput rdf:type owl:DatatypeProperty ;
+                   rdfs:domain agento:Task ;
+                   rdfs:range xsd:string ;
+                   rdfs:label "has expected output" .
+
+
+###  hasGuardrailType
+:hasGuardrailType rdf:type owl:DatatypeProperty ;
+                  rdfs:domain :Guardrail ;
+                  rdfs:range xsd:string ;
+                  rdfs:label "has guardrail type" .
+
+
+###  hasImplementationReference
+:hasImplementationReference rdf:type owl:DatatypeProperty ;
+                            rdfs:domain agento:Tool ;
+                            rdfs:range xsd:string ;
+                            rdfs:label "has implementation reference" .
+
+
+###  hasInputSchema
+:hasInputSchema rdf:type owl:DatatypeProperty ;
+                rdfs:domain agento:Tool ;
+                rdfs:range xsd:string ;
+                rdfs:label "has input schema" .
+
+
+###  hasMaxReasoningAttempts
+:hasMaxReasoningAttempts rdf:type owl:DatatypeProperty ;
+                         rdfs:domain agento:LLMAgent ;
+                         rdfs:range xsd:integer ;
+                         rdfs:label "has max reasoning attempts" .
+
+
+###  hasMaxRetries
+:hasMaxRetries rdf:type owl:DatatypeProperty ;
+               rdfs:domain :Guardrail ;
+               rdfs:range xsd:integer ;
+               rdfs:label "has max retries" .
+
+
+###  hasMaxTurns
+:hasMaxTurns rdf:type owl:DatatypeProperty ;
+             rdfs:domain :TurnLimitTermination ;
+             rdfs:range xsd:integer ;
+             rdfs:label "has max turns" .
+
+
+###  hasMemoryScope
+:hasMemoryScope rdf:type owl:DatatypeProperty ;
+                rdfs:domain :MemoryBinding ;
+                rdfs:range xsd:string ;
+                rdfs:label "has memory scope" .
+
+
+###  hasOperator
+:hasOperator rdf:type owl:DatatypeProperty ;
+             rdfs:domain :CompositeTermination ;
+             rdfs:range xsd:string ;
+             rdfs:label "has operator" .
+
+
+###  hasPersistenceScope
+:hasPersistenceScope rdf:type owl:DatatypeProperty ;
+                     rdfs:domain agento:Memory ;
+                     rdfs:range xsd:string ;
+                     rdfs:label "has persistence scope" .
+
+
+###  hasReasoningEnabled
+:hasReasoningEnabled rdf:type owl:DatatypeProperty ;
+                     rdfs:domain agento:LLMAgent ;
+                     rdfs:range xsd:boolean ;
+                     rdfs:label "has reasoning enabled" .
+
+
+###  hasReasoningOrigin
+:hasReasoningOrigin rdf:type owl:DatatypeProperty ;
+                    rdfs:domain agento:LLMAgent ;
+                    rdfs:range xsd:string ;
+                    rdfs:label "has reasoning origin" .
+
+
+###  hasReference
+:hasReference rdf:type owl:DatatypeProperty ;
+              rdfs:range xsd:string ;
+              rdfs:label "has reference" .
+
+
+###  hasRoutingLogic
 :hasRoutingLogic rdf:type owl:DatatypeProperty ;
-                 rdfs:subPropertyOf owl:topDataProperty ;
                  rdfs:domain :ConditionalStep ;
-                 rdfs:range xsd:string .
+                 rdfs:range xsd:string ;
+                 rdfs:label "has routing logic" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSchemaDefinition
+###  hasSchemaDefinition
 :hasSchemaDefinition rdf:type owl:DatatypeProperty ;
-                     rdfs:subPropertyOf owl:topDataProperty ;
                      rdfs:domain :Schema ;
-                     rdfs:range xsd:string .
+                     rdfs:range xsd:string ;
+                     rdfs:label "has schema definition" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSourceAttribute
+###  hasSourceAttribute
 :hasSourceAttribute rdf:type owl:DatatypeProperty ;
-                    rdfs:subPropertyOf owl:topDataProperty ;
-                    rdfs:domain :Prompt ;
-                    rdfs:range xsd:string .
+                    rdfs:domain agento:Prompt ;
+                    rdfs:range xsd:string ;
+                    rdfs:label "has source attribute" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasSourceFramework
+###  hasSourceFramework
 :hasSourceFramework rdf:type owl:DatatypeProperty ;
-                    rdfs:subPropertyOf owl:topDataProperty ;
                     rdfs:domain :AgenticSystem ;
-                    rdfs:range xsd:string .
+                    rdfs:range xsd:string ;
+                    rdfs:label "has source framework" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTitle
+###  hasTitle
 :hasTitle rdf:type owl:DatatypeProperty ;
-          rdfs:subPropertyOf owl:topDataProperty ;
-          rdfs:range xsd:string .
+          rdfs:range xsd:string ;
+          rdfs:label "has title" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasTriggerExpression
+###  hasTriggerExpression
 :hasTriggerExpression rdf:type owl:DatatypeProperty ;
-                      rdfs:subPropertyOf owl:topDataProperty ;
                       rdfs:domain :EventBasedTermination ;
-                      rdfs:range xsd:string .
+                      rdfs:range xsd:string ;
+                      rdfs:label "has trigger expression" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasValidationLogic
+###  hasValidationLogic
 :hasValidationLogic rdf:type owl:DatatypeProperty ;
-                    rdfs:subPropertyOf owl:topDataProperty ;
                     rdfs:domain :Guardrail ;
-                    rdfs:range xsd:string .
+                    rdfs:range xsd:string ;
+                    rdfs:label "has validation logic" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/isMandatory
+###  isMandatory
 :isMandatory rdf:type owl:DatatypeProperty ;
-             rdfs:subPropertyOf owl:topDataProperty ;
              rdfs:domain :HumanCheckpoint ;
-             rdfs:range xsd:boolean .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/promptContext
-:promptContext rdf:type owl:DatatypeProperty ;
-               rdfs:subPropertyOf owl:topDataProperty ;
-               rdfs:domain :Prompt ;
-               rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/promptInputData
-:promptInputData rdf:type owl:DatatypeProperty ;
-                 rdfs:subPropertyOf owl:topDataProperty ;
-                 rdfs:domain :Prompt ;
-                 rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/promptInstruction
-:promptInstruction rdf:type owl:DatatypeProperty ;
-                   rdfs:subPropertyOf owl:topDataProperty ;
-                   rdfs:domain :Prompt ;
-                   rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/promptOutputIndicator
-:promptOutputIndicator rdf:type owl:DatatypeProperty ;
-                       rdfs:subPropertyOf owl:topDataProperty ;
-                       rdfs:domain :Prompt ;
-                       rdfs:range xsd:string .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/stepOrder
-:stepOrder rdf:type owl:DatatypeProperty ;
-           rdfs:subPropertyOf owl:topDataProperty ;
-           rdfs:domain :WorkflowStep ;
-           rdfs:range xsd:integer .
+             rdfs:range xsd:boolean ;
+             rdfs:label "is mandatory" .
 
 
 #################################################################
 #    Classes
 #################################################################
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Agent
-:Agent rdf:type owl:Class .
+###  AgenticSystem
+:AgenticSystem rdf:type owl:Class ;
+               rdfs:subClassOf beam:System ;
+               rdfs:comment "A complete agentic AI system encompassing one or more agents, teams, and an orchestration." ;
+               rdfs:label "Agentic System" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/AgenticSystem
-:AgenticSystem rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Capability
-:Capability rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ChainOfThought
+###  ChainOfThought
 :ChainOfThought rdf:type owl:Class ;
-                rdfs:subClassOf :ReasoningPattern .
+                rdfs:subClassOf :ReasoningPattern ;
+                rdfs:label "Chain of Thought" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/CompositeTermination
+###  CompositeTermination
 :CompositeTermination rdf:type owl:Class ;
-                      rdfs:subClassOf :TerminationCondition .
+                      rdfs:subClassOf :TerminationCondition ;
+                      rdfs:comment "A termination condition built by combining other conditions via a logical operator." ;
+                      rdfs:label "Composite Termination" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ConditionalStep
+###  ConditionalStep
 :ConditionalStep rdf:type owl:Class ;
-                 rdfs:subClassOf :WorkflowStep .
+                 rdfs:subClassOf agento:WorkflowStep ;
+                 rdfs:comment "A workflow step that branches based on routing logic." ;
+                 rdfs:label "Conditional Step" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Config
-:Config rdf:type owl:Class .
+###  CoordinationPattern
+:CoordinationPattern rdf:type owl:Class ;
+                     rdfs:comment "A pattern of coordination among agents in a team (e.g. sequential, hierarchical, swarm)." ;
+                     rdfs:label "Coordination Pattern" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Constraint
-:Constraint rdf:type owl:Class ;
-            rdfs:subClassOf :KnowledgeBase .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Context
-:Context rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/CoordinationPattern
-:CoordinationPattern rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/EndStep
-:EndStep rdf:type owl:Class ;
-         rdfs:subClassOf :WorkflowStep .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Environment
-:Environment rdf:type owl:Class ;
-             rdfs:subClassOf :Context .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/EventBasedTermination
+###  EventBasedTermination
 :EventBasedTermination rdf:type owl:Class ;
-                       rdfs:subClassOf :TerminationCondition .
+                       rdfs:subClassOf :TerminationCondition ;
+                       rdfs:label "Event Based Termination" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Goal
-:Goal rdf:type owl:Class ;
-      rdfs:subClassOf :Context .
+###  Guardrail
+:Guardrail rdf:type owl:Class ;
+           rdfs:comment "A validation, safety, or policy check applied to a task." ;
+           rdfs:label "Guardrail" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Guardrail
-:Guardrail rdf:type owl:Class .
+###  HumanCheckpoint
+:HumanCheckpoint rdf:type owl:Class ;
+                 rdfs:comment "A human-in-the-loop checkpoint inserted into task execution." ;
+                 rdfs:label "Human Checkpoint" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/HumanAgent
-:HumanAgent rdf:type owl:Class ;
-            rdfs:subClassOf :Agent .
+###  MemoryBinding
+:MemoryBinding rdf:type owl:Class ;
+               rdfs:comment "A reified link between a memory and the agent, team, or system that uses it, with scope and configuration." ;
+               rdfs:label "Memory Binding" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/HumanCheckpoint
-:HumanCheckpoint rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Instance
-:Instance rdf:type owl:Class ;
-          rdfs:subClassOf :Resource .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/KnowledgeBase
-:KnowledgeBase rdf:type owl:Class ;
-               rdfs:subClassOf :Instance .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/LLMAgent
-:LLMAgent rdf:type owl:Class ;
-          rdfs:subClassOf :Agent .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/LanguageModel
-:LanguageModel rdf:type owl:Class ;
-               rdfs:subClassOf :StatisticalModel .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Memory
-:Memory rdf:type owl:Class ;
-        rdfs:subClassOf :KnowledgeBase .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/MemoryBinding
-:MemoryBinding rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Model
-:Model rdf:type owl:Class ;
-       rdfs:subClassOf :Instance .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Objective
-:Objective rdf:type owl:Class ;
-           rdfs:subClassOf :Context .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Orchestration
+###  Orchestration
 :Orchestration rdf:type owl:Class ;
-               rdfs:subClassOf :Team .
+               rdfs:subClassOf agento:Team ;
+               rdfs:comment "A controller that orchestrates one or more teams to execute a workflow." ;
+               rdfs:label "Orchestration" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Plan
-:Plan rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Prompt
-:Prompt rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReAct
+###  ReAct
 :ReAct rdf:type owl:Class ;
-       rdfs:subClassOf :ReasoningPattern .
+       rdfs:subClassOf :ReasoningPattern ;
+       rdfs:label "ReAct" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReasoningPattern
-:ReasoningPattern rdf:type owl:Class .
+###  ReasoningPattern
+:ReasoningPattern rdf:type owl:Class ;
+                  rdfs:comment "A reasoning strategy adopted by an agent (e.g. chain-of-thought, ReAct, tree-of-thoughts)." ;
+                  rdfs:label "Reasoning Pattern" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReflectionLoop
+###  ReflectionLoop
 :ReflectionLoop rdf:type owl:Class ;
-                rdfs:subClassOf :ReasoningPattern .
+                rdfs:subClassOf :ReasoningPattern ;
+                rdfs:label "Reflection Loop" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Resource
-:Resource rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoutingTermination
+###  RoutingTermination
 :RoutingTermination rdf:type owl:Class ;
-                    rdfs:subClassOf :TerminationCondition .
+                    rdfs:subClassOf :TerminationCondition ;
+                    rdfs:label "Routing Termination" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Schema
-:Schema rdf:type owl:Class .
+###  Schema
+:Schema rdf:type owl:Class ;
+        rdfs:comment "A structured-output schema (e.g. JSON Schema, Pydantic model)." ;
+        rdfs:label "Schema" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/StartStep
-:StartStep rdf:type owl:Class ;
-           rdfs:subClassOf :WorkflowStep .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/StatisticalModel
-:StatisticalModel rdf:type owl:Class ;
-                  rdfs:subClassOf :Model .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Step
-:Step rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/System
-:System rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Task
-:Task rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TaskCompletionTermination
+###  TaskCompletionTermination
 :TaskCompletionTermination rdf:type owl:Class ;
-                           rdfs:subClassOf :TerminationCondition .
+                           rdfs:subClassOf :TerminationCondition ;
+                           rdfs:label "Task Completion Termination" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Team
-:Team rdf:type owl:Class ;
-      rdfs:subClassOf :System .
+###  TerminationCondition
+:TerminationCondition rdf:type owl:Class ;
+                      rdfs:comment "A condition under which a team's execution terminates." ;
+                      rdfs:label "Termination Condition" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TerminationCondition
-:TerminationCondition rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Tool
-:Tool rdf:type owl:Class .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TreeOfThoughts
+###  TreeOfThoughts
 :TreeOfThoughts rdf:type owl:Class ;
-                rdfs:subClassOf :ReasoningPattern .
+                rdfs:subClassOf :ReasoningPattern ;
+                rdfs:label "Tree of Thoughts" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TurnLimitTermination
+###  TurnLimitTermination
 :TurnLimitTermination rdf:type owl:Class ;
-                      rdfs:subClassOf :TerminationCondition .
+                      rdfs:subClassOf :TerminationCondition ;
+                      rdfs:label "Turn Limit Termination" .
 
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Unspecified
+###  Unspecified
 :Unspecified rdf:type owl:Class ;
-             rdfs:subClassOf :ReasoningPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WorkflowPattern
-:WorkflowPattern rdf:type owl:Class ;
-                 rdfs:subClassOf :Plan .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/WorkflowStep
-:WorkflowStep rdf:type owl:Class ;
-              rdfs:subClassOf :Step .
+             rdfs:subClassOf :ReasoningPattern ;
+             rdfs:label "Unspecified" .
 
 
 #################################################################
 #    Named Individuals — Coordination Patterns
 #################################################################
 
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Sequential
-:Sequential rdf:type owl:NamedIndividual ,
-                     :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Hierarchical
-:Hierarchical rdf:type owl:NamedIndividual ,
-                       :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoundRobin
-:RoundRobin rdf:type owl:NamedIndividual ,
-                     :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelectorBased
-:SelectorBased rdf:type owl:NamedIndividual ,
-                        :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Swarm
-:Swarm rdf:type owl:NamedIndividual ,
-                :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReActLoop
-:ReActLoop rdf:type owl:NamedIndividual ,
-                    :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Network
-:Network rdf:type owl:NamedIndividual ,
-                  :CoordinationPattern .
-
-
-###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Custom
-:Custom rdf:type owl:NamedIndividual ,
-                 :CoordinationPattern .
+:Sequential   rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Sequential" .
+:Hierarchical rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Hierarchical" .
+:RoundRobin   rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Round Robin" .
+:SelectorBased rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Selector Based" .
+:Swarm        rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Swarm" .
+:ReActLoop    rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "ReAct Loop" .
+:Network      rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Network" .
+:Custom       rdf:type owl:NamedIndividual , :CoordinationPattern ; rdfs:label "Custom" .
 
 
 #################################################################
@@ -1002,6 +569,3 @@
                 :TurnLimitTermination
               )
 ] .
-
-
-###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

@@ -31,6 +31,7 @@ from rdflib.namespace import OWL, RDF, RDFS, XSD
 
 from oscin.base_parser import BaseSourceParser
 from oscin.namespaces import (
+    AGENTO,
     AGENTOSCIN,
     CALLS_CREW,
     COORD_CUSTOM,
@@ -107,6 +108,7 @@ class OntologyPopulator:
             )
 
         self.g.bind("agentoscin", AGENTOSCIN)
+        self.g.bind("agento", AGENTO)
         self.g.bind("ex", self.EX)
         self.g.bind("owl", OWL)
         self.g.bind("rdfs", RDFS)
@@ -156,7 +158,7 @@ class OntologyPopulator:
 
     def _populate_tools(self) -> None:
         for key, tool in self.parser.tools.items():
-            uri = self._create_individual("Tool", tool.class_name, AGENTOSCIN.Tool)
+            uri = self._create_individual("Tool", tool.class_name, AGENTO.Tool)
             self.tool_uris[key] = uri
 
             # Mapping table 5 assertions
@@ -176,24 +178,24 @@ class OntologyPopulator:
 
     def _populate_agents(self) -> None:
         for key, agent in self.parser.agents.items():
-            uri = self._create_individual("Agent", key, AGENTOSCIN.LLMAgent)
+            uri = self._create_individual("Agent", key, AGENTO.LLMAgent)
             self.agent_uris[key] = uri
 
             # Basic Agent props (Mapping table 1)
             # agentID carries the source-level identifier (variable/class/key
             # name) so the reader can preserve original local-names across
             # round-trips, independent of the human-readable role string.
-            self._add_str(uri, AGENTOSCIN.agentID, key)
-            self._add_str(uri, AGENTOSCIN.agentRole, agent.role)
+            self._add_str(uri, AGENTO.agentID, key)
+            self._add_str(uri, AGENTO.agentRole, agent.role)
             if agent.agent_type:
                 self._add_str(uri, AGENTOSCIN.agentType, agent.agent_type)
             self._add_bool(uri, AGENTOSCIN.hasReasoningEnabled, agent.reasoning)
 
             # --- Goal ---
             if agent.goal:
-                goal_uri = self._create_individual("Goal", key, AGENTOSCIN.Goal)
+                goal_uri = self._create_individual("Goal", key, AGENTO.Goal)
                 self._add_str(goal_uri, HAS_DESCRIPTION, agent.goal)
-                self.g.add((uri, AGENTOSCIN.hasAgentGoal, goal_uri))
+                self.g.add((uri, AGENTO.hasAgentGoal, goal_uri))
 
             # --- Agent Prompt(s) ---
             # Use directive_function from intermediate to determine prompt type
@@ -201,11 +203,11 @@ class OntologyPopulator:
 
             if directive == "ModelDirective":
                 prompt_uri = self._create_individual(
-                    "AgentPrompt", key, AGENTOSCIN.Prompt
+                    "AgentPrompt", key, AGENTO.Prompt
                 )
                 self.prompt_uris[f"agent_{key}"] = prompt_uri
-                self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, agent.goal)
-                self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+                self._add_str(prompt_uri, AGENTO.promptInstruction, agent.goal)
+                self._add_str(prompt_uri, AGENTO.promptContext, agent.backstory)
                 self._add_str(
                     prompt_uri, AGENTOSCIN.hasDirectiveFunction, "ModelDirective"
                 )
@@ -213,15 +215,15 @@ class OntologyPopulator:
                     self._add_str(
                         prompt_uri, AGENTOSCIN.hasSourceAttribute, agent.prompt_source
                     )
-                self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
+                self.g.add((uri, AGENTO.agentPrompt, prompt_uri))
 
                 if agent.description:
                     orch_prompt_uri = self._create_individual(
-                        "OrchestratorPrompt", key, AGENTOSCIN.Prompt
+                        "OrchestratorPrompt", key, AGENTO.Prompt
                     )
                     self._add_str(
                         orch_prompt_uri,
-                        AGENTOSCIN.promptInstruction,
+                        AGENTO.promptInstruction,
                         agent.description,
                     )
                     self._add_str(
@@ -234,18 +236,18 @@ class OntologyPopulator:
                         AGENTOSCIN.hasSourceAttribute,
                         "description",
                     )
-                    self.g.add((uri, AGENTOSCIN.agentPrompt, orch_prompt_uri))
+                    self.g.add((uri, AGENTO.agentPrompt, orch_prompt_uri))
             elif directive == "DualDirective":
                 prompt_uri = self._create_individual(
-                    "AgentPrompt", key, AGENTOSCIN.Prompt
+                    "AgentPrompt", key, AGENTO.Prompt
                 )
                 self.prompt_uris[f"agent_{key}"] = prompt_uri
 
                 instruction = (
                     f"{agent.role}: {agent.goal}" if agent.goal else agent.role
                 )
-                self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, instruction)
-                self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+                self._add_str(prompt_uri, AGENTO.promptInstruction, instruction)
+                self._add_str(prompt_uri, AGENTO.promptContext, agent.backstory)
                 self._add_str(
                     prompt_uri, AGENTOSCIN.hasDirectiveFunction, "DualDirective"
                 )
@@ -253,16 +255,16 @@ class OntologyPopulator:
                     self._add_str(
                         prompt_uri, AGENTOSCIN.hasSourceAttribute, agent.prompt_source
                     )
-                self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
+                self.g.add((uri, AGENTO.agentPrompt, prompt_uri))
             elif agent.goal or agent.backstory:
                 prompt_uri = self._create_individual(
-                    "AgentPrompt", key, AGENTOSCIN.Prompt
+                    "AgentPrompt", key, AGENTO.Prompt
                 )
                 self.prompt_uris[f"agent_{key}"] = prompt_uri
                 if agent.goal:
-                    self._add_str(prompt_uri, AGENTOSCIN.promptInstruction, agent.goal)
+                    self._add_str(prompt_uri, AGENTO.promptInstruction, agent.goal)
                 if agent.backstory:
-                    self._add_str(prompt_uri, AGENTOSCIN.promptContext, agent.backstory)
+                    self._add_str(prompt_uri, AGENTO.promptContext, agent.backstory)
                 if directive:
                     self._add_str(
                         prompt_uri, AGENTOSCIN.hasDirectiveFunction, directive
@@ -271,33 +273,33 @@ class OntologyPopulator:
                     self._add_str(
                         prompt_uri, AGENTOSCIN.hasSourceAttribute, agent.prompt_source
                     )
-                self.g.add((uri, AGENTOSCIN.agentPrompt, prompt_uri))
+                self.g.add((uri, AGENTO.agentPrompt, prompt_uri))
 
             # --- Tool bindings ---
             for tool_key in agent.tools:
                 tool_uri = self._resolve_or_create_tool(tool_key)
-                self.g.add((uri, AGENTOSCIN.agentToolUsage, tool_uri))
+                self.g.add((uri, AGENTO.agentToolUsage, tool_uri))
 
             # --- Language Model ---
             if agent.llm:
                 lm_uri = self._create_individual(
-                    "LM", agent.llm, AGENTOSCIN.LanguageModel
+                    "LM", agent.llm, AGENTO.LanguageModel
                 )
                 self._add_str(lm_uri, HAS_TITLE, agent.llm)
-                self.g.add((uri, AGENTOSCIN.useLanguageModel, lm_uri))
+                self.g.add((uri, AGENTO.useLanguageModel, lm_uri))
 
             # --- Agent-level config ---
             if agent.verbose is not None:
                 self._add_config(
                     uri,
-                    AGENTOSCIN.hasAgentConfig,
+                    AGENTO.hasAgentConfig,
                     "verbose",
                     str(agent.verbose).lower(),
                 )
             if agent.allow_delegation is not None:
                 self._add_config(
                     uri,
-                    AGENTOSCIN.hasAgentConfig,
+                    AGENTO.hasAgentConfig,
                     "allow_delegation",
                     str(agent.allow_delegation).lower(),
                 )
@@ -342,7 +344,7 @@ class OntologyPopulator:
                     f"MemoryBinding_{scope}", key, AGENTOSCIN.MemoryBinding
                 )
                 mem_uri = self._create_individual(
-                    f"Memory_{scope}", key, AGENTOSCIN.Memory
+                    f"Memory_{scope}", key, AGENTO.Memory
                 )
                 self._add_str(mb_uri, AGENTOSCIN.hasMemoryScope, scope)
                 self._add_str(mem_uri, AGENTOSCIN.hasPersistenceScope, persistence)
@@ -355,10 +357,10 @@ class OntologyPopulator:
             # --- Knowledge Base ---
             for kb_source in getattr(agent, "knowledge_sources", []):
                 kb_uri = self._create_individual(
-                    "KnowledgeBase", kb_source, AGENTOSCIN.KnowledgeBase
+                    "KnowledgeBase", kb_source, AGENTO.KnowledgeBase
                 )
                 self._add_str(kb_uri, HAS_TITLE, kb_source)
-                self.g.add((uri, AGENTOSCIN.hasKnowledge, kb_uri))
+                self.g.add((uri, AGENTO.hasKnowledge, kb_uri))
 
             # --- Human Checkpoint (from Agent in AutoGen/LangGraph) ---
             if agent.human_input:
@@ -383,7 +385,7 @@ class OntologyPopulator:
 
     def _populate_tasks(self) -> None:
         for key, task in self.parser.tasks.items():
-            uri = self._create_individual("Task", key, AGENTOSCIN.Task)
+            uri = self._create_individual("Task", key, AGENTO.Task)
             self.task_uris[key] = uri
 
             # Basic Task attributes
@@ -392,7 +394,7 @@ class OntologyPopulator:
             # --- Agent Assignment ---
             if task.agent_key and task.agent_key in self.agent_uris:
                 self.g.add(
-                    (uri, AGENTOSCIN.performedByAgent, self.agent_uris[task.agent_key])
+                    (uri, AGENTO.performedByAgent, self.agent_uris[task.agent_key])
                 )
             # Only emit delegation strategy when parser explicitly set it
             if task.delegation_strategy:
@@ -402,15 +404,15 @@ class OntologyPopulator:
 
             # --- Task Prompt ---
             task_prompt_uri = self._create_individual(
-                "TaskPrompt", key, AGENTOSCIN.Prompt
+                "TaskPrompt", key, AGENTO.Prompt
             )
             self.prompt_uris[f"task_{key}"] = task_prompt_uri
 
             self._add_str(
-                task_prompt_uri, AGENTOSCIN.promptInstruction, task.description
+                task_prompt_uri, AGENTO.promptInstruction, task.description
             )
             self._add_str(
-                task_prompt_uri, AGENTOSCIN.promptOutputIndicator, task.expected_output
+                task_prompt_uri, AGENTO.promptOutputIndicator, task.expected_output
             )
             if task.source_attribute:
                 self._add_str(
@@ -419,7 +421,7 @@ class OntologyPopulator:
                     task.source_attribute,
                 )
 
-            self.g.add((uri, AGENTOSCIN.taskPrompt, task_prompt_uri))
+            self.g.add((uri, AGENTO.taskPrompt, task_prompt_uri))
 
             # --- Task-level tools ---
             for tool_name in task.tools:
@@ -461,7 +463,7 @@ class OntologyPopulator:
                     # Often the dependency might refer to a task extracted later or with slightly different key
                     # Let's create a stub if not found
                     dep_uri = self.EX[f"Task_{self._safe_id(dep_key)}"]
-                    self.g.add((dep_uri, RDF.type, AGENTOSCIN.Task))
+                    self.g.add((dep_uri, RDF.type, AGENTO.Task))
                     self.g.add((uri, AGENTOSCIN.dependsOn, dep_uri))
             if task.context_tasks:
                 self._add_str(uri, AGENTOSCIN.hasDependencyType, "ContextProviding")
@@ -522,7 +524,7 @@ class OntologyPopulator:
 
     def _populate_teams(self) -> None:
         for key, team in self.parser.teams.items():
-            uri = self._create_individual("Team", key, AGENTOSCIN.Team)
+            uri = self._create_individual("Team", key, AGENTO.Team)
             self.team_uris[key] = uri
             self._add_str(uri, HAS_TITLE, team.team_class_name)
 
@@ -530,7 +532,7 @@ class OntologyPopulator:
             for agent_key in team.agent_keys:
                 if agent_key in self.agent_uris:
                     self.g.add(
-                        (uri, AGENTOSCIN.hasAgentMember, self.agent_uris[agent_key])
+                        (uri, AGENTO.hasAgentMember, self.agent_uris[agent_key])
                     )
 
             # --- Coordination Pattern ---
@@ -598,9 +600,9 @@ class OntologyPopulator:
                 "Network",
             ):
                 wp_uri = self._create_individual(
-                    "WorkflowPattern", key, AGENTOSCIN.WorkflowPattern
+                    "WorkflowPattern", key, AGENTO.WorkflowPattern
                 )
-                self.g.add((uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
+                self.g.add((uri, AGENTO.hasWorkflowPattern, wp_uri))
 
                 prev_step_uri = None
                 for idx, task_key in enumerate(team.task_keys):
@@ -612,31 +614,31 @@ class OntologyPopulator:
                     is_first = idx == 0
                     is_last = idx == len(team.task_keys) - 1
                     if is_first and is_last:
-                        self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
-                        self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
+                        self.g.add((step_uri, RDF.type, AGENTO.StartStep))
+                        self.g.add((step_uri, RDF.type, AGENTO.EndStep))
                     elif is_first:
-                        self.g.add((step_uri, RDF.type, AGENTOSCIN.StartStep))
+                        self.g.add((step_uri, RDF.type, AGENTO.StartStep))
                     elif is_last:
-                        self.g.add((step_uri, RDF.type, AGENTOSCIN.EndStep))
+                        self.g.add((step_uri, RDF.type, AGENTO.EndStep))
                     else:
-                        self.g.add((step_uri, RDF.type, AGENTOSCIN.WorkflowStep))
+                        self.g.add((step_uri, RDF.type, AGENTO.WorkflowStep))
 
                     self._add_str(step_uri, HAS_TITLE, task_key)
-                    self._add_int(step_uri, AGENTOSCIN.stepOrder, idx + 1)
+                    self._add_int(step_uri, AGENTO.stepOrder, idx + 1)
 
                     if task_key in self.task_uris:
                         self.g.add(
                             (
                                 step_uri,
-                                AGENTOSCIN.hasAssociatedTask,
+                                AGENTO.hasAssociatedTask,
                                 self.task_uris[task_key],
                             )
                         )
 
                     if prev_step_uri is not None:
-                        self.g.add((prev_step_uri, AGENTOSCIN.nextStep, step_uri))
+                        self.g.add((prev_step_uri, AGENTO.nextStep, step_uri))
 
-                    self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, step_uri))
+                    self.g.add((wp_uri, AGENTO.hasWorkflowStep, step_uri))
 
                     # C3: For sequential teams, add implicit Sequential dependency
                     # between consecutive tasks that don't have explicit context
@@ -671,34 +673,34 @@ class OntologyPopulator:
                 manager_key = team.manager_agent or f"manager_{key}"
                 if manager_key not in self.agent_uris:
                     manager_uri = self._create_individual(
-                        "Agent", manager_key, AGENTOSCIN.LLMAgent
+                        "Agent", manager_key, AGENTO.LLMAgent
                     )
                     self.agent_uris[manager_key] = manager_uri
-                    self._add_str(manager_uri, AGENTOSCIN.agentID, manager_key)
-                    self._add_str(manager_uri, AGENTOSCIN.agentRole, "Manager")
+                    self._add_str(manager_uri, AGENTO.agentID, manager_key)
+                    self._add_str(manager_uri, AGENTO.agentRole, "Manager")
                     self._add_str(manager_uri, AGENTOSCIN.agentType, "Manager")
                     if team.manager_llm:
                         lm_uri = self._create_individual(
-                            "LM", team.manager_llm, AGENTOSCIN.LanguageModel
+                            "LM", team.manager_llm, AGENTO.LanguageModel
                         )
                         self._add_str(lm_uri, HAS_TITLE, team.manager_llm)
-                        self.g.add((manager_uri, AGENTOSCIN.useLanguageModel, lm_uri))
-                    self.g.add((uri, AGENTOSCIN.hasAgentMember, manager_uri))
+                        self.g.add((manager_uri, AGENTO.useLanguageModel, lm_uri))
+                    self.g.add((uri, AGENTO.hasAgentMember, manager_uri))
                     log.info("  [Agent] Manager created for team '%s'", key)
 
             # --- Config & Memory ---
             if team.verbose:
-                self._add_config(uri, AGENTOSCIN.hasSystemConfig, "verbose", "true")
+                self._add_config(uri, AGENTO.hasSystemConfig, "verbose", "true")
             if team.memory:
                 self._bind_memory(uri, key, "GroupShared")
 
             # --- Knowledge Base ---
             for kb_source in getattr(team, "knowledge_sources", []):
                 kb_uri = self._create_individual(
-                    "KnowledgeBase", kb_source, AGENTOSCIN.KnowledgeBase
+                    "KnowledgeBase", kb_source, AGENTO.KnowledgeBase
                 )
                 self._add_str(kb_uri, HAS_TITLE, kb_source)
-                self.g.add((uri, AGENTOSCIN.hasKnowledge, kb_uri))
+                self.g.add((uri, AGENTO.hasKnowledge, kb_uri))
 
             log.info("  [Team] %s \u2192 %s (process: %s)", key, uri, team.process)
 
@@ -794,9 +796,9 @@ class OntologyPopulator:
                 )
 
         wp_uri = self._create_individual(
-            "FlowWorkflowPattern", flow.class_name, AGENTOSCIN.WorkflowPattern
+            "FlowWorkflowPattern", flow.class_name, AGENTO.WorkflowPattern
         )
-        self.g.add((orch_uri, AGENTOSCIN.hasWorkflowPattern, wp_uri))
+        self.g.add((orch_uri, AGENTO.hasWorkflowPattern, wp_uri))
 
         step_uris, outgoing_edges, conditional_step_names = self._create_flow_steps(flow, wp_uri)
         self._resolve_flow_edges(flow, step_uris, outgoing_edges, conditional_step_names)
@@ -866,14 +868,14 @@ class OntologyPopulator:
 
         for idx, step in enumerate(flow.steps):
             uri = self._create_individual(
-                "FlowStep", step.method_name, AGENTOSCIN.WorkflowStep
+                "FlowStep", step.method_name, AGENTO.WorkflowStep
             )
             step_uris[step.method_name] = uri
             outgoing_edges[step.method_name] = []
 
             # Determine specific step types
             if step.step_type == "start":
-                self.g.add((uri, RDF.type, AGENTOSCIN.StartStep))
+                self.g.add((uri, RDF.type, AGENTO.StartStep))
             elif step.step_type == "router":
                 self.g.add((uri, RDF.type, AGENTOSCIN.ConditionalStep))
                 conditional_step_names.add(step.method_name)
@@ -905,8 +907,8 @@ class OntologyPopulator:
                 )
 
             self._add_str(uri, HAS_TITLE, step.method_name)
-            self._add_int(uri, AGENTOSCIN.stepOrder, idx + 1)
-            self.g.add((wp_uri, AGENTOSCIN.hasWorkflowStep, uri))
+            self._add_int(uri, AGENTO.stepOrder, idx + 1)
+            self.g.add((wp_uri, AGENTO.hasWorkflowStep, uri))
 
             # Link step to its associated agent (e.g. LangGraph node → LLMAgent)
             if step.associated_agent_key and step.associated_agent_key in self.agent_uris:
@@ -969,7 +971,7 @@ class OntologyPopulator:
             # adds the same edge again.
             for tgt in step.outgoing:
                 if tgt in label_map:
-                    self.g.add((src_uri, AGENTOSCIN.nextStep, label_map[tgt]))
+                    self.g.add((src_uri, AGENTO.nextStep, label_map[tgt]))
                     outgoing_edges[step.method_name].append(tgt)
 
             # Steps with return_values (routers, or start nodes with
@@ -977,21 +979,25 @@ class OntologyPopulator:
             if step.return_values:
                 for ret_val in step.return_values:
                     if ret_val in label_map:
-                        self.g.add((src_uri, AGENTOSCIN.nextStep, label_map[ret_val]))
+                        self.g.add((src_uri, AGENTO.nextStep, label_map[ret_val]))
                         outgoing_edges[step.method_name].append(ret_val)
 
-            elif step.step_type == "start":
+            # For any step (not just start), create nextStep edges to steps
+            # whose dependencies reference this step by method name.
+            # This captures @listen(method) and @router(method) patterns.
+            if not step.return_values:
                 for other in flow.steps:
-                    if other.step_type in ("router", "listen", "regular"):
-                        if any(arg == step.method_name for arg in other.dependencies):
-                            self.g.add(
-                                (
-                                    src_uri,
-                                    AGENTOSCIN.nextStep,
-                                    step_uris[other.method_name],
-                                )
+                    if other.method_name == step.method_name:
+                        continue
+                    if any(arg == step.method_name for arg in other.dependencies):
+                        self.g.add(
+                            (
+                                src_uri,
+                                AGENTO.nextStep,
+                                step_uris[other.method_name],
                             )
-                            outgoing_edges[step.method_name].append(other.method_name)
+                        )
+                        outgoing_edges[step.method_name].append(other.method_name)
 
         # Reclassify dead-ends as EndSteps (keep WorkflowStep as parent type).
         # Skip conditional/router steps — they may have zero resolved edges
@@ -1006,7 +1012,7 @@ class OntologyPopulator:
         for step_name, edges in outgoing_edges.items():
             if not edges and step_name not in conditional and step_name not in start_step_names:
                 uri = step_uris[step_name]
-                self.g.add((uri, RDF.type, AGENTOSCIN.EndStep))
+                self.g.add((uri, RDF.type, AGENTO.EndStep))
 
     # -----------------------------------------------------------
     # System-Level Population
@@ -1049,7 +1055,7 @@ class OntologyPopulator:
             return self.tool_uris[tool_key]
 
         # Create a minimal Tool individual for an external/imported tool
-        uri = self._create_individual("Tool", tool_key, AGENTOSCIN.Tool)
+        uri = self._create_individual("Tool", tool_key, AGENTO.Tool)
         self.tool_uris[tool_key] = uri
         self._add_str(uri, HAS_TITLE, tool_key)
         self._add_str(uri, HAS_REFERENCE, f"external:{tool_key}")
@@ -1067,7 +1073,7 @@ class OntologyPopulator:
         mb_uri = self._create_individual(
             f"MemoryBinding_{scope}", key, AGENTOSCIN.MemoryBinding
         )
-        mem_uri = self._create_individual(f"Memory_{scope}", key, AGENTOSCIN.Memory)
+        mem_uri = self._create_individual(f"Memory_{scope}", key, AGENTO.Memory)
 
         self._add_str(mb_uri, AGENTOSCIN.hasMemoryScope, scope)
         self._add_str(mem_uri, AGENTOSCIN.hasPersistenceScope, "Persistent")
@@ -1098,9 +1104,9 @@ class OntologyPopulator:
         c_uri = self.EX[
             f"Config_{self._safe_id(key)}_{self._safe_id(str(subject).split('#')[-1])}"
         ]
-        self.g.add((c_uri, RDF.type, AGENTOSCIN.Config))
-        self._add_str(c_uri, AGENTOSCIN.configKey, key)
-        self._add_str(c_uri, AGENTOSCIN.configValue, value)
+        self.g.add((c_uri, RDF.type, AGENTO.Config))
+        self._add_str(c_uri, AGENTO.configKey, key)
+        self._add_str(c_uri, AGENTO.configValue, value)
         self.g.add((subject, property_uri, c_uri))
 
     @staticmethod

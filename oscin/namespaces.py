@@ -3,20 +3,44 @@ namespaces.py
 =============
 Central namespace definitions for the OSCIN extraction pipeline.
 
-The AGENTOSCIN namespace points to the ontology vocabulary defined
-in the thesis (agentoscin.ttl).  The instance namespace is
-parameterised at runtime to allow different instance namespaces
-per extraction run.
+agentoscin extends agentO and reuses BEAM/PROV/p-plan upstream
+ontologies. Each imported vocabulary gets its own ``rdflib.Namespace``
+so emission sites can use the canonical IRI for each term instead of
+re-minting it under the agentoscin namespace.
+
+The instance namespace is parameterised at runtime to allow different
+instance namespaces per extraction run.
 """
 
-from rdflib import Namespace, URIRef
+from rdflib import Namespace
 
 # ---------------------------------------------------------------------------
-# Ontology vocabulary namespace (fixed — same for all extractions)
+# Ontology vocabulary namespaces
 # ---------------------------------------------------------------------------
 AGENTOSCIN = Namespace(
     "http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/"
 )
+AGENTO = Namespace("http://www.w3id.org/agentic-ai/onto#")
+BEAM = Namespace("http://w3id.org/beam/core#")
+PROV = Namespace("http://www.w3.org/ns/prov#")
+PPLAN = Namespace("http://purl.org/net/p-plan#")
+
+# Set of all ontology-vocabulary namespaces (for filters that need to
+# distinguish T-Box / vocabulary URIs from A-Box instance URIs).
+ONTOLOGY_NAMESPACES = (
+    str(AGENTOSCIN),
+    str(AGENTO),
+    str(BEAM),
+    str(PROV),
+    str(PPLAN),
+)
+
+
+def is_ontology_uri(uri: str) -> bool:
+    """Return True iff ``uri`` lives in any of the imported ontologies."""
+    s = str(uri)
+    return any(s.startswith(ns) for ns in ONTOLOGY_NAMESPACES)
+
 
 # ---------------------------------------------------------------------------
 # Convenience aliases for commonly used data properties

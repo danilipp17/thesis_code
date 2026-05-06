@@ -372,11 +372,10 @@ def abox_viewer(ttl_path: Path, *, label: str | None = None, key_prefix: str = "
         return
 
     # Identify TBox namespace(s) to exclude schema-level subjects.
-    from oscin.namespaces import AGENTOSCIN
-    tbox_prefix = str(AGENTOSCIN)
+    from oscin.namespaces import is_ontology_uri
 
     # Gather all ABox individuals: subjects that have rdf:type and whose
-    # URI does NOT start with the TBox namespace.
+    # URI does NOT start with any imported ontology namespace.
     # Map: class_name -> [(subj_uri, subj_local)]
     class_to_individuals: dict[str, list[tuple[str, str]]] = defaultdict(list)
     seen: set[tuple[str, str]] = set()  # deduplicate (uri, class)
@@ -384,7 +383,7 @@ def abox_viewer(ttl_path: Path, *, label: str | None = None, key_prefix: str = "
     for s, _, o in g.triples((None, RDF.type, None)):
         if not isinstance(s, URIRef):
             continue
-        if str(s).startswith(tbox_prefix):
+        if is_ontology_uri(s):
             continue
         # Skip OWL/RDFS meta-types
         if isinstance(o, URIRef) and str(o).startswith(("http://www.w3.org/2002/07/owl#",

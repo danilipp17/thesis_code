@@ -129,25 +129,60 @@ class LangGraphGenerator(BaseCodeGenerator):
         # here closes the memory round-trip.
         needs_checkpointer = any(t.memory for t in self.reader.teams.values())
 
+        # Scan state fields for additional typing / message imports
+        extra_typing: set[str] = set()
+        needs_base_message = False
+        needs_operator = False
+        langchain_messages: set[str] = set()
+        if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
+            for _, ftype in (self.reader.flow.state_fields or {}).items():
+                ft = ftype or ""
+                for t in ("Sequence", "List", "Optional", "Dict", "Union", "Tuple", "Set"):
+                    if t in ft:
+                        extra_typing.add(t)
+                if "BaseMessage" in ft:
+                    needs_base_message = True
+                for msg_cls in ("HumanMessage", "AIMessage", "SystemMessage"):
+                    if msg_cls in ft:
+                        langchain_messages.add(msg_cls)
+                if "operator." in ft:
+                    needs_operator = True
+
+        typing_imports = sorted({"Annotated", "TypedDict"} | extra_typing)
+
         lines = [
             '"""',
             f"Auto-generated LangGraph application: {self.reader.system_name}",
             '"""',
             "",
             "import dotenv",
-            "from typing import Annotated, TypedDict",
-            "",
-            "from langgraph.graph import END, START, StateGraph",
-            "",
-            "dotenv.load_dotenv()",
-            "from langgraph.graph.message import add_messages",
-            "from langchain_openai import ChatOpenAI",
+            f"from typing import {', '.join(typing_imports)}",
         ]
+        if needs_operator:
+            lines.append("import operator")
+        lines.extend(
+            [
+                "",
+                "from langgraph.graph import END, START, StateGraph",
+                "",
+                "dotenv.load_dotenv()",
+                "from langgraph.graph.message import add_messages",
+                "from langchain_openai import ChatOpenAI",
+            ]
+        )
         if needs_checkpointer:
             lines.append("from langgraph.checkpoint.memory import MemorySaver")
+
+        # Determine which langchain_core.messages classes are needed
+        msg_imports: set[str] = set()
         if has_system_prompts:
+            msg_imports.update({"SystemMessage", "HumanMessage"})
+        if needs_base_message:
+            msg_imports.add("BaseMessage")
+        msg_imports.update(langchain_messages)
+        if msg_imports:
             lines.append(
-                "from langchain_core.messages import SystemMessage, HumanMessage"
+                f"from langchain_core.messages import {', '.join(sorted(msg_imports))}"
             )
 
         lines.append("")
