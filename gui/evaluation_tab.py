@@ -179,6 +179,7 @@ def _run_ast_cross_fw(
             )
             pw = report.get("metrics", {}).get("ttl_pairwise", {})
             fuzzy = report.get("metrics", {}).get("ttl_fuzzy_match", {})
+            ast = report.get("metrics", {}).get("ast_diff", {})
 
             results.append({
                 "Direction": f"{src_fw}→{tgt_fw}",
@@ -189,6 +190,7 @@ def _run_ast_cross_fw(
                 "Individual F1": pw.get("individual_f1"),
                 "Literal Overlap": pw.get("literal_overlap"),
                 "Fuzzy Avg": fuzzy.get("avg_score"),
+                "AST F1": (ast.get("overall") or {}).get("f1") if isinstance(ast, dict) else None,
                 "Status": "✓",
             })
         except Exception as e:
@@ -201,6 +203,7 @@ def _run_ast_cross_fw(
                 "Individual F1": None,
                 "Literal Overlap": None,
                 "Fuzzy Avg": None,
+                "AST F1": None,
                 "Status": f"✗ {e}",
             })
 
@@ -397,6 +400,9 @@ def _run_llm_cross_fw(
 
             if g1 and g2:
                 pw = compute_pairwise(g1, g2)
+                from evaluation.metrics import ast_diff as ast_diff_mod
+                ast_result = ast_diff_mod.compute(source_dir, gen_dir)
+                ast_f1 = (ast_result.get("overall") or {}).get("f1") if isinstance(ast_result, dict) and "error" not in ast_result else None
                 results.append({
                     "Direction": f"{src_fw}→{tgt_fw}",
                     "Example": ex,
@@ -405,6 +411,7 @@ def _run_llm_cross_fw(
                     "Property F1": round(pw.property_f1, 3),
                     "Individual F1": round(pw.individual_f1, 3),
                     "Literal Overlap": round(pw.literal_overlap, 3),
+                    "AST F1": ast_f1,
                     "Status": "✓",
                 })
             else:
@@ -416,6 +423,7 @@ def _run_llm_cross_fw(
                     "Property F1": None,
                     "Individual F1": None,
                     "Literal Overlap": None,
+                    "AST F1": None,
                     "Status": "✗ graph parse failed",
                 })
 
@@ -428,6 +436,7 @@ def _run_llm_cross_fw(
                 "Property F1": None,
                 "Individual F1": None,
                 "Literal Overlap": None,
+                "AST F1": None,
                 "Status": f"✗ {e}",
             })
 
@@ -683,11 +692,14 @@ def _load_prior_ast_cross_fw() -> list[dict] | None:
                         g2 = Graph(); g2.parse(str(t2), format="turtle")
                         pw = compute_pairwise(g1, g2)
 
+                        ast_f1 = None
                         fuzzy_avg = None
                         report_file = sub / "report.json"
                         if report_file.exists():
                             report = json.loads(report_file.read_text())
+                            ast_data = report.get("metrics", {}).get("ast_diff", {})
                             fuzzy_data = report.get("metrics", {}).get("ttl_fuzzy_match", {})
+                            ast_f1 = (ast_data.get("overall") or {}).get("f1") if isinstance(ast_data, dict) else None
                             fuzzy_avg = fuzzy_data.get("avg_score") if isinstance(fuzzy_data, dict) else None
 
                         results.append({
@@ -699,6 +711,7 @@ def _load_prior_ast_cross_fw() -> list[dict] | None:
                             "Individual F1": round(pw.individual_f1, 3),
                             "Literal Overlap": round(pw.literal_overlap, 3),
                             "Fuzzy Avg": fuzzy_avg,
+                            "AST F1": ast_f1,
                             "Status": "✓ (recomputed)",
                         })
                     except Exception:
@@ -1058,6 +1071,7 @@ def _render_results():
                     "Individual F1": st.column_config.NumberColumn(format="%.3f"),
                     "Literal Overlap": st.column_config.NumberColumn(format="%.3f"),
                     "Fuzzy Avg": st.column_config.NumberColumn(format="%.3f"),
+                    "AST F1": st.column_config.NumberColumn(format="%.3f"),
                 },
             )
 

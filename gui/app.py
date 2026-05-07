@@ -495,7 +495,8 @@ with tab_roundtrip:
             m_pair = metrics.get("ttl_pairwise")
             m_fuzzy = metrics.get("ttl_fuzzy_match")
             m_map = metrics.get("mapping_conformance")
-            cols = st.columns(3)
+            m_ast = metrics.get("ast_diff")
+            cols = st.columns(4)
             with cols[0]:
                 metric_headline(m_pair, "triple_f1", "TTL triple F1")
             with cols[1]:
@@ -504,6 +505,13 @@ with tab_roundtrip:
                 metric_headline(
                     m_map, "overall_score", "Mapping conformance",
                     help="crewai ↔ langgraph mapping rule coverage.",
+                )
+            with cols[3]:
+                ast_f1 = ((m_ast or {}).get("overall") or {}).get("f1")
+                st.metric(
+                    "AST F1",
+                    f"{ast_f1:.3f}" if isinstance(ast_f1, (int, float)) else "–",
+                    help="AST feature F1 across source vs generated.",
                 )
         else:
             m_pair = metrics.get("ttl_pairwise")

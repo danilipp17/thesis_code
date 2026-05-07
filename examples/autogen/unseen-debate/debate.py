@@ -13,7 +13,9 @@ from autogen_agentchat.conditions import (
 )
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core.tools import FunctionTool
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # --- Tools ---
 

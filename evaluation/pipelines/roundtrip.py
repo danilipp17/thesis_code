@@ -19,11 +19,12 @@ Cross-framework  (``--target <other_fw>``)
 ------------------------------------------
     source_A ── extract ──▶ TTL₁ ── generate(B) ──▶ source_B ── extract ──▶ TTL₂
 
-Different languages on each end, so AST/exec comparisons are dropped.
+Different languages on each end, so execution comparison is dropped.
 
 Metrics
     - ``ttl_pairwise``      TTL₁ vs TTL₂
     - ``ttl_fuzzy_match``   TTL₁ vs TTL₂
+    - ``ast_diff``          source vs source′
     - ``mapping_conformance`` (only when {src, tgt} == {crewai, langgraph})
 
 Output
@@ -167,7 +168,7 @@ def run_roundtrip(
 
     # --- Mode-specific metrics
     if is_cross:
-        # Cross-framework: only the canonical CF↔LG mapping metric makes sense.
+        report["metrics"]["ast_diff"] = ast_diff.compute(source_dir, gen_dir)
         if {framework, target_framework} == {"crewai", "langgraph"}:
             lg_dir = source_dir if framework == "langgraph" else gen_dir
             cf_dir = source_dir if framework == "crewai" else gen_dir

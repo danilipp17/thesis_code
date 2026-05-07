@@ -14,7 +14,7 @@ class HiringPipeline(Flow):
         self.state["screening_result"] = result
         return result
 
-    @router(receive_application)
+    @router("receive_application")
     def evaluate_screening(self):
         score = self.state.get("screening_score", 5)
         if score >= 7:

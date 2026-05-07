@@ -20,7 +20,7 @@ class AcademicResearchFlow(Flow[AcademicState]):
         print(f"Starting research for topic: {self.state.topic}")
         # Setup stuff
 
-    @listen(initialize_research)
+    @listen("initialize_research")
     def conduct_research(self):
         print("Crew is taking over...")
         result = (
@@ -30,7 +30,7 @@ class AcademicResearchFlow(Flow[AcademicState]):
         self.state.status = "SUCCESS" if result else "FAILED"
         return self.state.status
 
-    @router(conduct_research)
+    @router("conduct_research")
     def review_outcome(self):
         if self.state.status == "SUCCESS":
             return "publish_paper"

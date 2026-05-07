@@ -57,7 +57,6 @@ LANGGRAPH_EXAMPLES = [
     "memoryagent",
     "plan-execute",
     "ragagent",
-    "reflexion",
     "research-assistant",
     "tech-blog",
     "unseen-customer-support",
