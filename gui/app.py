@@ -21,13 +21,16 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+import re
+
 import streamlit as st
 import evaluation  # noqa: F401  (eager import confirms project root is on path)
 
-from evaluation.pipelines._common import PROJECT_ROOT
-from evaluation.metrics import ALL_METRICS
+from evaluation.pipelines._common import PROJECT_ROOT, default_namespace
+from evaluation.metrics import ALL_METRICS, ttl_intrinsic, ttl_pairwise
 from evaluation.pipelines.extraction import run_extraction
 from evaluation.pipelines.generation import run_generation
+from evaluation.pipelines.hybrid_roundtrip import run_hybrid_roundtrip
 from evaluation.pipelines.roundtrip import run_roundtrip
 from evaluation.reporting import render_markdown
 from gui.components import (
@@ -48,8 +51,116 @@ from gui.components import (
     FRAMEWORKS,
 )
 from gui.evaluation_tab import render_evaluation_tab
+from oscin.llm_extractor import run_llm_extraction
 
 GUI_OUT_ROOT = PROJECT_ROOT / "output" / "gui"
+GUI_LLM_OUT_ROOT = PROJECT_ROOT / "output" / "gui" / "extraction_llm"
+
+OPENAI_MODELS: tuple[str, ...] = (
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+)
+
+
+def _safe_dir_name(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+    cleaned = cleaned.strip("._-")
+    return cleaned if cleaned else "model"
+
+
+def _normalize_models(selected: list[str], custom: str) -> list[str]:
+    models = [m.strip() for m in selected if m and m.strip()]
+    if custom:
+        for m in custom.split(","):
+            if m.strip():
+                models.append(m.strip())
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in models:
+        if m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
+
+
+def _extract_roundtrip_metrics(report: dict | None) -> dict:
+    if not report:
+        return {}
+    metrics = report.get("metrics") or {}
+    pw = metrics.get("ttl_pairwise") or {}
+    return {
+        "triple_f1": pw.get("triple_f1"),
+        "aligned_triple_f1": pw.get("aligned_triple_f1"),
+        "property_f1": pw.get("property_f1"),
+        "individual_f1": pw.get("individual_f1"),
+        "literal_overlap": pw.get("literal_overlap"),
+    }
+
+
+def _run_llm_extraction_compare(
+    source_dir: Path,
+    *,
+    framework: str,
+    example_name: str,
+    models: list[str],
+    use_cache: bool,
+    ast_ttl_path: Path | None,
+    ground_truth: Path | None,
+) -> list[dict]:
+    results: list[dict] = []
+    ns = default_namespace(example_name)
+
+    for model in models:
+        safe_model = _safe_dir_name(model)
+        work = GUI_LLM_OUT_ROOT / framework / example_name / safe_model
+        work.mkdir(parents=True, exist_ok=True)
+        ttl_path = work / "extracted_llm.ttl"
+
+        try:
+            if not use_cache or not ttl_path.is_file():
+                run_llm_extraction(
+                    source_dir=source_dir,
+                    output_path=ttl_path,
+                    instance_namespace=ns,
+                    provider="openai",
+                    model=model,
+                )
+
+            metrics: dict[str, dict] = {
+                "ttl_intrinsic": ttl_intrinsic.compute(ttl_path),
+            }
+            if ast_ttl_path and ast_ttl_path.is_file():
+                metrics["llm_vs_ast"] = ttl_pairwise.compute(ast_ttl_path, ttl_path)
+            else:
+                metrics["llm_vs_ast"] = {
+                    "metric": "ttl_pairwise",
+                    "error": "AST TTL not available",
+                }
+            if ground_truth and ground_truth.is_file():
+                metrics["llm_vs_ground_truth"] = ttl_pairwise.compute(ground_truth, ttl_path)
+
+            results.append({
+                "model": model,
+                "provider": "openai",
+                "work_dir": str(work),
+                "ttl_path": str(ttl_path),
+                "metrics": metrics,
+                "status": "ok",
+            })
+        except Exception as e:
+            results.append({
+                "model": model,
+                "provider": "openai",
+                "work_dir": str(work),
+                "ttl_path": str(ttl_path),
+                "metrics": {},
+                "status": f"error: {type(e).__name__}: {e}",
+            })
+
+    return results
 
 st.set_page_config(
     page_title="OSCIN — Transformation GUI",
@@ -105,6 +216,31 @@ with tab_extract:
     with col_left:
         fw = framework_selector("Framework", key="extract_fw")
         example = example_picker(fw, key=f"extract_example_{fw}")
+
+        with st.expander("LLM extraction compare", expanded=False):
+            llm_compare = st.checkbox(
+                "Compare LLM extraction",
+                value=False,
+                key="extract_llm_compare",
+                help="Run LLM extraction and compare TTL metrics against AST extraction.",
+            )
+            llm_models = st.multiselect(
+                "OpenAI models",
+                options=OPENAI_MODELS,
+                default=["gpt-4o"],
+                key="extract_llm_models",
+            )
+            llm_custom = st.text_input(
+                "Custom models (comma-separated)",
+                value="",
+                key="extract_llm_models_custom",
+            )
+            llm_use_cache = st.checkbox(
+                "Use cached LLM outputs",
+                value=True,
+                key="extract_llm_use_cache",
+                help="Reuse existing LLM TTL outputs if they exist.",
+            )
         run_clicked = st.button(
             "Run extraction",
             type="primary",
@@ -124,6 +260,8 @@ with tab_extract:
 
     if run_clicked and example is not None:
         out_root = GUI_OUT_ROOT / "extraction"
+        llm_results: list[dict] | None = None
+
         with st.spinner(f"extracting {fw}/{example.name} …"), capture_logs() as cap:
             try:
                 report = run_extraction(example, fw, out_root=out_root)
@@ -131,11 +269,34 @@ with tab_extract:
                 st.error(f"{type(e).__name__}: {e}")
                 report = None
 
+            if report is not None and llm_compare:
+                models = _normalize_models(llm_models, llm_custom)
+                if not models:
+                    st.warning("No LLM models selected.")
+                else:
+                    try:
+                        source_dir = Path(report.get("source_dir") or "")
+                        ast_ttl = Path(report["work_dir"]) / "extracted.ttl"
+                        gt = Path(report.get("ground_truth")) if report.get("ground_truth") else None
+                        llm_results = _run_llm_extraction_compare(
+                            source_dir,
+                            framework=fw,
+                            example_name=example.name,
+                            models=models,
+                            use_cache=st.session_state.get("extract_llm_use_cache", True),
+                            ast_ttl_path=ast_ttl,
+                            ground_truth=gt,
+                        )
+                    except Exception as e:
+                        st.error(f"LLM compare failed: {type(e).__name__}: {e}")
+
         if report is not None:
             st.session_state["extract_last_report"] = report
             st.session_state["extract_last_logs"] = list(cap.handler.records)
+            st.session_state["extract_last_llm_results"] = llm_results
 
     report = st.session_state.get("extract_last_report")
+    llm_results = st.session_state.get("extract_last_llm_results")
     if report:
         st.divider()
 
@@ -170,6 +331,8 @@ with tab_extract:
 
         # Side-by-side viewer
         view_options = ["Source code", "Extracted ABox", "Extracted TTL", "Full report", "Logs"]
+        if llm_results:
+            view_options.append("LLM TTL")
         side_l, side_r = st.columns(2, gap="medium")
 
         with side_l:
@@ -198,11 +361,69 @@ with tab_extract:
                     st.code("\n".join(logs), language="log", height=420)
                 else:
                     st.caption("no captured logs")
+            elif view_name == "LLM TTL":
+                if not llm_results:
+                    st.info("No LLM results found.")
+                    return
+                model_labels = [r.get("model", "model") for r in llm_results]
+                model_choice = st.selectbox(
+                    "LLM model",
+                    model_labels,
+                    key=f"extract_llm_view_{col_key}",
+                )
+                chosen = llm_results[model_labels.index(model_choice)]
+                ttl_path = Path(chosen.get("ttl_path") or "")
+                if ttl_path.is_file():
+                    ttl_viewer(ttl_path, label=f"LLM TTL ({model_choice})")
+                else:
+                    st.info("LLM TTL not found.")
 
         with side_l:
             _render_extraction_pane(left_view, "left")
         with side_r:
             _render_extraction_pane(right_view, "right")
+
+        # LLM comparison summary
+        if llm_results:
+            st.divider()
+            st.subheader("LLM vs AST extraction")
+            rows = []
+            for r in llm_results:
+                metrics = r.get("metrics") or {}
+                llm_vs_ast = metrics.get("llm_vs_ast") or {}
+                llm_vs_gt = metrics.get("llm_vs_ground_truth") or {}
+                rows.append({
+                    "Model": r.get("model"),
+                    "Status": r.get("status"),
+                    "LLM vs AST Triple F1": llm_vs_ast.get("triple_f1"),
+                    "LLM vs AST Aligned F1": llm_vs_ast.get("aligned_triple_f1"),
+                    "LLM vs AST Property F1": llm_vs_ast.get("property_f1"),
+                    "LLM vs AST Individual F1": llm_vs_ast.get("individual_f1"),
+                    "LLM vs AST Literal Overlap": llm_vs_ast.get("literal_overlap"),
+                    "LLM vs GT Triple F1": llm_vs_gt.get("triple_f1"),
+                    "LLM vs GT Aligned F1": llm_vs_gt.get("aligned_triple_f1"),
+                    "LLM vs GT Property F1": llm_vs_gt.get("property_f1"),
+                    "LLM vs GT Individual F1": llm_vs_gt.get("individual_f1"),
+                    "LLM vs GT Literal Overlap": llm_vs_gt.get("literal_overlap"),
+                })
+
+            st.dataframe(
+                rows,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "LLM vs AST Triple F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs AST Aligned F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs AST Property F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs AST Individual F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs AST Literal Overlap": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs GT Triple F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs GT Aligned F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs GT Property F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs GT Individual F1": st.column_config.NumberColumn(format="%.3f"),
+                    "LLM vs GT Literal Overlap": st.column_config.NumberColumn(format="%.3f"),
+                },
+            )
 
 with tab_generate:
     st.header("TTL → Source")
@@ -411,6 +632,16 @@ with tab_roundtrip:
 
     col_left, col_right = st.columns([1, 2], gap="large")
     with col_left:
+        rt_mode = st.radio(
+            "Round-trip mode",
+            options=[
+                "Deterministic (AST)",
+                "Hybrid (AST + LLM fixup)",
+                "Compare (AST vs Hybrid)",
+            ],
+            key="rt_mode",
+            horizontal=False,
+        )
         rt_src_fw = framework_selector(
             "Source framework", key="rt_src_fw", default="crewai"
         )
@@ -437,6 +668,19 @@ with tab_roundtrip:
                 min_value=30, max_value=300, value=120, step=15,
                 key="rt_exec_timeout",
             )
+            if rt_mode in ("Hybrid (AST + LLM fixup)", "Compare (AST vs Hybrid)"):
+                st.markdown("**LLM Fixup (OpenAI)**")
+                rt_llm_models = st.multiselect(
+                    "OpenAI models",
+                    options=OPENAI_MODELS,
+                    default=["gpt-4o"],
+                    key="rt_llm_models",
+                )
+                rt_llm_custom = st.text_input(
+                    "Custom models (comma-separated)",
+                    value="",
+                    key="rt_llm_models_custom",
+                )
 
         rt_run = st.button(
             "Run round-trip",
@@ -461,28 +705,57 @@ with tab_roundtrip:
                 )
 
     if rt_run and rt_example is not None:
-        out_root = GUI_OUT_ROOT / "roundtrip"
+        det_report = None
+        hybrid_report = None
+        out_root_det = GUI_OUT_ROOT / "roundtrip"
+        out_root_hybrid = GUI_OUT_ROOT / "roundtrip_hybrid"
+        mode_label = {
+            "Deterministic (AST)": "deterministic",
+            "Hybrid (AST + LLM fixup)": "hybrid",
+            "Compare (AST vs Hybrid)": "compare",
+        }.get(rt_mode, "deterministic")
+
         with st.spinner(
-            f"round-tripping {rt_src_fw}/{rt_example.name} → {rt_tgt_fw} …"
+            f"round-tripping {rt_src_fw}/{rt_example.name} → {rt_tgt_fw} ({mode_label}) …"
         ), capture_logs() as cap:
             try:
-                report = run_roundtrip(
-                    rt_example,
-                    rt_src_fw,
-                    target_framework=rt_tgt_fw if is_cross else None,
-                    skip_execution=st.session_state.get("rt_skip_exec", True),
-                    execution_timeout=float(st.session_state.get("rt_exec_timeout", 120)),
-                    out_root=out_root,
-                )
+                if rt_mode in ("Deterministic (AST)", "Compare (AST vs Hybrid)"):
+                    det_report = run_roundtrip(
+                        rt_example,
+                        rt_src_fw,
+                        target_framework=rt_tgt_fw if is_cross else None,
+                        skip_execution=st.session_state.get("rt_skip_exec", True),
+                        execution_timeout=float(st.session_state.get("rt_exec_timeout", 120)),
+                        out_root=out_root_det,
+                    )
+
+                if rt_mode in ("Hybrid (AST + LLM fixup)", "Compare (AST vs Hybrid)"):
+                    models = _normalize_models(
+                        st.session_state.get("rt_llm_models", ["gpt-4o"]),
+                        st.session_state.get("rt_llm_models_custom", ""),
+                    )
+                    if not models:
+                        st.error("No LLM model selected for hybrid fixup.")
+                    else:
+                        hybrid_report = run_hybrid_roundtrip(
+                            rt_example,
+                            rt_src_fw,
+                            target_framework=rt_tgt_fw if is_cross else None,
+                            skip_execution=st.session_state.get("rt_skip_exec", True),
+                            execution_timeout=float(st.session_state.get("rt_exec_timeout", 120)),
+                            llm_provider="openai",
+                            llm_model=models[0],
+                            out_root=out_root_hybrid,
+                        )
             except Exception as e:
                 st.error(f"{type(e).__name__}: {e}")
-                report = None
 
-        if report is not None:
-            st.session_state["rt_last_report"] = report
-            st.session_state["rt_last_logs"] = list(cap.handler.records)
+        st.session_state["rt_last_report"] = det_report if rt_mode != "Hybrid (AST + LLM fixup)" else hybrid_report
+        st.session_state["rt_last_hybrid_report"] = hybrid_report
+        st.session_state["rt_last_logs"] = list(cap.handler.records)
 
     report = st.session_state.get("rt_last_report")
+    hybrid_report = st.session_state.get("rt_last_hybrid_report")
     if report:
         st.divider()
         for step_name, err in iter_step_errors(report):
@@ -539,9 +812,51 @@ with tab_roundtrip:
                 else:
                     st.metric("Execution", "✓" if ok_match else "✗")
 
+        if hybrid_report and report is not hybrid_report:
+            st.divider()
+            st.subheader("Hybrid vs Deterministic (AST)")
+            det_metrics = _extract_roundtrip_metrics(report)
+            hyb_metrics = _extract_roundtrip_metrics(hybrid_report)
+            rows = []
+            for key in (
+                "triple_f1",
+                "aligned_triple_f1",
+                "property_f1",
+                "individual_f1",
+                "literal_overlap",
+            ):
+                det_val = det_metrics.get(key)
+                hyb_val = hyb_metrics.get(key)
+                delta = None
+                if isinstance(det_val, (int, float)) and isinstance(hyb_val, (int, float)):
+                    delta = hyb_val - det_val
+                rows.append({
+                    "Metric": key,
+                    "Deterministic": det_val,
+                    "Hybrid": hyb_val,
+                    "Delta": delta,
+                })
+            st.dataframe(
+                rows,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Deterministic": st.column_config.NumberColumn(format="%.3f"),
+                    "Hybrid": st.column_config.NumberColumn(format="%.3f"),
+                    "Delta": st.column_config.NumberColumn(format="%+.3f"),
+                },
+            )
+
         # Side-by-side viewer
         work = Path(report["work_dir"])
+        hybrid_work = Path(hybrid_report["work_dir"]) if hybrid_report else None
         rt_view_options = ["Original source", "TTL₁ ABox", "TTL₂ ABox", "Generated source", "TTL₁ raw", "TTL₂ raw", "Full report", "Logs"]
+        if hybrid_report:
+            rt_view_options = [
+                "Hybrid Generated source",
+                "Hybrid TTL₂ ABox",
+                "Hybrid TTL₂ raw",
+            ] + rt_view_options
 
         # Add metric-specific views
         metric_names = [n for n in metrics.keys() if n in ALL_METRICS]
@@ -562,6 +877,22 @@ with tab_roundtrip:
                     source_tree_viewer(Path(src), key_suffix=f"rt_orig_{col_key}")
                 else:
                     st.info("No source directory recorded.")
+            elif view_name == "Hybrid Generated source":
+                if hybrid_work:
+                    gen_dir = hybrid_work / "generated_fixed"
+                    source_tree_viewer(gen_dir, key_suffix=f"rt_hybrid_{col_key}")
+                else:
+                    st.info("No hybrid output directory recorded.")
+            elif view_name == "Hybrid TTL₂ ABox":
+                if hybrid_work:
+                    abox_viewer(hybrid_work / "ttl2.ttl", label="ABox from TTL₂ (hybrid fixup)", key_prefix=f"rt_hybrid_abox_{col_key}")
+                else:
+                    st.info("No hybrid output directory recorded.")
+            elif view_name == "Hybrid TTL₂ raw":
+                if hybrid_work:
+                    ttl_viewer(hybrid_work / "ttl2.ttl", label="TTL₂ (hybrid fixup)")
+                else:
+                    st.info("No hybrid output directory recorded.")
             elif view_name == "TTL₁ ABox":
                 abox_viewer(work / "ttl1.ttl", label="ABox from TTL₁ (first extraction)", key_prefix=f"rt_abox1_{col_key}")
             elif view_name == "TTL₂ ABox":

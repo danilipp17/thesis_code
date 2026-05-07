@@ -109,7 +109,14 @@ Fix ALL of them:
 
 ## Output format
 
-Respond with the fixed source code files.
+First, provide a brief change summary as a bullet list, and include the same
+summary as a comment block at the top of every generated file.
+
+Summary:
+- <what changed> — <why>
+- <what changed> — <why>
+
+Then respond with the fixed source code files.
 For each file, use the following exact format (three dashes, space, file
 path, space, three dashes, followed by a markdown code block):
 
@@ -118,6 +125,6 @@ path, space, three dashes, followed by a markdown code block):
 <file_contents>
 ```
 
-Do not ask for confirmation or clarifications. Do not include extraneous
-explanations outside of the file blocks. Keep the response clean so it
+Do not ask for confirmation or clarifications. Do not include any other
+text outside the Summary and the file blocks. Keep the response clean so it
 can be automatically parsed.

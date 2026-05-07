@@ -155,11 +155,13 @@ def run_hybrid_roundtrip(
             model=llm_model,
         )
         report["steps"]["llm_fixup"] = {
+            "ok": True,
             "status": "ok",
             "output_dir": str(fixed_result),
         }
     except Exception as e:
         report["steps"]["llm_fixup"] = {
+            "ok": False,
             "status": "error",
             "error": f"{type(e).__name__}: {e}",
         }
