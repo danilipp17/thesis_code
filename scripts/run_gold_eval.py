@@ -45,8 +45,8 @@ PROVIDER = "openai"
 MODEL = "gpt-4o"
 
 OUT_ROOT = ROOT / "output/gold_eval"
-LLM_ROOT = ROOT / "output/llm_baseline/run1"
-DET_ROOT = ROOT / "output/extraction"
+LLM_ROOT = ROOT / "output/eval_full/llm_extraction"
+DET_ROOT = ROOT / "output/eval_full/ast_same_fw"
 GOLD_ROOT = ROOT / "output/gold"
 
 
@@ -170,8 +170,8 @@ def main() -> None:
         print(f"\n=== {fw}/{ex} ===")
 
         gold_ttl = GOLD_ROOT / fw / ex / "gold.ttl"
-        det_ttl = DET_ROOT / fw / ex / "extracted.ttl"
-        llm_ttl = LLM_ROOT / fw / ex / "extracted.ttl"
+        det_ttl = DET_ROOT / fw / ex / "ttl1.ttl"
+        llm_ttl = LLM_ROOT / fw / ex / "extracted_llm.ttl"
 
         # Run LLM if missing
         if not llm_ttl.exists():
