@@ -39,15 +39,15 @@ class CodeReviewCrew:
         )
 
     @task
-    def code_review_task(self) -> Task:
+    def code_review(self) -> Task:
         return Task(config=self.tasks_config["code_review"])
 
     @task
-    def security_audit_task(self) -> Task:
+    def security_audit(self) -> Task:
         return Task(config=self.tasks_config["security_audit"])
 
     @task
-    def summary_task(self) -> Task:
+    def summary(self) -> Task:
         return Task(config=self.tasks_config["summary"])
 
     @crew
