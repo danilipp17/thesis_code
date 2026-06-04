@@ -1,0 +1,224 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/code_review#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# code-review (CrewAI) — hand-authored ground-truth ABox.
+# Captures the source semantics of the CrewAI Flow port:
+#   - CodeReviewFlow(Flow[CodeReviewState]) with @start/@listen.
+#   - @CrewBase CodeReviewCrew (Process.sequential, verbose=True)
+#     with 3 YAML-configured agents/tasks.
+#   - @tool("Code Analyzer")-decorated code_analyzer shared by
+#     the reviewer and auditor agents.
+#   - Tasks chained via context=[code_review], context=[code_review,
+#     security_audit] (Sequential dependencies).
+# ============================================================
+
+<http://example.org/code_review> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:code_review a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "code_review"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_code_reviewer,
+        ex:Agent_security_auditor,
+        ex:Agent_review_summarizer ;
+    agentoscin:containsTeam ex:Team_CodeReviewCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_CodeReviewFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tool (@tool("Code Analyzer")) ----------
+ex:Tool_code_analyzer a agento:Tool ;
+    agentoscin:hasDescription """Performs static analysis on source code.
+
+Checks for syntax errors, undefined variables, unused imports,
+and common anti-patterns."""^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.code_analyzer.code_analyzer"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string .
+
+# ---------- verbose=True configs ----------
+ex:Config_verbose_Agent_code_reviewer a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_security_auditor a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_review_summarizer a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_CodeReviewCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agents (DualDirective; reviewer + auditor have tool) ----------
+ex:Agent_code_reviewer a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "code_reviewer"^^xsd:string ;
+    agento:agentRole "Code Reviewer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_code_reviewer ;
+    agento:agentToolUsage ex:Tool_code_analyzer ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_code_reviewer ;
+    agento:hasAgentGoal ex:Goal_code_reviewer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_code_reviewer a agento:Goal ;
+    agentoscin:hasDescription "Review code for correctness, readability, and best practices."^^xsd:string .
+
+ex:AgentPrompt_code_reviewer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Code Reviewer: Review code for correctness, readability, and best practices."^^xsd:string ;
+    agento:promptContext "A senior software engineer with 15 years of experience in code review who identifies bugs, code smells, naming issues, and suggests improvements, using the code analyzer tool to check for syntax and structural issues."^^xsd:string .
+
+ex:Agent_security_auditor a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "security_auditor"^^xsd:string ;
+    agento:agentRole "Security Auditor"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_security_auditor ;
+    agento:agentToolUsage ex:Tool_code_analyzer ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_security_auditor ;
+    agento:hasAgentGoal ex:Goal_security_auditor ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_security_auditor a agento:Goal ;
+    agentoscin:hasDescription "Audit code for security vulnerabilities including injection attacks, hardcoded secrets, insecure data handling, missing input validation, and OWASP Top 10 issues."^^xsd:string .
+
+ex:AgentPrompt_security_auditor a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Security Auditor: Audit code for security vulnerabilities including injection attacks, hardcoded secrets, insecure data handling, missing input validation, and OWASP Top 10 issues."^^xsd:string ;
+    agento:promptContext "A certified security professional specializing in application security who provides CWE classifications for each finding."^^xsd:string .
+
+ex:Agent_review_summarizer a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "review_summarizer"^^xsd:string ;
+    agento:agentRole "Review Summarizer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_review_summarizer ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_review_summarizer ;
+    agento:hasAgentGoal ex:Goal_review_summarizer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_review_summarizer a agento:Goal ;
+    agentoscin:hasDescription "Compile findings from reviewer and auditor into a structured review report with a clear verdict and action items."^^xsd:string .
+
+ex:AgentPrompt_review_summarizer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Review Summarizer: Compile findings from reviewer and auditor into a structured review report with a clear verdict and action items."^^xsd:string ;
+    agento:promptContext "A technical lead who synthesizes feedback from code reviewers and security auditors and gives a verdict of APPROVED if no critical or major issues exist, otherwise REQUEST CHANGES."^^xsd:string .
+
+# ---------- tasks ----------
+ex:Task_code_review_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements."^^xsd:string ;
+    agento:performedByAgent ex:Agent_code_reviewer ;
+    agento:taskPrompt ex:TaskPrompt_code_review_task .
+
+ex:TaskPrompt_code_review_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction """Review the following code for correctness, readability, and best practices. Use the code analyzer tool.
+
+{code}"""^^xsd:string ;
+    agento:promptOutputIndicator "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements."^^xsd:string .
+
+ex:Task_security_audit_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A security audit report listing CWE-classified findings."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_code_review_task ;
+    agento:performedByAgent ex:Agent_security_auditor ;
+    agento:taskPrompt ex:TaskPrompt_security_audit_task .
+
+ex:TaskPrompt_security_audit_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction """Audit the following code for security vulnerabilities (OWASP Top 10, hardcoded secrets, injection attacks, missing input validation). Provide CWE classifications.
+
+{code}"""^^xsd:string ;
+    agento:promptOutputIndicator "A security audit report listing CWE-classified findings."^^xsd:string .
+
+ex:Task_summary_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A structured review report with verdict, summary, critical count, and action items."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_security_audit_task ;
+    agento:performedByAgent ex:Agent_review_summarizer ;
+    agento:taskPrompt ex:TaskPrompt_summary_task .
+
+ex:TaskPrompt_summary_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Synthesize the review and audit findings into a structured report. Provide a verdict (APPROVED if no critical or major issues, otherwise REQUEST CHANGES), a summary, a critical count, and action items."^^xsd:string ;
+    agento:promptOutputIndicator "A structured review report with verdict, summary, critical count, and action items."^^xsd:string .
+
+# ---------- crew-level workflow (tasks-as-CrewSteps) ----------
+ex:CrewStep_CodeReviewCrew_code_review_task a agento:StartStep ;
+    agentoscin:hasTitle "code_review_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_code_review_task ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_CodeReviewCrew_security_audit_task .
+
+ex:CrewStep_CodeReviewCrew_security_audit_task a agento:WorkflowStep ;
+    agentoscin:hasTitle "security_audit_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_security_audit_task ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_CodeReviewCrew_summary_task .
+
+ex:CrewStep_CodeReviewCrew_summary_task a agento:EndStep ;
+    agentoscin:hasTitle "summary_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_summary_task ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_CodeReviewCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_CodeReviewCrew_code_review_task,
+        ex:CrewStep_CodeReviewCrew_security_audit_task,
+        ex:CrewStep_CodeReviewCrew_summary_task .
+
+# ---------- team (CrewAI: Process.sequential) ----------
+ex:Team_CodeReviewCrew a agento:Team ;
+    agentoscin:hasTitle "CodeReviewCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_code_reviewer,
+        ex:Agent_security_auditor,
+        ex:Agent_review_summarizer ;
+    agento:hasSystemConfig ex:Config_verbose_Team_CodeReviewCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_CodeReviewCrew .
+
+# ---------- Flow-level orchestration ----------
+ex:FlowStep_review a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "review"^^xsd:string ;
+    agentoscin:callsCrew "CodeReviewCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_publish .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_CodeReviewFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_review,
+        ex:FlowStep_publish .
+
+ex:StateSchema_CodeReviewFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "CodeReviewState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"code\": \"str\", \"report\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_CodeReviewFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "CodeReviewFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_CodeReviewFlow ;
+    agentoscin:orchestratesTeam ex:Team_CodeReviewCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_CodeReviewFlow .

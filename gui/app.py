@@ -51,6 +51,7 @@ from gui.components import (
     FRAMEWORKS,
 )
 from gui.evaluation_tab import render_evaluation_tab
+from gui.parallel_tab import render_parallel_tab
 from oscin.llm_extractor import run_llm_extraction
 
 GUI_OUT_ROOT = PROJECT_ROOT / "output" / "gui"
@@ -200,8 +201,8 @@ with st.sidebar:
 
 st.title("OSCIN transformation front-end")
 
-tab_extract, tab_generate, tab_roundtrip, tab_evaluate = st.tabs(
-    ["Extract", "Generate", "Round-trip", "Evaluate"]
+tab_extract, tab_generate, tab_roundtrip, tab_evaluate, tab_parallel = st.tabs(
+    ["Extract", "Generate", "Round-trip", "Evaluate", "Parallel corpus"]
 )
 
 with tab_extract:
@@ -932,3 +933,6 @@ with tab_roundtrip:
 
 with tab_evaluate:
     render_evaluation_tab()
+
+with tab_parallel:
+    render_parallel_tab()

@@ -1,0 +1,16 @@
+code_review:
+  description: "Review the following code for correctness, readability, and best practices. Use the code analyzer tool.\n\n{code}"
+  expected_output: "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements."
+  agent: code_reviewer
+
+security_audit:
+  description: "Audit the following code for security vulnerabilities (OWASP Top 10, hardcoded secrets, injection attacks, missing input validation). Provide CWE classifications.\n\n{code}"
+  expected_output: "A security audit report listing CWE-classified findings."
+  agent: security_auditor
+  context: [code_review]
+
+summary:
+  description: "Synthesize the review and audit findings into a structured report. Provide a verdict (APPROVED if no critical or major issues, otherwise REQUEST CHANGES), a summary, a critical count, and action items."
+  expected_output: "A structured review report with verdict, summary, critical count, and action items."
+  agent: review_summarizer
+  context: [code_review, security_audit]

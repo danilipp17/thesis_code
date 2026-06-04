@@ -1,0 +1,128 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/tech_blog#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# Hand-authored ground-truth ABox for the AutoGen variant.
+# Models what the source means:
+#   - 3 AssistantAgent (Researcher, Writer, Editor) each with a
+#     system_message split into:
+#       * promptInstruction = first sentence
+#       * promptContext     = rest of the message
+#       * Goal hasDescription = first sentence (same as instruction)
+#   - RoundRobinGroupChat team with MaxMessageTermination(4)
+#     (mapped to agentoscin:TurnLimitTermination hasMaxTurns 4)
+#   - The team.run(task="...") call is reified as one Task
+#     (Task_autogen_task_0) and one workflow step FlowStep_run_team
+#     wrapped in an AutoGenFlow orchestration.
+# ============================================================
+
+<http://example.org/tech_blog> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:tech_blog a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "AutoGen"^^xsd:string ;
+    agentoscin:hasTitle "tech_blog"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_Researcher,
+        ex:Agent_Writer,
+        ex:Agent_Editor ;
+    agentoscin:containsTeam ex:Team_RoundRobinGroupChat_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_AutoGenFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agents ----------
+ex:Agent_Researcher a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "Researcher"^^xsd:string ;
+    agento:agentRole "Researcher"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_Researcher ;
+    agento:hasAgentGoal ex:Goal_Researcher ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_Researcher a agento:Goal ;
+    agentoscin:hasDescription "You are a Senior Tech Researcher."^^xsd:string .
+
+ex:AgentPrompt_Researcher a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "You are a Senior Tech Researcher."^^xsd:string ;
+    agento:promptContext "Your goal is to gather comprehensive information on the requested topic and provide a detailed summary of your findings."^^xsd:string .
+
+ex:Agent_Writer a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "Writer"^^xsd:string ;
+    agento:agentRole "Writer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_Writer ;
+    agento:hasAgentGoal ex:Goal_Writer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_Writer a agento:Goal ;
+    agentoscin:hasDescription "You are a Tech Blog Writer."^^xsd:string .
+
+ex:AgentPrompt_Writer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "You are a Tech Blog Writer."^^xsd:string ;
+    agento:promptContext "Take the research provided by the Researcher and write a clear, engaging 500-word blog post. Output 'WRITTEN' when done."^^xsd:string .
+
+ex:Agent_Editor a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "Editor"^^xsd:string ;
+    agento:agentRole "Editor"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_Editor ;
+    agento:hasAgentGoal ex:Goal_Editor ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_Editor a agento:Goal ;
+    agentoscin:hasDescription "You are a Content Editor."^^xsd:string .
+
+ex:AgentPrompt_Editor a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "You are a Content Editor."^^xsd:string ;
+    agento:promptContext "Review the blog post written by the Writer. Fix grammar, improve flow, and output the final polished version. Conclude with 'TERMINATE'."^^xsd:string .
+
+# ---------- termination (MaxMessageTermination(4) -> TurnLimitTermination) ----------
+ex:TurnLimit_RoundRobinGroupChat_0_0 a agentoscin:TurnLimitTermination ;
+    agentoscin:hasMaxTurns 4 .
+
+# ---------- team (RoundRobinGroupChat) ----------
+ex:Team_RoundRobinGroupChat_0 a agento:Team ;
+    agentoscin:hasTitle "RoundRobinGroupChat"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:RoundRobin ;
+    agentoscin:hasTerminationCondition ex:TurnLimit_RoundRobinGroupChat_0_0 ;
+    agento:hasAgentMember ex:Agent_Researcher,
+        ex:Agent_Writer,
+        ex:Agent_Editor .
+
+# ---------- team.run(task=...) reified as a single task + flow ----------
+ex:Task_autogen_task_0 a agento:Task ;
+    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
+    agento:taskPrompt ex:TaskPrompt_autogen_task_0 .
+
+ex:TaskPrompt_autogen_task_0 a agento:Prompt ;
+    agentoscin:hasSourceAttribute "task"^^xsd:string ;
+    agento:promptInstruction "We need a blog post about Agentic AI Frameworks. Please research, write, and edit."^^xsd:string .
+
+ex:FlowStep_run_team a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "run_team"^^xsd:string ;
+    agentoscin:callsCrew "team"^^xsd:string ;
+    agento:stepOrder 1 .
+
+ex:FlowWorkflowPattern_AutoGenFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_run_team .
+
+ex:Orchestration_AutoGenFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "AutoGenFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_AutoGenFlow .

@@ -1,0 +1,194 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/code_review#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# code-review (LangGraph) — hand-authored ground-truth ABox.
+# Captures the source semantics:
+#   - TypedDict CodeReviewState {messages, code, review, audit,
+#     summary} with operator.add reducer on messages.
+#   - Three nodes (code_reviewer, security_auditor,
+#     review_summarizer), each an LLMAgent invoking ChatOpenAI.
+#   - Linear edges code_reviewer -> security_auditor ->
+#     review_summarizer -> END.
+#   - The analyzer is called as a plain Python helper inside the
+#     reviewer and auditor nodes (no FunctionTool registration),
+#     so the LangGraph variant has NO agento:Tool individual.
+#   - Two parallel workflow views: FlowStep_* (hasAssociatedAgent)
+#     and CrewStep_langgraph_team_0_task_* (hasAssociatedTask).
+# ============================================================
+
+<http://example.org/code_review> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:code_review a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "code_review"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_code_reviewer,
+        ex:Agent_security_auditor,
+        ex:Agent_review_summarizer ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agents (node-flavoured) ----------
+ex:Agent_code_reviewer a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "code_reviewer"^^xsd:string ;
+    agento:agentRole "code_reviewer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_code_reviewer ;
+    agento:hasAgentGoal ex:Goal_code_reviewer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_code_reviewer a agento:Goal ;
+    agentoscin:hasDescription "Review the code for correctness, readability, and best practices."^^xsd:string .
+
+ex:AgentPrompt_code_reviewer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "Review the code for correctness, readability, and best practices."^^xsd:string .
+
+ex:Agent_security_auditor a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "security_auditor"^^xsd:string ;
+    agento:agentRole "security_auditor"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_security_auditor ;
+    agento:hasAgentGoal ex:Goal_security_auditor ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_security_auditor a agento:Goal ;
+    agentoscin:hasDescription "Audit the code for security vulnerabilities with CWE classifications."^^xsd:string .
+
+ex:AgentPrompt_security_auditor a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "Audit the code for security vulnerabilities with CWE classifications."^^xsd:string .
+
+ex:Agent_review_summarizer a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "review_summarizer"^^xsd:string ;
+    agento:agentRole "review_summarizer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_review_summarizer ;
+    agento:hasAgentGoal ex:Goal_review_summarizer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_review_summarizer a agento:Goal ;
+    agentoscin:hasDescription "Synthesize review and audit findings into a structured report."^^xsd:string .
+
+ex:AgentPrompt_review_summarizer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "Synthesize review and audit findings into a structured report."^^xsd:string .
+
+# ---------- tasks (one per node, derived from topology) ----------
+ex:Task_task_code_reviewer a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "review"^^xsd:string ;
+    agento:performedByAgent ex:Agent_code_reviewer ;
+    agento:taskPrompt ex:TaskPrompt_task_code_reviewer .
+
+ex:TaskPrompt_task_code_reviewer a agento:Prompt ;
+    agento:promptInstruction "f\"You are a senior software engineer with 15 years of experience in code review. Review the following code for correctness, readability, and best practices. Identify bugs, code smells, naming issues, and suggest improvements.\\n\\nCode:\\n{state['code']}\\n\\nAnalyzer output:\\n{analysis}\""^^xsd:string ;
+    agento:promptOutputIndicator "review"^^xsd:string .
+
+ex:Task_task_security_auditor a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "audit"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_code_reviewer ;
+    agento:performedByAgent ex:Agent_security_auditor ;
+    agento:taskPrompt ex:TaskPrompt_task_security_auditor .
+
+ex:TaskPrompt_task_security_auditor a agento:Prompt ;
+    agento:promptInstruction "f\"You are a certified security professional specializing in application security. Audit the following code for OWASP Top 10 issues, hardcoded secrets, injection attacks, and missing input validation. Provide CWE classifications.\\n\\nCode:\\n{state['code']}\\n\\nAnalyzer output:\\n{analysis}\""^^xsd:string ;
+    agento:promptOutputIndicator "audit"^^xsd:string .
+
+ex:Task_task_review_summarizer a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "summary"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_security_auditor ;
+    agento:performedByAgent ex:Agent_review_summarizer ;
+    agento:taskPrompt ex:TaskPrompt_task_review_summarizer .
+
+ex:TaskPrompt_task_review_summarizer a agento:Prompt ;
+    agento:promptInstruction "f\"You are a technical lead. Synthesize the following review and audit findings into a structured report. Provide a verdict of APPROVED if no critical or major issues, otherwise REQUEST CHANGES. Include a summary, critical count, and action items.\\n\\nReview:\\n{state['review']}\\n\\nAudit:\\n{state['audit']}\""^^xsd:string ;
+    agento:promptOutputIndicator "summary"^^xsd:string .
+
+# ---------- node-level workflow (FlowStep_*: hasAssociatedAgent) ----------
+ex:FlowStep_code_reviewer a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_code_reviewer ;
+    agentoscin:hasTitle "code_reviewer"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_security_auditor .
+
+ex:FlowStep_security_auditor a agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_security_auditor ;
+    agentoscin:hasTitle "security_auditor"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_review_summarizer .
+
+ex:FlowStep_review_summarizer a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_review_summarizer ;
+    agentoscin:hasTitle "review_summarizer"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_code_reviewer,
+        ex:FlowStep_security_auditor,
+        ex:FlowStep_review_summarizer .
+
+# ---------- task-level workflow (CrewStep_*: hasAssociatedTask) ----------
+ex:CrewStep_langgraph_team_0_task_code_reviewer a agento:StartStep ;
+    agentoscin:hasTitle "task_code_reviewer"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_code_reviewer ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_security_auditor .
+
+ex:CrewStep_langgraph_team_0_task_security_auditor a agento:WorkflowStep ;
+    agentoscin:hasTitle "task_security_auditor"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_security_auditor ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_review_summarizer .
+
+ex:CrewStep_langgraph_team_0_task_review_summarizer a agento:EndStep ;
+    agentoscin:hasTitle "task_review_summarizer"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_review_summarizer ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_code_reviewer,
+        ex:CrewStep_langgraph_team_0_task_security_auditor,
+        ex:CrewStep_langgraph_team_0_task_review_summarizer .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "CodeReviewState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"audit\": \"str\", \"code\": \"str\", \"messages\": \"Annotated[Sequence[BaseMessage], operator.add]\", \"review\": \"str\", \"summary\": \"str\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_code_reviewer,
+        ex:Agent_security_auditor,
+        ex:Agent_review_summarizer ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .

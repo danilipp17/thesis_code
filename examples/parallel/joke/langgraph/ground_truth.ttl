@@ -1,0 +1,166 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/langgraph#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# joke (LangGraph) — hand-authored ground-truth ABox.
+# Captures the source semantics:
+#   - TypedDict State {topic, joke, improved_joke, final_joke}
+#   - Three nodes (generate_joke / improve_joke / polish_joke),
+#     each implemented by an LLMAgent (inline llm.invoke).
+#   - One conditional edge from generate_joke via check_punchline:
+#       Pass -> END, Fail -> improve_joke -> polish_joke -> END.
+#   - The conditional gate is reified as a ConditionalStep on
+#     FlowStep_generate_joke with hasEdgeMapping + hasRoutingLogic.
+# ============================================================
+
+<http://example.org/langgraph> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:joke a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "joke"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_generate_joke,
+        ex:Agent_improve_joke,
+        ex:Agent_polish_joke ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agents (node functions) ----------
+ex:Agent_generate_joke a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "generate_joke"^^xsd:string ;
+    agento:agentRole "generate_joke"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_generate_joke ;
+    agento:hasAgentGoal ex:Goal_generate_joke ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_generate_joke a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "First LLM call to generate initial joke"^^xsd:string .
+
+ex:Goal_generate_joke a agento:Goal ;
+    agentoscin:hasDescription "First LLM call to generate initial joke"^^xsd:string .
+
+ex:Agent_improve_joke a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "improve_joke"^^xsd:string ;
+    agento:agentRole "improve_joke"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_improve_joke ;
+    agento:hasAgentGoal ex:Goal_improve_joke ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_improve_joke a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "Second LLM call to improve the joke"^^xsd:string .
+
+ex:Goal_improve_joke a agento:Goal ;
+    agentoscin:hasDescription "Second LLM call to improve the joke"^^xsd:string .
+
+ex:Agent_polish_joke a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "polish_joke"^^xsd:string ;
+    agento:agentRole "polish_joke"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_polish_joke ;
+    agento:hasAgentGoal ex:Goal_polish_joke ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_polish_joke a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "Third LLM call for final polish"^^xsd:string .
+
+ex:Goal_polish_joke a agento:Goal ;
+    agentoscin:hasDescription "Third LLM call for final polish"^^xsd:string .
+
+# ---------- tasks (one per node, derived from topology) ----------
+ex:Task_task_generate_joke a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "joke"^^xsd:string ;
+    agento:performedByAgent ex:Agent_generate_joke ;
+    agento:taskPrompt ex:TaskPrompt_task_generate_joke .
+
+ex:TaskPrompt_task_generate_joke a agento:Prompt ;
+    agento:promptInstruction "Perform generate_joke responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "joke"^^xsd:string .
+
+ex:Task_task_improve_joke a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "improved_joke"^^xsd:string ;
+    agento:performedByAgent ex:Agent_improve_joke ;
+    agento:taskPrompt ex:TaskPrompt_task_improve_joke .
+
+ex:TaskPrompt_task_improve_joke a agento:Prompt ;
+    agento:promptInstruction "Perform improve_joke responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "improved_joke"^^xsd:string .
+
+ex:Task_task_polish_joke a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "final_joke"^^xsd:string ;
+    agento:performedByAgent ex:Agent_polish_joke ;
+    agento:taskPrompt ex:TaskPrompt_task_polish_joke .
+
+ex:TaskPrompt_task_polish_joke a agento:Prompt ;
+    agento:promptInstruction "Perform polish_joke responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "final_joke"^^xsd:string .
+
+# ---------- workflow steps with the conditional gate ----------
+ex:FlowStep_generate_joke a agentoscin:ConditionalStep,
+        agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_generate_joke ;
+    agentoscin:hasTitle "generate_joke"^^xsd:string ;
+    agentoscin:hasEdgeMapping "{\"Fail\": \"improve_joke\", \"Pass\": \"END\"}"^^xsd:string ;
+    agentoscin:hasRoutingLogic """if '?' in state['joke'] or '!' in state['joke']:
+    return 'Pass'
+return 'Fail'"""^^xsd:string ;
+    agento:stepOrder 1 .
+
+ex:FlowStep_improve_joke a agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_improve_joke ;
+    agentoscin:hasTitle "improve_joke"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_polish_joke .
+
+ex:FlowStep_polish_joke a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_polish_joke ;
+    agentoscin:hasTitle "polish_joke"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_generate_joke,
+        ex:FlowStep_improve_joke,
+        ex:FlowStep_polish_joke .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "State"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"final_joke\": \"str\", \"improved_joke\": \"str\", \"joke\": \"str\", \"topic\": \"str\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Custom ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_generate_joke,
+        ex:Agent_improve_joke,
+        ex:Agent_polish_joke .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .

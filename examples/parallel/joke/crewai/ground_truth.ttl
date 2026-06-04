@@ -1,0 +1,254 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/crewai#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# joke (CrewAI) — hand-authored ground-truth ABox.
+# Captures the source semantics of the CrewAI Flow port:
+#   - JokeFlow(Flow[JokeState]) with @start/@router/@listen
+#   - Three sub-crews, each with one YAML-configured agent +
+#     one task (GenerateJokeCrew, ImproveJokeCrew, PolishJokeCrew)
+#   - The @router(generate_joke) gate becomes a ConditionalStep
+#     FlowStep_check_punchline with hasRoutingLogic.
+#   - improve_joke is reached via @listen("Fail") -- the literal
+#     "Fail" is preserved as hasDecoratorArgument.
+# ============================================================
+
+<http://example.org/crewai> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:joke a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "joke"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_joke_generator,
+        ex:Agent_joke_improver,
+        ex:Agent_joke_polisher ;
+    agentoscin:containsTeam ex:Team_GenerateJokeCrew,
+        ex:Team_ImproveJokeCrew,
+        ex:Team_PolishJokeCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_JokeFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- verbose=True configs (3 agents + 3 teams) ----------
+ex:Config_verbose_Agent_joke_generator a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_joke_improver a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_joke_polisher a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_GenerateJokeCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_ImproveJokeCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_PolishJokeCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agents ----------
+ex:Agent_joke_generator a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "joke_generator"^^xsd:string ;
+    agento:agentRole "Joke Generator"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_joke_generator ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_joke_generator ;
+    agento:hasAgentGoal ex:Goal_joke_generator ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_joke_generator a agento:Goal ;
+    agentoscin:hasDescription "Write a short joke on the given topic."^^xsd:string .
+
+ex:AgentPrompt_joke_generator a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Joke Generator: Write a short joke on the given topic."^^xsd:string ;
+    agento:promptContext "A witty comedian who comes up with sharp, short jokes."^^xsd:string .
+
+ex:Agent_joke_improver a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "joke_improver"^^xsd:string ;
+    agento:agentRole "Joke Improver"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_joke_improver ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_joke_improver ;
+    agento:hasAgentGoal ex:Goal_joke_improver ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_joke_improver a agento:Goal ;
+    agentoscin:hasDescription "Improve a joke by adding clever wordplay."^^xsd:string .
+
+ex:AgentPrompt_joke_improver a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Joke Improver: Improve a joke by adding clever wordplay."^^xsd:string ;
+    agento:promptContext "A seasoned writer who polishes jokes for punch."^^xsd:string .
+
+ex:Agent_joke_polisher a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "joke_polisher"^^xsd:string ;
+    agento:agentRole "Joke Polisher"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_joke_polisher ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_joke_polisher ;
+    agento:hasAgentGoal ex:Goal_joke_polisher ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_joke_polisher a agento:Goal ;
+    agentoscin:hasDescription "Add a surprising twist to a joke."^^xsd:string .
+
+ex:AgentPrompt_joke_polisher a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Joke Polisher: Add a surprising twist to a joke."^^xsd:string ;
+    agento:promptContext "A storyteller who knows how to twist endings for effect."^^xsd:string .
+
+# ---------- tasks (one per sub-crew) ----------
+ex:Task_generate_joke_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A short joke as a single line of text."^^xsd:string ;
+    agento:performedByAgent ex:Agent_joke_generator ;
+    agento:taskPrompt ex:TaskPrompt_generate_joke_task .
+
+ex:TaskPrompt_generate_joke_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Write a short joke about {topic}."^^xsd:string ;
+    agento:promptOutputIndicator "A short joke as a single line of text."^^xsd:string .
+
+ex:Task_improve_joke_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A funnier version of the joke."^^xsd:string ;
+    agento:performedByAgent ex:Agent_joke_improver ;
+    agento:taskPrompt ex:TaskPrompt_improve_joke_task .
+
+ex:TaskPrompt_improve_joke_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Make this joke funnier by adding wordplay: {joke}"^^xsd:string ;
+    agento:promptOutputIndicator "A funnier version of the joke."^^xsd:string .
+
+ex:Task_polish_joke_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A polished joke with a surprising twist."^^xsd:string ;
+    agento:performedByAgent ex:Agent_joke_polisher ;
+    agento:taskPrompt ex:TaskPrompt_polish_joke_task .
+
+ex:TaskPrompt_polish_joke_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Add a surprising twist to this joke: {improved_joke}"^^xsd:string ;
+    agento:promptOutputIndicator "A polished joke with a surprising twist."^^xsd:string .
+
+# ---------- per-sub-crew workflow patterns + crew steps ----------
+ex:CrewStep_GenerateJokeCrew_generate_joke_task a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "generate_joke_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_generate_joke_task ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_GenerateJokeCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_GenerateJokeCrew_generate_joke_task .
+
+ex:CrewStep_ImproveJokeCrew_improve_joke_task a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "improve_joke_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_improve_joke_task ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_ImproveJokeCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_ImproveJokeCrew_improve_joke_task .
+
+ex:CrewStep_PolishJokeCrew_polish_joke_task a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "polish_joke_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_polish_joke_task ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_PolishJokeCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_PolishJokeCrew_polish_joke_task .
+
+# ---------- per-sub-crew teams (Process.sequential, one agent each) ----------
+ex:Team_GenerateJokeCrew a agento:Team ;
+    agentoscin:hasTitle "GenerateJokeCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_joke_generator ;
+    agento:hasSystemConfig ex:Config_verbose_Team_GenerateJokeCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_GenerateJokeCrew .
+
+ex:Team_ImproveJokeCrew a agento:Team ;
+    agentoscin:hasTitle "ImproveJokeCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_joke_improver ;
+    agento:hasSystemConfig ex:Config_verbose_Team_ImproveJokeCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_ImproveJokeCrew .
+
+ex:Team_PolishJokeCrew a agento:Team ;
+    agentoscin:hasTitle "PolishJokeCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_joke_polisher ;
+    agento:hasSystemConfig ex:Config_verbose_Team_PolishJokeCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_PolishJokeCrew .
+
+# ---------- Flow-level orchestration with the @router gate ----------
+ex:FlowStep_generate_joke a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "generate_joke"^^xsd:string ;
+    agentoscin:callsCrew "GenerateJokeCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_check_punchline .
+
+ex:FlowStep_check_punchline a agentoscin:ConditionalStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "check_punchline"^^xsd:string ;
+    agentoscin:hasRoutingLogic """        \"\"\"Gate function: skip improvements if the joke already has a punchline.\"\"\"
+        if \"?\" in self.state.joke or \"!\" in self.state.joke:
+            return \"Pass\"
+        return \"Fail\""""^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_improve_joke .
+
+ex:FlowStep_improve_joke a agento:WorkflowStep ;
+    agentoscin:hasTitle "improve_joke"^^xsd:string ;
+    agentoscin:callsCrew "ImproveJokeCrew"^^xsd:string ;
+    agentoscin:hasDecoratorArgument "Fail"^^xsd:string ;
+    agento:stepOrder 3 ;
+    agento:nextStep ex:FlowStep_polish_joke .
+
+ex:FlowStep_polish_joke a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "polish_joke"^^xsd:string ;
+    agentoscin:callsCrew "PolishJokeCrew"^^xsd:string ;
+    agento:stepOrder 4 .
+
+ex:FlowWorkflowPattern_JokeFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_generate_joke,
+        ex:FlowStep_check_punchline,
+        ex:FlowStep_improve_joke,
+        ex:FlowStep_polish_joke .
+
+ex:StateSchema_JokeFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "JokeState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"final_joke\": \"str\", \"improved_joke\": \"str\", \"joke\": \"str\", \"topic\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_JokeFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "JokeFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasOutputSchema ex:StateSchema_JokeFlow ;
+    agentoscin:orchestratesTeam ex:Team_GenerateJokeCrew,
+        ex:Team_ImproveJokeCrew,
+        ex:Team_PolishJokeCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_JokeFlow .

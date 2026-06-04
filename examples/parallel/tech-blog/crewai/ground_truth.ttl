@@ -1,0 +1,212 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/tech_blog#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# Hand-authored ground-truth ABox for the CrewAI variant of
+# tech-blog. Models what the source means:
+#   - main.py defines TechBlogFlow (Flow[TechBlogState]) which
+#     kicks off a single TechBlogCrew via @start/@listen.
+#   - @CrewBase TechBlogCrew with 3 @agent + 3 @task methods.
+#   - YAML-driven role/goal/backstory (DualDirective).
+#   - Process.sequential, verbose=True.
+#   - Tasks are dual: agento:Task entities AND CrewSteps in
+#     the crew-level workflow pattern.
+#   - Flow-level orchestration adds: Orchestration_TechBlogFlow,
+#     StateSchema_TechBlogFlow, FlowWorkflowPattern_TechBlogFlow,
+#     and the two FlowStep_* (write_blog, publish).
+# ============================================================
+
+<http://example.org/tech_blog> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:tech_blog a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "tech_blog"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_researcher,
+        ex:Agent_writer,
+        ex:Agent_editor ;
+    agentoscin:containsTeam ex:Team_TechBlogCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_TechBlogFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- verbose=True configs (one per Agent + one on Team) ----------
+ex:Config_verbose_Agent_researcher a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_writer a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_editor a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_TechBlogCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agents (CrewAI: role+goal+backstory drive a DualDirective prompt) ----------
+ex:Agent_researcher a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "researcher"^^xsd:string ;
+    agento:agentRole "Senior Tech Researcher"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_researcher ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_researcher ;
+    agento:hasAgentGoal ex:Goal_researcher ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_researcher a agento:Goal ;
+    agentoscin:hasDescription "Gather comprehensive, up-to-date information on '{topic}'."^^xsd:string .
+
+ex:AgentPrompt_researcher a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Senior Tech Researcher: Gather comprehensive, up-to-date information on '{topic}'."^^xsd:string ;
+    agento:promptContext "An expert researcher skilled at finding the latest technological trends and summarizing them clearly."^^xsd:string .
+
+ex:Agent_writer a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "writer"^^xsd:string ;
+    agento:agentRole "Tech Blog Writer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_writer ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_writer ;
+    agento:hasAgentGoal ex:Goal_writer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_writer a agento:Goal ;
+    agentoscin:hasDescription "Write an engaging, easy-to-read blog post based on research."^^xsd:string .
+
+ex:AgentPrompt_writer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Tech Blog Writer: Write an engaging, easy-to-read blog post based on research."^^xsd:string ;
+    agento:promptContext "A seasoned technical writer who can make complex topics accessible to a broad audience."^^xsd:string .
+
+ex:Agent_editor a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "editor"^^xsd:string ;
+    agento:agentRole "Content Editor"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_editor ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_editor ;
+    agento:hasAgentGoal ex:Goal_editor ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_editor a agento:Goal ;
+    agentoscin:hasDescription "Review and refine the blog post for clarity, grammar, and flow."^^xsd:string .
+
+ex:AgentPrompt_editor a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Content Editor: Review and refine the blog post for clarity, grammar, and flow."^^xsd:string ;
+    agento:promptContext "A meticulous editor with a keen eye for detail, ensuring every published piece is top-notch."^^xsd:string .
+
+# ---------- tasks (CrewAI: ExplicitAssignment via agent=, context= => dependsOn) ----------
+ex:Task_research_topic a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A detailed summary of research findings."^^xsd:string ;
+    agento:performedByAgent ex:Agent_researcher ;
+    agento:taskPrompt ex:TaskPrompt_research_topic .
+
+ex:TaskPrompt_research_topic a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Conduct thorough research on the topic: '{topic}'. Identify key trends, benefits, challenges, and future outlook."^^xsd:string ;
+    agento:promptOutputIndicator "A detailed summary of research findings."^^xsd:string .
+
+ex:Task_write_draft a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A complete blog post draft."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_research_topic ;
+    agento:performedByAgent ex:Agent_writer ;
+    agento:taskPrompt ex:TaskPrompt_write_draft .
+
+ex:TaskPrompt_write_draft a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Using the research provided, write a comprehensive 500-word blog post about '{topic}'."^^xsd:string ;
+    agento:promptOutputIndicator "A complete blog post draft."^^xsd:string .
+
+ex:Task_edit_post a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A polished, final version of the blog post, ready for publication."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_write_draft ;
+    agento:performedByAgent ex:Agent_editor ;
+    agento:taskPrompt ex:TaskPrompt_edit_post .
+
+ex:TaskPrompt_edit_post a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Review the drafted blog post. Check for clarity, tone, spelling, and grammar. Ensure it is engaging."^^xsd:string ;
+    agento:promptOutputIndicator "A polished, final version of the blog post, ready for publication."^^xsd:string .
+
+# ---------- workflow pattern + crew steps (tasks-as-steps) ----------
+ex:CrewStep_TechBlogCrew_research_topic a agento:StartStep ;
+    agentoscin:hasTitle "research_topic"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_research_topic ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_TechBlogCrew_write_draft .
+
+ex:CrewStep_TechBlogCrew_write_draft a agento:WorkflowStep ;
+    agentoscin:hasTitle "write_draft"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_write_draft ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_TechBlogCrew_edit_post .
+
+ex:CrewStep_TechBlogCrew_edit_post a agento:EndStep ;
+    agentoscin:hasTitle "edit_post"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_edit_post ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_TechBlogCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_TechBlogCrew_research_topic,
+        ex:CrewStep_TechBlogCrew_write_draft,
+        ex:CrewStep_TechBlogCrew_edit_post .
+
+# ---------- team (CrewAI: Process.sequential) ----------
+ex:Team_TechBlogCrew a agento:Team ;
+    agentoscin:hasTitle "TechBlogCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_researcher,
+        ex:Agent_writer,
+        ex:Agent_editor ;
+    agento:hasSystemConfig ex:Config_verbose_Team_TechBlogCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_TechBlogCrew .
+
+# ---------- Flow-level orchestration (TechBlogFlow wraps the crew) ----------
+ex:FlowStep_write_blog a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "write_blog"^^xsd:string ;
+    agentoscin:callsCrew "TechBlogCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_publish .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_TechBlogFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_write_blog,
+        ex:FlowStep_publish .
+
+ex:StateSchema_TechBlogFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "TechBlogState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"final_post\": \"str\", \"topic\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_TechBlogFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "TechBlogFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_TechBlogFlow ;
+    agentoscin:orchestratesTeam ex:Team_TechBlogCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_TechBlogFlow .

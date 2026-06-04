@@ -1,0 +1,177 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/tech_blog#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# Hand-authored ground-truth ABox for the LangGraph variant.
+# Models what the source means:
+#   - StateGraph orchestration with TypedDict TechBlogState
+#     (Annotated[Sequence[BaseMessage], operator.add] reducer)
+#   - Linear edges researcher -> writer -> editor -> END
+#   - Each node implemented by an LLMAgent (inline system prompt)
+#   - Two parallel workflow views (LangGraph convention):
+#     * FlowStep_* with hasAssociatedAgent (the node-level view)
+#     * CrewStep_langgraph_team_0_task_* with hasAssociatedTask
+#       (the task-level view derived from the topology)
+#   - No Goal individuals: LangGraph nodes have no explicit goal.
+# ============================================================
+
+<http://example.org/tech_blog> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:tech_blog a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "tech_blog"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_researcher,
+        ex:Agent_writer,
+        ex:Agent_editor ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agents (node-flavoured: inline system prompt, no goal/backstory) ----------
+ex:Agent_researcher a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "researcher"^^xsd:string ;
+    agento:agentRole "researcher"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_researcher ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_researcher a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string .
+
+ex:Agent_writer a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "writer"^^xsd:string ;
+    agento:agentRole "writer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_writer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_writer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string .
+
+ex:Agent_editor a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "editor"^^xsd:string ;
+    agento:agentRole "editor"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_editor ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_editor a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string .
+
+# ---------- task-level view (one Task per node, derived from topology) ----------
+ex:Task_task_researcher a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "research"^^xsd:string ;
+    agento:performedByAgent ex:Agent_researcher ;
+    agento:taskPrompt ex:TaskPrompt_task_researcher .
+
+ex:TaskPrompt_task_researcher a agento:Prompt ;
+    agento:promptInstruction "f'Research the following topic and provide a comprehensive summary: {topic}'"^^xsd:string ;
+    agento:promptOutputIndicator "research"^^xsd:string .
+
+ex:Task_task_writer a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "draft"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_researcher ;
+    agento:performedByAgent ex:Agent_writer ;
+    agento:taskPrompt ex:TaskPrompt_task_writer .
+
+ex:TaskPrompt_task_writer a agento:Prompt ;
+    agento:promptInstruction "f'Using the following research, write a 500-word engaging tech blog post:\\n\\n{research}'"^^xsd:string ;
+    agento:promptOutputIndicator "draft"^^xsd:string .
+
+ex:Task_task_editor a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "final_post"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_writer ;
+    agento:performedByAgent ex:Agent_editor ;
+    agento:taskPrompt ex:TaskPrompt_task_editor .
+
+ex:TaskPrompt_task_editor a agento:Prompt ;
+    agento:promptInstruction "f'Review the following drafted blog post. Fix any grammatical errors, improve the flow, and return the final polished version ready for publishing:\\n\\n{draft}'"^^xsd:string ;
+    agento:promptOutputIndicator "final_post"^^xsd:string .
+
+# ---------- node-level workflow (FlowStep_*: hasAssociatedAgent) ----------
+ex:FlowStep_researcher a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_researcher ;
+    agentoscin:hasTitle "researcher"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_writer .
+
+ex:FlowStep_writer a agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_writer ;
+    agentoscin:hasTitle "writer"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_editor .
+
+ex:FlowStep_editor a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_editor ;
+    agentoscin:hasTitle "editor"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_researcher,
+        ex:FlowStep_writer,
+        ex:FlowStep_editor .
+
+# ---------- task-level workflow (CrewStep_*: hasAssociatedTask) ----------
+ex:CrewStep_langgraph_team_0_task_researcher a agento:StartStep ;
+    agentoscin:hasTitle "task_researcher"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_researcher ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_writer .
+
+ex:CrewStep_langgraph_team_0_task_writer a agento:WorkflowStep ;
+    agentoscin:hasTitle "task_writer"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_writer ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_editor .
+
+ex:CrewStep_langgraph_team_0_task_editor a agento:EndStep ;
+    agentoscin:hasTitle "task_editor"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_editor ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_researcher,
+        ex:CrewStep_langgraph_team_0_task_writer,
+        ex:CrewStep_langgraph_team_0_task_editor .
+
+# ---------- state schema (TypedDict with reducer) ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "TechBlogState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"draft\": \"str\", \"final_post\": \"str\", \"messages\": \"Annotated[Sequence[BaseMessage], operator.add]\", \"research\": \"str\", \"topic\": \"str\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_researcher,
+        ex:Agent_writer,
+        ex:Agent_editor ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
