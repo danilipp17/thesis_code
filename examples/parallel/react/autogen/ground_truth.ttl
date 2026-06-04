@@ -35,18 +35,21 @@ ex:LM_gpt_4o a agento:LanguageModel ;
 # ---------- tools (FunctionTool wrappers) ----------
 ex:Tool_add a agento:Tool ;
     agentoscin:hasDescription "Add two integers."^^xsd:string ;
-    agentoscin:hasImplementationReference "add"^^xsd:string ;
-    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string .
+    agentoscin:hasImplementationReference "main.add"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "add"^^xsd:string .
 
 ex:Tool_subtract a agento:Tool ;
     agentoscin:hasDescription "Subtract two integers."^^xsd:string ;
-    agentoscin:hasImplementationReference "subtract"^^xsd:string ;
-    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string .
+    agentoscin:hasImplementationReference "main.subtract"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "subtract"^^xsd:string .
 
 ex:Tool_multiply a agento:Tool ;
     agentoscin:hasDescription "Multiply two integers."^^xsd:string ;
-    agentoscin:hasImplementationReference "multiply"^^xsd:string ;
-    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string .
+    agentoscin:hasImplementationReference "main.multiply"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "multiply"^^xsd:string .
 
 # ---------- agent ----------
 ex:Agent_our_agent a agento:LLMAgent ;

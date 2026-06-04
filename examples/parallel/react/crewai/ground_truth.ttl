@@ -34,18 +34,24 @@ ex:react a agentoscin:AgenticSystem ;
 ex:LM_gpt_4o a agento:LanguageModel ;
     agentoscin:hasTitle "gpt-4o"^^xsd:string .
 
-# ---------- tools ----------
+# ---------- tools (@tool decorators from tools/arithmetic.py) ----------
 ex:Tool_add a agento:Tool ;
     agentoscin:hasDescription "This is an addition function that adds 2 numbers together."^^xsd:string ;
-    agentoscin:hasImplementationReference "add"^^xsd:string .
+    agentoscin:hasImplementationReference "tools.arithmetic.add"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "add"^^xsd:string .
 
 ex:Tool_subtract a agento:Tool ;
     agentoscin:hasDescription "Subtraction function."^^xsd:string ;
-    agentoscin:hasImplementationReference "subtract"^^xsd:string .
+    agentoscin:hasImplementationReference "tools.arithmetic.subtract"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "subtract"^^xsd:string .
 
 ex:Tool_multiply a agento:Tool ;
     agentoscin:hasDescription "Multiplication function."^^xsd:string ;
-    agentoscin:hasImplementationReference "multiply"^^xsd:string .
+    agentoscin:hasImplementationReference "tools.arithmetic.multiply"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "multiply"^^xsd:string .
 
 # ---------- verbose=True configs ----------
 ex:Config_verbose_Agent_our_agent a agento:Config ;

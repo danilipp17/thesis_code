@@ -38,16 +38,22 @@ ex:Agent_planner_agent a agento:LLMAgent ;
     agentoscin:hasReasoningEnabled false ;
     agento:agentID "planner_agent"^^xsd:string ;
     agento:agentRole "planner_agent"^^xsd:string ;
-    agento:agentPrompt ex:AgentPrompt_planner_agent ;
+    agento:agentPrompt ex:AgentPrompt_planner_agent,
+        ex:OrchestratorPrompt_planner_agent ;
     agento:hasAgentGoal ex:Goal_planner_agent ;
     agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:OrchestratorPrompt_planner_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "OrchestratorDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "description"^^xsd:string ;
+    agento:promptInstruction "A helpful assistant that can plan trips."^^xsd:string .
 
 ex:Goal_planner_agent a agento:Goal ;
     agentoscin:hasDescription "A helpful assistant that can plan trips."^^xsd:string .
 
 ex:AgentPrompt_planner_agent a agento:Prompt ;
     agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
-    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message, description"^^xsd:string ;
     agento:promptInstruction "You are a helpful assistant that can suggest a travel plan for a user based on their request."^^xsd:string .
 
 ex:Agent_local_agent a agento:LLMAgent ;
@@ -55,16 +61,22 @@ ex:Agent_local_agent a agento:LLMAgent ;
     agentoscin:hasReasoningEnabled false ;
     agento:agentID "local_agent"^^xsd:string ;
     agento:agentRole "local_agent"^^xsd:string ;
-    agento:agentPrompt ex:AgentPrompt_local_agent ;
+    agento:agentPrompt ex:AgentPrompt_local_agent,
+        ex:OrchestratorPrompt_local_agent ;
     agento:hasAgentGoal ex:Goal_local_agent ;
     agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:OrchestratorPrompt_local_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "OrchestratorDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "description"^^xsd:string ;
+    agento:promptInstruction "A local assistant that can suggest local activities or places to visit."^^xsd:string .
 
 ex:Goal_local_agent a agento:Goal ;
     agentoscin:hasDescription "A local assistant that can suggest local activities or places to visit."^^xsd:string .
 
 ex:AgentPrompt_local_agent a agento:Prompt ;
     agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
-    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message, description"^^xsd:string ;
     agento:promptInstruction "You are a helpful assistant that can suggest authentic and interesting local activities or places to visit for a user and can utilize any context information provided."^^xsd:string .
 
 ex:Agent_language_agent a agento:LLMAgent ;
@@ -72,43 +84,57 @@ ex:Agent_language_agent a agento:LLMAgent ;
     agentoscin:hasReasoningEnabled false ;
     agento:agentID "language_agent"^^xsd:string ;
     agento:agentRole "language_agent"^^xsd:string ;
-    agento:agentPrompt ex:AgentPrompt_language_agent ;
+    agento:agentPrompt ex:AgentPrompt_language_agent,
+        ex:OrchestratorPrompt_language_agent ;
     agento:hasAgentGoal ex:Goal_language_agent ;
     agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:OrchestratorPrompt_language_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "OrchestratorDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "description"^^xsd:string ;
+    agento:promptInstruction "A helpful assistant that can provide language tips for a given destination."^^xsd:string .
 
 ex:Goal_language_agent a agento:Goal ;
     agentoscin:hasDescription "A helpful assistant that can provide language tips for a given destination."^^xsd:string .
 
 ex:AgentPrompt_language_agent a agento:Prompt ;
     agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
-    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
-    agento:promptInstruction "You are a helpful assistant that can review travel plans, providing feedback on important/critical tips about how best to address language or communication challenges for the given destination. If the plan already includes language tips, you can mention that the plan is satisfactory, with rationale."^^xsd:string .
+    agentoscin:hasSourceAttribute "system_message, description"^^xsd:string ;
+    agento:promptInstruction "You are a helpful assistant that can review travel plans, providing feedback on important/critical tips about how best to address language or communication challenges for the given destination."^^xsd:string ;
+    agento:promptContext "If the plan already includes language tips, you can mention that the plan is satisfactory, with rationale."^^xsd:string .
 
 ex:Agent_travel_summary_agent a agento:LLMAgent ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
     agentoscin:hasReasoningEnabled false ;
     agento:agentID "travel_summary_agent"^^xsd:string ;
     agento:agentRole "travel_summary_agent"^^xsd:string ;
-    agento:agentPrompt ex:AgentPrompt_travel_summary_agent ;
+    agento:agentPrompt ex:AgentPrompt_travel_summary_agent,
+        ex:OrchestratorPrompt_travel_summary_agent ;
     agento:hasAgentGoal ex:Goal_travel_summary_agent ;
     agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:OrchestratorPrompt_travel_summary_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "OrchestratorDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "description"^^xsd:string ;
+    agento:promptInstruction "An assistant that can summarize the travel plan."^^xsd:string .
 
 ex:Goal_travel_summary_agent a agento:Goal ;
     agentoscin:hasDescription "An assistant that can summarize the travel plan."^^xsd:string .
 
 ex:AgentPrompt_travel_summary_agent a agento:Prompt ;
     agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
-    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
-    agento:promptInstruction "You are a helpful assistant that can take in all of the suggestions and advice from the other agents and provide a detailed final travel plan. You must ensure that the final plan is integrated and complete. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN. When the plan is complete and all perspectives are integrated, you can respond with TERMINATE."^^xsd:string .
+    agentoscin:hasSourceAttribute "system_message, description"^^xsd:string ;
+    agento:promptInstruction "You are a helpful assistant that can take in all of the suggestions and advice from the other agents and provide a detailed final travel plan."^^xsd:string ;
+    agento:promptContext "You must ensure that the final plan is integrated and complete. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN. When the plan is complete and all perspectives are integrated, you can respond with TERMINATE."^^xsd:string .
 
 # ---------- team + termination ----------
-ex:TextMention_SelectorGroupChat_0 a agentoscin:KeywordTermination ;
-    agentoscin:hasTerminationKeyword "TERMINATE"^^xsd:string .
+ex:EventTermination_SelectorGroupChat_0_0 a agentoscin:EventBasedTermination ;
+    agentoscin:hasTriggerExpression "TERMINATE"^^xsd:string .
 
 ex:Team_SelectorGroupChat_0 a agento:Team ;
     agentoscin:hasTitle "SelectorGroupChat"^^xsd:string ;
-    agentoscin:employsCoordinationPattern agentoscin:Selector ;
-    agentoscin:hasTerminationCondition ex:TextMention_SelectorGroupChat_0 ;
+    agentoscin:employsCoordinationPattern agentoscin:SelectorBased ;
+    agentoscin:hasTerminationCondition ex:EventTermination_SelectorGroupChat_0_0 ;
     agento:hasAgentMember ex:Agent_planner_agent,
         ex:Agent_local_agent,
         ex:Agent_language_agent,
@@ -123,14 +149,14 @@ ex:TaskPrompt_autogen_task_0 a agento:Prompt ;
     agentoscin:hasSourceAttribute "task"^^xsd:string ;
     agento:promptInstruction "Plan a 10 day trip to Luxembourg."^^xsd:string .
 
-ex:FlowStep_run_team a agento:StartStep,
+ex:FlowStep_run_group_chat a agento:StartStep,
         agento:WorkflowStep ;
-    agentoscin:hasTitle "run_team"^^xsd:string ;
+    agentoscin:hasTitle "run_group_chat"^^xsd:string ;
     agentoscin:callsCrew "group_chat"^^xsd:string ;
     agento:stepOrder 1 .
 
 ex:FlowWorkflowPattern_AutoGenFlow a agento:WorkflowPattern ;
-    agento:hasWorkflowStep ex:FlowStep_run_team .
+    agento:hasWorkflowStep ex:FlowStep_run_group_chat .
 
 ex:Orchestration_AutoGenFlow a agentoscin:Orchestration ;
     agentoscin:hasTitle "AutoGenFlow"^^xsd:string ;

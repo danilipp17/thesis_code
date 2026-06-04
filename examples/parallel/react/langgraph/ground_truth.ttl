@@ -37,17 +37,28 @@ ex:LM_gpt_4o a agento:LanguageModel ;
 # ---------- tools ----------
 ex:Tool_add a agento:Tool ;
     agentoscin:hasDescription "This is an addition function that adds 2 numbers together."^^xsd:string ;
-    agentoscin:hasImplementationReference "add"^^xsd:string .
+    agentoscin:hasImplementationReference "main.add"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "add"^^xsd:string .
 
 ex:Tool_subtract a agento:Tool ;
     agentoscin:hasDescription "Subtraction function."^^xsd:string ;
-    agentoscin:hasImplementationReference "subtract"^^xsd:string .
+    agentoscin:hasImplementationReference "main.subtract"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "subtract"^^xsd:string .
 
 ex:Tool_multiply a agento:Tool ;
     agentoscin:hasDescription "Multiplication function."^^xsd:string ;
-    agentoscin:hasImplementationReference "multiply"^^xsd:string .
+    agentoscin:hasImplementationReference "main.multiply"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"a\": {\"type\": \"integer\"}, \"b\": {\"type\": \"integer\"}}, \"required\": [\"a\", \"b\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "multiply"^^xsd:string .
 
 # ---------- agent ----------
+# Note: the LangGraph extractor for inline-SystemMessage ReAct agents
+# does NOT synthesise hasAgentGoal / Goal individual (system prompt is
+# created inside the node function rather than as a top-level binding),
+# but it does still emit agentRole + hasReasoningEnabled from the node
+# signature.
 ex:Agent_our_agent a agento:LLMAgent ;
     agentoscin:hasReasoningEnabled false ;
     agento:agentID "our_agent"^^xsd:string ;
@@ -56,16 +67,12 @@ ex:Agent_our_agent a agento:LLMAgent ;
     agento:agentToolUsage ex:Tool_add,
         ex:Tool_subtract,
         ex:Tool_multiply ;
-    agento:hasAgentGoal ex:Goal_our_agent ;
     agento:useLanguageModel ex:LM_gpt_4o .
-
-ex:Goal_our_agent a agento:Goal ;
-    agentoscin:hasDescription "Answer the user query, calling arithmetic tools when needed."^^xsd:string .
 
 ex:AgentPrompt_our_agent a agento:Prompt ;
     agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
-    agento:promptInstruction "You are my AI assistant, please answer my query to the best of your ability."^^xsd:string .
+    agento:promptContext "You are my AI assistant, please answer my query to the best of your ability."^^xsd:string .
 
 # ---------- task ----------
 ex:Task_task_our_agent a agento:Task ;
@@ -75,19 +82,24 @@ ex:Task_task_our_agent a agento:Task ;
     agento:taskPrompt ex:TaskPrompt_task_our_agent .
 
 ex:TaskPrompt_task_our_agent a agento:Prompt ;
-    agento:promptInstruction "You are my AI assistant, please answer my query to the best of your ability."^^xsd:string ;
+    agento:promptInstruction "Perform our_agent responsibilities"^^xsd:string ;
     agento:promptOutputIndicator "messages"^^xsd:string .
 
-# ---------- node-level workflow (with the conditional gate) ----------
-ex:FlowStep_our_agent a agento:StartStep,
+# ---------- node-level workflow ----------
+# Note: the conditional edge our_agent --(should_continue)--> {tools, END}
+# is captured on the our_agent step as ConditionalStep (the gate lives at
+# the agent node, not at the ToolNode).
+ex:FlowStep_our_agent a agentoscin:ConditionalStep,
+        agento:StartStep,
         agento:WorkflowStep ;
     agentoscin:hasAssociatedAgent ex:Agent_our_agent ;
+    agentoscin:hasEdgeMapping "{\"continue\": \"tools\", \"end\": \"END\"}"^^xsd:string ;
+    agentoscin:hasRoutingLogic "last_message = state['messages'][-1]"^^xsd:string ;
     agentoscin:hasTitle "our_agent"^^xsd:string ;
     agento:stepOrder 1 ;
     agento:nextStep ex:FlowStep_tools .
 
-ex:FlowStep_tools a agento:ConditionalStep,
-        agento:WorkflowStep ;
+ex:FlowStep_tools a agento:WorkflowStep ;
     agentoscin:hasTitle "tools"^^xsd:string ;
     agento:stepOrder 2 ;
     agento:nextStep ex:FlowStep_our_agent .
@@ -97,14 +109,11 @@ ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
         ex:FlowStep_tools .
 
 # ---------- task-level workflow ----------
-ex:CrewStep_langgraph_team_0_task_our_agent a agento:StartStep,
-        agento:EndStep ;
-    agentoscin:hasTitle "task_our_agent"^^xsd:string ;
-    agento:hasAssociatedTask ex:Task_task_our_agent ;
-    agento:stepOrder 1 .
-
-ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
-    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_our_agent .
+# The extractor does not emit CrewStep_* / WorkflowPattern_langgraph_team_0
+# for ReAct-style single-node graphs because the agent's own loop replaces
+# the task-list workflow. Documented as a finding; the team retains its
+# topology via FlowWorkflowPattern_StateGraph above.
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern .
 
 # ---------- state schema ----------
 ex:StateSchema_StateGraph a agentoscin:Schema ;
@@ -117,7 +126,7 @@ ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
 
 ex:Team_langgraph_team_0 a agento:Team ;
     agentoscin:hasTitle "StateGraph"^^xsd:string ;
-    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:employsCoordinationPattern agentoscin:ReActLoop ;
     agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
     agento:hasAgentMember ex:Agent_our_agent ;
     agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .

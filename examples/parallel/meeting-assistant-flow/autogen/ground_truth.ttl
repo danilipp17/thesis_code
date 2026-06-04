@@ -31,6 +31,23 @@ ex:meeting_assistant_flow a agentoscin:AgenticSystem ;
 ex:LM_gpt_4o a agento:LanguageModel ;
     agentoscin:hasTitle "gpt-4o"^^xsd:string .
 
+# ---------- helpers picked up by the extractor as tools ----------
+# The AutoGen extractor classifies all top-level functions in a file
+# named ``tools.py`` as agento:Tool individuals, even when (as here)
+# the agent does not register them with FunctionTool. Kept in the GT
+# for parity with the extractor's behaviour.
+ex:Tool_save_tasks_to_trello a agento:Tool ;
+    agentoscin:hasDescription "Push each task to a Trello board (stub)."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.save_tasks_to_trello"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"tasks\": {\"type\": \"string\"}}, \"required\": [\"tasks\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "save_tasks_to_trello"^^xsd:string .
+
+ex:Tool_send_message_to_channel a agento:Tool ;
+    agentoscin:hasDescription "Post a message to a Slack channel (stub)."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.send_message_to_channel"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"message\": {\"type\": \"string\"}}, \"required\": [\"message\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "send_message_to_channel"^^xsd:string .
+
 # ---------- agent ----------
 ex:Agent_meeting_analyzer a agento:LLMAgent ;
     agentoscin:agentType "GeneralPurpose"^^xsd:string ;
