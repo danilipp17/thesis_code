@@ -1,0 +1,254 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/travel_planning#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# travel-planning (CrewAI) — hand-authored ground-truth.
+# Captures the source semantics:
+#   - TravelPlanningFlow(Flow[TravelPlanningState]) with
+#     @start plan_trip -> @listen publish.
+#   - TravelPlanningCrew(CrewBase) with 4 @agent (planner,
+#     local, language, travel_summary) + 4 @task running
+#     Process.sequential, verbose=True.
+#   - llm = "gpt-4o" on every agent.
+#   - YAML drives role+goal+backstory (DualDirective).
+# ============================================================
+
+<http://example.org/travel_planning> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:travel_planning a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "travel_planning"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_planner_agent,
+        ex:Agent_local_agent,
+        ex:Agent_language_agent,
+        ex:Agent_travel_summary_agent ;
+    agentoscin:containsTeam ex:Team_TravelPlanningCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_TravelPlanningFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- verbose=True configs ----------
+ex:Config_verbose_Agent_planner_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_local_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_language_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_travel_summary_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_TravelPlanningCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agents ----------
+ex:Agent_planner_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "planner_agent"^^xsd:string ;
+    agento:agentRole "Travel Planner"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_planner_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_planner_agent ;
+    agento:hasAgentGoal ex:Goal_planner_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_planner_agent a agento:Goal ;
+    agentoscin:hasDescription "Suggest a travel plan for a user based on their request."^^xsd:string .
+
+ex:AgentPrompt_planner_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Travel Planner: Suggest a travel plan for a user based on their request."^^xsd:string ;
+    agento:promptContext "You are a helpful assistant that can plan trips."^^xsd:string .
+
+ex:Agent_local_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "local_agent"^^xsd:string ;
+    agento:agentRole "Local Guide"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_local_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_local_agent ;
+    agento:hasAgentGoal ex:Goal_local_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_local_agent a agento:Goal ;
+    agentoscin:hasDescription "Suggest authentic and interesting local activities or places to visit."^^xsd:string .
+
+ex:AgentPrompt_local_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Local Guide: Suggest authentic and interesting local activities or places to visit."^^xsd:string ;
+    agento:promptContext "You are a local assistant that can suggest local activities or places to visit and can utilize any context information provided."^^xsd:string .
+
+ex:Agent_language_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "language_agent"^^xsd:string ;
+    agento:agentRole "Language Adviser"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_language_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_language_agent ;
+    agento:hasAgentGoal ex:Goal_language_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_language_agent a agento:Goal ;
+    agentoscin:hasDescription "Review travel plans and contribute language or communication tips."^^xsd:string .
+
+ex:AgentPrompt_language_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Language Adviser: Review travel plans and contribute language or communication tips."^^xsd:string ;
+    agento:promptContext "You provide feedback on important tips about how best to address language or communication challenges for the given destination."^^xsd:string .
+
+ex:Agent_travel_summary_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "travel_summary_agent"^^xsd:string ;
+    agento:agentRole "Travel Summary Writer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_travel_summary_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_travel_summary_agent ;
+    agento:hasAgentGoal ex:Goal_travel_summary_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_travel_summary_agent a agento:Goal ;
+    agentoscin:hasDescription "Compile every contribution into a detailed, integrated final plan."^^xsd:string .
+
+ex:AgentPrompt_travel_summary_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Travel Summary Writer: Compile every contribution into a detailed, integrated final plan."^^xsd:string ;
+    agento:promptContext "You take all of the suggestions and advice from the other agents and provide a detailed final travel plan. Your final response must be the complete plan."^^xsd:string .
+
+# ---------- tasks ----------
+ex:Task_planning_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A high-level itinerary covering accommodation, transport and the overall day-by-day structure."^^xsd:string ;
+    agento:performedByAgent ex:Agent_planner_agent ;
+    agento:taskPrompt ex:TaskPrompt_planning_task .
+
+ex:TaskPrompt_planning_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Suggest a travel plan for the following request: {request}"^^xsd:string ;
+    agento:promptOutputIndicator "A high-level itinerary covering accommodation, transport and the overall day-by-day structure."^^xsd:string .
+
+ex:Task_local_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "Concrete local activity suggestions integrated into the itinerary."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_planning_task ;
+    agento:performedByAgent ex:Agent_local_agent ;
+    agento:taskPrompt ex:TaskPrompt_local_task .
+
+ex:TaskPrompt_local_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Given the initial plan, suggest authentic and interesting local activities or places to visit."^^xsd:string ;
+    agento:promptOutputIndicator "Concrete local activity suggestions integrated into the itinerary."^^xsd:string .
+
+ex:Task_language_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "Notes on important language considerations for the trip."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_local_task ;
+    agento:performedByAgent ex:Agent_language_agent ;
+    agento:taskPrompt ex:TaskPrompt_language_task .
+
+ex:TaskPrompt_language_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Review the current plan and provide language or communication tips for the destination."^^xsd:string ;
+    agento:promptOutputIndicator "Notes on important language considerations for the trip."^^xsd:string .
+
+ex:Task_summary_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A complete, integrated travel plan. End the response with TERMINATE."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_language_task ;
+    agento:performedByAgent ex:Agent_travel_summary_agent ;
+    agento:taskPrompt ex:TaskPrompt_summary_task .
+
+ex:TaskPrompt_summary_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Compile every contribution into a detailed final travel plan."^^xsd:string ;
+    agento:promptOutputIndicator "A complete, integrated travel plan. End the response with TERMINATE."^^xsd:string .
+
+# ---------- crew workflow ----------
+ex:CrewStep_TravelPlanningCrew_planning_task a agento:StartStep ;
+    agentoscin:hasTitle "planning_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_planning_task ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_TravelPlanningCrew_local_task .
+
+ex:CrewStep_TravelPlanningCrew_local_task a agento:WorkflowStep ;
+    agentoscin:hasTitle "local_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_local_task ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_TravelPlanningCrew_language_task .
+
+ex:CrewStep_TravelPlanningCrew_language_task a agento:WorkflowStep ;
+    agentoscin:hasTitle "language_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_language_task ;
+    agento:stepOrder 3 ;
+    agento:nextStep ex:CrewStep_TravelPlanningCrew_summary_task .
+
+ex:CrewStep_TravelPlanningCrew_summary_task a agento:EndStep ;
+    agentoscin:hasTitle "summary_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_summary_task ;
+    agento:stepOrder 4 .
+
+ex:WorkflowPattern_TravelPlanningCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_TravelPlanningCrew_planning_task,
+        ex:CrewStep_TravelPlanningCrew_local_task,
+        ex:CrewStep_TravelPlanningCrew_language_task,
+        ex:CrewStep_TravelPlanningCrew_summary_task .
+
+# ---------- team ----------
+ex:Team_TravelPlanningCrew a agento:Team ;
+    agentoscin:hasTitle "TravelPlanningCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_planner_agent,
+        ex:Agent_local_agent,
+        ex:Agent_language_agent,
+        ex:Agent_travel_summary_agent ;
+    agento:hasSystemConfig ex:Config_verbose_Team_TravelPlanningCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_TravelPlanningCrew .
+
+# ---------- Flow-level orchestration ----------
+ex:FlowStep_plan_trip a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "plan_trip"^^xsd:string ;
+    agentoscin:callsCrew "TravelPlanningCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_publish .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_TravelPlanningFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_plan_trip,
+        ex:FlowStep_publish .
+
+ex:StateSchema_TravelPlanningFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "TravelPlanningState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"plan\": \"str\", \"request\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_TravelPlanningFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "TravelPlanningFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_TravelPlanningFlow ;
+    agentoscin:orchestratesTeam ex:Team_TravelPlanningCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_TravelPlanningFlow .

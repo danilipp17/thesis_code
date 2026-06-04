@@ -1,0 +1,30 @@
+planning_task:
+  description: >
+    Suggest a travel plan for the following request: {request}
+  expected_output: >
+    A high-level itinerary covering accommodation, transport and the
+    overall day-by-day structure.
+  agent: planner_agent
+
+local_task:
+  description: >
+    Given the initial plan, suggest authentic and interesting local
+    activities or places to visit.
+  expected_output: >
+    Concrete local activity suggestions integrated into the itinerary.
+  agent: local_agent
+
+language_task:
+  description: >
+    Review the current plan and provide language or communication tips
+    for the destination.
+  expected_output: >
+    Notes on important language considerations for the trip.
+  agent: language_agent
+
+summary_task:
+  description: >
+    Compile every contribution into a detailed final travel plan.
+  expected_output: >
+    A complete, integrated travel plan. End the response with TERMINATE.
+  agent: travel_summary_agent

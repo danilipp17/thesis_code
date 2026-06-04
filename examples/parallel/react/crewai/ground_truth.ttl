@@ -1,0 +1,139 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/react#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# react (CrewAI) — hand-authored ground-truth.
+# Captures the source semantics:
+#   - ReActFlow(Flow[ReActState]) with @start reason_and_act ->
+#     @listen publish.
+#   - ReActCrew(CrewBase) with 1 @agent (our_agent) + 1 @task
+#     (answer_query), Process.sequential, verbose=True.
+#   - 3 @tool primitives (add, subtract, multiply) wired into
+#     the agent's tool list.
+#   - The conditional ReAct loop of the LangGraph original is
+#     internalised by CrewAI's reasoning runtime and not exposed
+#     as a workflow primitive (a thesis finding about framework
+#     expressivity).
+# ============================================================
+
+<http://example.org/react> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:react a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "react"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_our_agent ;
+    agentoscin:containsTeam ex:Team_ReActCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_ReActFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools ----------
+ex:Tool_add a agento:Tool ;
+    agentoscin:hasDescription "This is an addition function that adds 2 numbers together."^^xsd:string ;
+    agentoscin:hasImplementationReference "add"^^xsd:string .
+
+ex:Tool_subtract a agento:Tool ;
+    agentoscin:hasDescription "Subtraction function."^^xsd:string ;
+    agentoscin:hasImplementationReference "subtract"^^xsd:string .
+
+ex:Tool_multiply a agento:Tool ;
+    agentoscin:hasDescription "Multiplication function."^^xsd:string ;
+    agentoscin:hasImplementationReference "multiply"^^xsd:string .
+
+# ---------- verbose=True configs ----------
+ex:Config_verbose_Agent_our_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_ReActCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agent ----------
+ex:Agent_our_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "our_agent"^^xsd:string ;
+    agento:agentRole "ReAct Reasoning Assistant"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_our_agent ;
+    agento:agentToolUsage ex:Tool_add,
+        ex:Tool_subtract,
+        ex:Tool_multiply ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_our_agent ;
+    agento:hasAgentGoal ex:Goal_our_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_our_agent a agento:Goal ;
+    agentoscin:hasDescription "Answer the user query, calling arithmetic tools when needed."^^xsd:string .
+
+ex:AgentPrompt_our_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "ReAct Reasoning Assistant: Answer the user query, calling arithmetic tools when needed."^^xsd:string ;
+    agento:promptContext "You are an AI assistant that answers user queries to the best of your ability, using the available tools whenever a step requires computation."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_answer_query a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A direct natural-language answer to the user query."^^xsd:string ;
+    agento:performedByAgent ex:Agent_our_agent ;
+    agento:taskPrompt ex:TaskPrompt_answer_query .
+
+ex:TaskPrompt_answer_query a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Answer the following user query, using the available arithmetic tools whenever a step requires computation: {query}"^^xsd:string ;
+    agento:promptOutputIndicator "A direct natural-language answer to the user query."^^xsd:string .
+
+# ---------- crew workflow ----------
+ex:CrewStep_ReActCrew_answer_query a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "answer_query"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_answer_query ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_ReActCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_ReActCrew_answer_query .
+
+# ---------- team ----------
+ex:Team_ReActCrew a agento:Team ;
+    agentoscin:hasTitle "ReActCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_our_agent ;
+    agento:hasSystemConfig ex:Config_verbose_Team_ReActCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_ReActCrew .
+
+# ---------- Flow-level orchestration ----------
+ex:FlowStep_reason_and_act a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "reason_and_act"^^xsd:string ;
+    agentoscin:callsCrew "ReActCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_publish .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_ReActFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_reason_and_act,
+        ex:FlowStep_publish .
+
+ex:StateSchema_ReActFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "ReActState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"answer\": \"str\", \"query\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_ReActFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "ReActFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_ReActFlow ;
+    agentoscin:orchestratesTeam ex:Team_ReActCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_ReActFlow .

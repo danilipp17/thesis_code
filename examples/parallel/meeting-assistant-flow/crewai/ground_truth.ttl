@@ -1,0 +1,135 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/meeting_assistant_flow#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# meeting-assistant-flow (CrewAI) — hand-authored ground-truth.
+# Original of this family. Captures the source semantics:
+#   - MeetingFlow(Flow[MeetingState]) with @start load_meeting_notes
+#     -> @listen generate_tasks_from_meeting_transcript -> 3 parallel
+#     @listen sinks (add_tasks_to_trello, save_new_tasks_to_csv,
+#     send_slack_notification).
+#   - MeetingAssistantCrew(CrewBase) with 1 @agent (meeting_analyzer)
+#     + 1 @task (analyze_meeting), Process.sequential, verbose=True.
+#   - llm = ChatOpenAI(model="gpt-4") on the crew.
+# ============================================================
+
+<http://example.org/meeting_assistant_flow> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:meeting_assistant_flow a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "meeting_assistant_flow"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_meeting_analyzer ;
+    agentoscin:containsTeam ex:Team_MeetingAssistantCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_MeetingFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4 a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4"^^xsd:string .
+
+# ---------- verbose=True configs ----------
+ex:Config_verbose_Team_MeetingAssistantCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agent ----------
+ex:Agent_meeting_analyzer a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "meeting_analyzer"^^xsd:string ;
+    agento:agentRole "Meeting Transcript Analysis Agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_meeting_analyzer ;
+    agento:hasAgentGoal ex:Goal_meeting_analyzer ;
+    agento:useLanguageModel ex:LM_gpt_4 .
+
+ex:Goal_meeting_analyzer a agento:Goal ;
+    agentoscin:hasDescription "Analyze the provided meeting transcript and extract important, actionable tasks or issues."^^xsd:string .
+
+ex:AgentPrompt_meeting_analyzer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Meeting Transcript Analysis Agent: Analyze the provided meeting transcript and extract important, actionable tasks or issues."^^xsd:string ;
+    agento:promptContext "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_analyze_meeting a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A JSON list of issues with titles and bodies, containing clear instructions, steps to reproduce, and acceptance criteria where applicable."^^xsd:string ;
+    agento:performedByAgent ex:Agent_meeting_analyzer ;
+    agento:taskPrompt ex:TaskPrompt_analyze_meeting .
+
+ex:TaskPrompt_analyze_meeting a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion."^^xsd:string ;
+    agento:promptOutputIndicator "A JSON list of issues with titles and bodies, containing clear instructions, steps to reproduce, and acceptance criteria where applicable."^^xsd:string .
+
+# ---------- crew workflow ----------
+ex:CrewStep_MeetingAssistantCrew_analyze_meeting a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "analyze_meeting"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_analyze_meeting ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_MeetingAssistantCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_MeetingAssistantCrew_analyze_meeting .
+
+# ---------- team ----------
+ex:Team_MeetingAssistantCrew a agento:Team ;
+    agentoscin:hasTitle "MeetingAssistantCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_meeting_analyzer ;
+    agento:hasSystemConfig ex:Config_verbose_Team_MeetingAssistantCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_MeetingAssistantCrew .
+
+# ---------- Flow-level orchestration ----------
+ex:FlowStep_load_meeting_notes a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "load_meeting_notes"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_generate_tasks_from_meeting_transcript .
+
+ex:FlowStep_generate_tasks_from_meeting_transcript a agento:WorkflowStep ;
+    agentoscin:hasTitle "generate_tasks_from_meeting_transcript"^^xsd:string ;
+    agentoscin:callsCrew "MeetingAssistantCrew"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_add_tasks_to_trello,
+        ex:FlowStep_save_new_tasks_to_csv,
+        ex:FlowStep_send_slack_notification .
+
+ex:FlowStep_add_tasks_to_trello a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "add_tasks_to_trello"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowStep_save_new_tasks_to_csv a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "save_new_tasks_to_csv"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowStep_send_slack_notification a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "send_slack_notification"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowWorkflowPattern_MeetingFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_load_meeting_notes,
+        ex:FlowStep_generate_tasks_from_meeting_transcript,
+        ex:FlowStep_add_tasks_to_trello,
+        ex:FlowStep_save_new_tasks_to_csv,
+        ex:FlowStep_send_slack_notification .
+
+ex:StateSchema_MeetingFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "MeetingState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"tasks\": \"List[MeetingTask]\", \"transcript\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_MeetingFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "MeetingFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_MeetingFlow ;
+    agentoscin:orchestratesTeam ex:Team_MeetingAssistantCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_MeetingFlow .

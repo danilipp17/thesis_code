@@ -1,0 +1,7 @@
+answer_query:
+  description: >
+    Answer the following user query, using the available arithmetic
+    tools whenever a step requires computation: {query}
+  expected_output: >
+    A direct natural-language answer to the user query.
+  agent: our_agent

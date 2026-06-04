@@ -1,0 +1,130 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/meeting_assistant_flow#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# meeting-assistant-flow (LangGraph) — hand-authored ground-truth.
+# Captures the source semantics:
+#   - TypedDict MeetingState {transcript, tasks}.
+#   - 5 nodes in linear order:
+#       load_meeting_notes (Python-only IO) -> analyze_meeting
+#       (LLMAgent invoking ChatOpenAI gpt-4o) -> upload_trello
+#       -> save_csv -> notify_slack (3 Python-only sinks).
+#   - Only analyze_meeting is an LLMAgent; the others are plain
+#     Python helpers and do not produce agents.
+#   - Dual workflow views: FlowStep_* (node order, sequential)
+#     + CrewStep_langgraph_team_0_task_analyze (only the LLM step
+#     reifies as a task).
+# ============================================================
+
+<http://example.org/meeting_assistant_flow> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:meeting_assistant_flow a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "meeting_assistant_flow"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_analyze_meeting ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agent (only the LLM node) ----------
+ex:Agent_analyze_meeting a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "analyze_meeting"^^xsd:string ;
+    agento:agentRole "analyze_meeting"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_analyze_meeting ;
+    agento:hasAgentGoal ex:Goal_analyze_meeting ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_analyze_meeting a agento:Goal ;
+    agentoscin:hasDescription "Extract actionable tasks from a meeting transcript."^^xsd:string .
+
+ex:AgentPrompt_analyze_meeting a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_task_analyze_meeting a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "tasks"^^xsd:string ;
+    agento:performedByAgent ex:Agent_analyze_meeting ;
+    agento:taskPrompt ex:TaskPrompt_task_analyze_meeting .
+
+ex:TaskPrompt_task_analyze_meeting a agento:Prompt ;
+    agento:promptInstruction "f\"Analyze the provided meeting transcript and generate a JSON list of {{name, description}} objects.\\n\\nTranscript:\\n{state['transcript']}\""^^xsd:string ;
+    agento:promptOutputIndicator "tasks"^^xsd:string .
+
+# ---------- node-level workflow (FlowStep_*) ----------
+ex:FlowStep_load_meeting_notes a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "load_meeting_notes"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_analyze_meeting .
+
+ex:FlowStep_analyze_meeting a agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_analyze_meeting ;
+    agentoscin:hasTitle "analyze_meeting"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_upload_trello .
+
+ex:FlowStep_upload_trello a agento:WorkflowStep ;
+    agentoscin:hasTitle "upload_trello"^^xsd:string ;
+    agento:stepOrder 3 ;
+    agento:nextStep ex:FlowStep_save_csv .
+
+ex:FlowStep_save_csv a agento:WorkflowStep ;
+    agentoscin:hasTitle "save_csv"^^xsd:string ;
+    agento:stepOrder 4 ;
+    agento:nextStep ex:FlowStep_notify_slack .
+
+ex:FlowStep_notify_slack a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "notify_slack"^^xsd:string ;
+    agento:stepOrder 5 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_load_meeting_notes,
+        ex:FlowStep_analyze_meeting,
+        ex:FlowStep_upload_trello,
+        ex:FlowStep_save_csv,
+        ex:FlowStep_notify_slack .
+
+# ---------- task-level workflow (CrewStep_*) ----------
+ex:CrewStep_langgraph_team_0_task_analyze_meeting a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "task_analyze_meeting"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_analyze_meeting ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_analyze_meeting .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "MeetingState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"tasks\": \"list[dict]\", \"transcript\": \"str\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_analyze_meeting ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .

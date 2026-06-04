@@ -1,0 +1,129 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/react#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# react (LangGraph) — hand-authored ground-truth.
+# Original of this family. Captures the source semantics:
+#   - TypedDict AgentState {messages: Annotated[Sequence[BaseMessage],
+#     add_messages]} -> additive message reducer.
+#   - Single LLMAgent ``our_agent`` invoking ChatOpenAI gpt-4o
+#     bound to three @tool primitives (add, subtract, multiply).
+#   - StateGraph with two nodes: our_agent and tools (ToolNode).
+#   - Entry point our_agent; conditional edge from our_agent via
+#     should_continue (continue -> tools, end -> END); unconditional
+#     edge tools -> our_agent. Models the ReAct loop.
+#   - All three tools share a single agento:Tool individual that
+#     groups the arithmetic primitive set.
+# ============================================================
+
+<http://example.org/react> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:react a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "react"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_our_agent ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools ----------
+ex:Tool_add a agento:Tool ;
+    agentoscin:hasDescription "This is an addition function that adds 2 numbers together."^^xsd:string ;
+    agentoscin:hasImplementationReference "add"^^xsd:string .
+
+ex:Tool_subtract a agento:Tool ;
+    agentoscin:hasDescription "Subtraction function."^^xsd:string ;
+    agentoscin:hasImplementationReference "subtract"^^xsd:string .
+
+ex:Tool_multiply a agento:Tool ;
+    agentoscin:hasDescription "Multiplication function."^^xsd:string ;
+    agentoscin:hasImplementationReference "multiply"^^xsd:string .
+
+# ---------- agent ----------
+ex:Agent_our_agent a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "our_agent"^^xsd:string ;
+    agento:agentRole "our_agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_our_agent ;
+    agento:agentToolUsage ex:Tool_add,
+        ex:Tool_subtract,
+        ex:Tool_multiply ;
+    agento:hasAgentGoal ex:Goal_our_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_our_agent a agento:Goal ;
+    agentoscin:hasDescription "Answer the user query, calling arithmetic tools when needed."^^xsd:string .
+
+ex:AgentPrompt_our_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "You are my AI assistant, please answer my query to the best of your ability."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_task_our_agent a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agento:performedByAgent ex:Agent_our_agent ;
+    agento:taskPrompt ex:TaskPrompt_task_our_agent .
+
+ex:TaskPrompt_task_our_agent a agento:Prompt ;
+    agento:promptInstruction "You are my AI assistant, please answer my query to the best of your ability."^^xsd:string ;
+    agento:promptOutputIndicator "messages"^^xsd:string .
+
+# ---------- node-level workflow (with the conditional gate) ----------
+ex:FlowStep_our_agent a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_our_agent ;
+    agentoscin:hasTitle "our_agent"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_tools .
+
+ex:FlowStep_tools a agento:ConditionalStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "tools"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_our_agent .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_our_agent,
+        ex:FlowStep_tools .
+
+# ---------- task-level workflow ----------
+ex:CrewStep_langgraph_team_0_task_our_agent a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "task_our_agent"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_our_agent ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_our_agent .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "AgentState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], add_messages]\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_our_agent ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .

@@ -1,0 +1,84 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/meeting_assistant_flow#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# meeting-assistant-flow (AutoGen) — hand-authored ground-truth.
+# Captures the source semantics:
+#   - Single AssistantAgent (meeting_analyzer) inside a
+#     RoundRobinGroupChat(max_turns=1).
+#   - team.run_stream(task=...) reified as Task_autogen_task_0 +
+#     FlowStep_run_team in AutoGenFlow orchestration.
+#   - File IO and side-effect publication (Trello, CSV, Slack)
+#     happen as plain Python helpers around the team call and are
+#     intentionally not surfaced as workflow steps.
+# ============================================================
+
+<http://example.org/meeting_assistant_flow> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+# ---------- system root ----------
+ex:meeting_assistant_flow a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "AutoGen_v0.4"^^xsd:string ;
+    agentoscin:hasTitle "meeting_assistant_flow"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_meeting_analyzer ;
+    agentoscin:containsTeam ex:Team_RoundRobinGroupChat_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_AutoGenFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agent ----------
+ex:Agent_meeting_analyzer a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "meeting_analyzer"^^xsd:string ;
+    agento:agentRole "meeting_analyzer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_meeting_analyzer ;
+    agento:hasAgentGoal ex:Goal_meeting_analyzer ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_meeting_analyzer a agento:Goal ;
+    agentoscin:hasDescription "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks."^^xsd:string .
+
+ex:AgentPrompt_meeting_analyzer a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks."^^xsd:string ;
+    agento:promptContext "Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion. Return the result as a JSON list of {name: str, description: str} objects."^^xsd:string .
+
+# ---------- team + termination ----------
+ex:TurnLimit_RoundRobinGroupChat_0 a agentoscin:TurnLimitTermination ;
+    agentoscin:hasMaxTurns 1 .
+
+ex:Team_RoundRobinGroupChat_0 a agento:Team ;
+    agentoscin:hasTitle "RoundRobinGroupChat"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:RoundRobin ;
+    agentoscin:hasTerminationCondition ex:TurnLimit_RoundRobinGroupChat_0 ;
+    agento:hasAgentMember ex:Agent_meeting_analyzer .
+
+# ---------- team.run_stream reified ----------
+ex:Task_autogen_task_0 a agento:Task ;
+    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
+    agento:taskPrompt ex:TaskPrompt_autogen_task_0 .
+
+ex:TaskPrompt_autogen_task_0 a agento:Prompt ;
+    agentoscin:hasSourceAttribute "task"^^xsd:string ;
+    agento:promptInstruction "f'Analyze the following meeting transcript and extract actionable tasks.\\n\\nTranscript:\\n{transcript}'"^^xsd:string .
+
+ex:FlowStep_run_team a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "run_team"^^xsd:string ;
+    agentoscin:callsCrew "team"^^xsd:string ;
+    agento:stepOrder 1 .
+
+ex:FlowWorkflowPattern_AutoGenFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_run_team .
+
+ex:Orchestration_AutoGenFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "AutoGenFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_AutoGenFlow .
