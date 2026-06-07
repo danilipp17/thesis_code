@@ -63,8 +63,17 @@ def run_extraction(
     *,
     ground_truth: Path | None = None,
     out_root: Path | None = None,
+    system_name: str | None = None,
+    namespace: str | None = None,
 ) -> dict[str, Any]:
-    """Execute the extraction pipeline and return the report dict."""
+    """Execute the extraction pipeline and return the report dict.
+
+    ``system_name`` and ``namespace`` default to values derived from
+    ``example_root.name``. Pass them explicitly when the example lives
+    under a path whose leaf is not the desired system name (e.g.\\
+    ``examples/parallel/<family>/<framework>/`` where the family — not
+    the framework — should be the system identity).
+    """
     example_root = example_root.resolve()
     example_name = example_root.name
     source_dir = resolve_source_dir(example_root)
@@ -80,6 +89,9 @@ def run_extraction(
     if ground_truth is None:
         ground_truth = _discover_ground_truth(example_root)
 
+    effective_system_name = system_name or default_system_name(example_name)
+    effective_namespace = namespace or default_namespace(example_name)
+
     report: dict[str, Any] = {
         "pipeline": "extraction",
         "example": example_name,
@@ -88,6 +100,8 @@ def run_extraction(
         "source_dir": str(source_dir),
         "work_dir": str(work),
         "ground_truth": str(ground_truth) if ground_truth else None,
+        "system_name": effective_system_name,
+        "namespace": effective_namespace,
         "steps": {},
         "metrics": {},
     }
@@ -101,8 +115,8 @@ def run_extraction(
             [
                 "extract", str(source_dir),
                 "--framework", framework,
-                "--system-name", default_system_name(example_name),
-                "--namespace", default_namespace(example_name),
+                "--system-name", effective_system_name,
+                "--namespace", effective_namespace,
                 "--output", str(ttl_path),
                 "--no-report",
             ],

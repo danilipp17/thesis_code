@@ -120,69 +120,69 @@ ex:AgentPrompt_review_summarizer a agento:Prompt ;
     agento:promptContext "A technical lead who synthesizes feedback from code reviewers and security auditors and gives a verdict of APPROVED if no critical or major issues exist, otherwise REQUEST CHANGES."^^xsd:string .
 
 # ---------- tasks ----------
-ex:Task_code_review_task a agento:Task ;
+ex:Task_code_review a agento:Task ;
     agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
     agentoscin:hasExpectedOutput "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements."^^xsd:string ;
     agento:performedByAgent ex:Agent_code_reviewer ;
-    agento:taskPrompt ex:TaskPrompt_code_review_task .
+    agento:taskPrompt ex:TaskPrompt_code_review .
 
-ex:TaskPrompt_code_review_task a agento:Prompt ;
+ex:TaskPrompt_code_review a agento:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
     agento:promptInstruction """Review the following code for correctness, readability, and best practices. Use the code analyzer tool.
 
 {code}"""^^xsd:string ;
     agento:promptOutputIndicator "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements."^^xsd:string .
 
-ex:Task_security_audit_task a agento:Task ;
+ex:Task_security_audit a agento:Task ;
     agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
     agentoscin:hasExpectedOutput "A security audit report listing CWE-classified findings."^^xsd:string ;
     agentoscin:hasDependencyType "Sequential"^^xsd:string ;
-    agentoscin:dependsOn ex:Task_code_review_task ;
+    agentoscin:dependsOn ex:Task_code_review ;
     agento:performedByAgent ex:Agent_security_auditor ;
-    agento:taskPrompt ex:TaskPrompt_security_audit_task .
+    agento:taskPrompt ex:TaskPrompt_security_audit .
 
-ex:TaskPrompt_security_audit_task a agento:Prompt ;
+ex:TaskPrompt_security_audit a agento:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
     agento:promptInstruction """Audit the following code for security vulnerabilities (OWASP Top 10, hardcoded secrets, injection attacks, missing input validation). Provide CWE classifications.
 
 {code}"""^^xsd:string ;
     agento:promptOutputIndicator "A security audit report listing CWE-classified findings."^^xsd:string .
 
-ex:Task_summary_task a agento:Task ;
+ex:Task_summary a agento:Task ;
     agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
     agentoscin:hasExpectedOutput "A structured review report with verdict, summary, critical count, and action items."^^xsd:string ;
     agentoscin:hasDependencyType "Sequential"^^xsd:string ;
-    agentoscin:dependsOn ex:Task_security_audit_task ;
+    agentoscin:dependsOn ex:Task_security_audit ;
     agento:performedByAgent ex:Agent_review_summarizer ;
-    agento:taskPrompt ex:TaskPrompt_summary_task .
+    agento:taskPrompt ex:TaskPrompt_summary .
 
-ex:TaskPrompt_summary_task a agento:Prompt ;
+ex:TaskPrompt_summary a agento:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
     agento:promptInstruction "Synthesize the review and audit findings into a structured report. Provide a verdict (APPROVED if no critical or major issues, otherwise REQUEST CHANGES), a summary, a critical count, and action items."^^xsd:string ;
     agento:promptOutputIndicator "A structured review report with verdict, summary, critical count, and action items."^^xsd:string .
 
 # ---------- crew-level workflow (tasks-as-CrewSteps) ----------
-ex:CrewStep_CodeReviewCrew_code_review_task a agento:StartStep ;
-    agentoscin:hasTitle "code_review_task"^^xsd:string ;
-    agento:hasAssociatedTask ex:Task_code_review_task ;
+ex:CrewStep_CodeReviewCrew_code_review a agento:StartStep ;
+    agentoscin:hasTitle "code_review"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_code_review ;
     agento:stepOrder 1 ;
-    agento:nextStep ex:CrewStep_CodeReviewCrew_security_audit_task .
+    agento:nextStep ex:CrewStep_CodeReviewCrew_security_audit .
 
-ex:CrewStep_CodeReviewCrew_security_audit_task a agento:WorkflowStep ;
-    agentoscin:hasTitle "security_audit_task"^^xsd:string ;
-    agento:hasAssociatedTask ex:Task_security_audit_task ;
+ex:CrewStep_CodeReviewCrew_security_audit a agento:WorkflowStep ;
+    agentoscin:hasTitle "security_audit"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_security_audit ;
     agento:stepOrder 2 ;
-    agento:nextStep ex:CrewStep_CodeReviewCrew_summary_task .
+    agento:nextStep ex:CrewStep_CodeReviewCrew_summary .
 
-ex:CrewStep_CodeReviewCrew_summary_task a agento:EndStep ;
-    agentoscin:hasTitle "summary_task"^^xsd:string ;
-    agento:hasAssociatedTask ex:Task_summary_task ;
+ex:CrewStep_CodeReviewCrew_summary a agento:EndStep ;
+    agentoscin:hasTitle "summary"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_summary ;
     agento:stepOrder 3 .
 
 ex:WorkflowPattern_CodeReviewCrew a agento:WorkflowPattern ;
-    agento:hasWorkflowStep ex:CrewStep_CodeReviewCrew_code_review_task,
-        ex:CrewStep_CodeReviewCrew_security_audit_task,
-        ex:CrewStep_CodeReviewCrew_summary_task .
+    agento:hasWorkflowStep ex:CrewStep_CodeReviewCrew_code_review,
+        ex:CrewStep_CodeReviewCrew_security_audit,
+        ex:CrewStep_CodeReviewCrew_summary .
 
 # ---------- team (CrewAI: Process.sequential) ----------
 ex:Team_CodeReviewCrew a agento:Team ;

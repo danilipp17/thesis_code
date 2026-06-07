@@ -100,14 +100,23 @@ class AutoGenGenerator(BaseCodeGenerator):
         self._write_file("tools.py", "\n".join(lines))
 
     def _build_tool_params(self, tool) -> str:
-        """Build typed parameter string from tool's args_schema_json."""
+        """Build typed parameter string from tool's args_schema_json.
+
+        Fix #4: AutoGen's ``FunctionTool`` introspects the function
+        signature to build a JSON Schema for the LLM tool call. A
+        ``**kwargs``-only signature fails with ``KeyError: 'kwargs'``
+        at construction time. When no input schema is available in
+        the ABox, fall back to a single explicit ``input: str``
+        parameter so that wrapping always succeeds.
+        """
+        _default_params = "input: str"
         try:
             schema = json.loads(tool.args_schema_json)
         except (json.JSONDecodeError, TypeError):
-            return "**kwargs"
+            return _default_params
 
         if not schema or "properties" not in schema:
-            return "**kwargs"
+            return _default_params
 
         _type_map = {
             "string": "str",
@@ -123,7 +132,7 @@ class AutoGenGenerator(BaseCodeGenerator):
             py_type = _type_map.get(prop.get("type", "string"), "str")
             params.append(f"{name}: {py_type}")
 
-        return ", ".join(params) if params else "**kwargs"
+        return ", ".join(params) if params else _default_params
 
     # -----------------------------------------------------------
     # Main Generation

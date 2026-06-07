@@ -4,6 +4,7 @@ Auto-generated AutoGen application: {{ system_name }}
 
 import asyncio
 import dotenv
+from typing import Any, Dict, List, Optional
 
 dotenv.load_dotenv()
 
@@ -66,15 +67,27 @@ model_client = OpenAIChatCompletionClient(model="{{ model }}")
    that BinOp as a composite of the two named vars, which populator
    then serialises back to the same two hasTerminationCondition triples
    (plus hasTriggerExpression for the EventBased one). #}
-{% if team.max_turns %}
-max_msg_termination = MaxMessageTermination({{ team.max_turns }})
-{% else %}
-max_msg_termination = MaxMessageTermination(10)
-{% endif %}
+{# Fix #3: AutoGen's ``max_turns`` parameter on the group chat and
+   ``MaxMessageTermination(N)`` have different semantics. Earlier
+   versions of this template translated ``max_turns=N`` from the ABox
+   into ``MaxMessageTermination(N)`` which terminates after N total
+   messages (including the user's task message), so a single-agent
+   team with ``max_turns=1`` terminated before the agent's first turn
+   and never invoked the LLM. We now pass ``max_turns`` directly to
+   the team constructor and only emit ``MaxMessageTermination`` as a
+   safety bound when no ``max_turns`` is set. ``TextMentionTermination``
+   is emitted unconditionally when a trigger expression is present. #}
 {% if team.trigger_expression %}
 text_termination = TextMentionTermination("{{ team.trigger_expression }}")
+{% endif %}
+{% if not team.max_turns %}
+max_msg_termination = MaxMessageTermination(10)
+{% endif %}
+{% if team.trigger_expression and not team.max_turns %}
 termination = max_msg_termination | text_termination
-{% else %}
+{% elif team.trigger_expression %}
+termination = text_termination
+{% elif not team.max_turns %}
 termination = max_msg_termination
 {% endif %}
 
@@ -82,13 +95,15 @@ termination = max_msg_termination
 team = SelectorGroupChat(
     participants=[{{ team.agents | join(', ') }}],
     model_client=model_client,
-    termination_condition=termination,
-)
+{% if team.max_turns %}    max_turns={{ team.max_turns }},
+{% endif %}{% if team.trigger_expression or not team.max_turns %}    termination_condition=termination,
+{% endif %})
 {% else %}
 team = RoundRobinGroupChat(
     participants=[{{ team.agents | join(', ') }}],
-    termination_condition=termination,
-)
+{% if team.max_turns %}    max_turns={{ team.max_turns }},
+{% endif %}{% if team.trigger_expression or not team.max_turns %}    termination_condition=termination,
+{% endif %})
 {% endif %}
 
 {% endfor %}

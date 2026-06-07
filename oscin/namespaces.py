@@ -37,9 +37,20 @@ ONTOLOGY_NAMESPACES = (
 
 
 def is_ontology_uri(uri: str) -> bool:
-    """Return True iff ``uri`` lives in any of the imported ontologies."""
+    """Return True iff ``uri`` lives in any of the imported ontologies.
+
+    Each namespace constant ends with a trailing separator (``/`` or ``#``),
+    but the ontology *root IRI* itself — e.g. the one used in ``owl:imports``
+    statements — does not. Both forms must be recognised, otherwise the
+    ontology-level metadata triples
+    (``owl:imports``, ``dc:title``, ``dc:creator`` …) leak into ABox
+    comparisons.
+    """
     s = str(uri)
-    return any(s.startswith(ns) for ns in ONTOLOGY_NAMESPACES)
+    for ns in ONTOLOGY_NAMESPACES:
+        if s.startswith(ns) or s == ns.rstrip("/#"):
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------

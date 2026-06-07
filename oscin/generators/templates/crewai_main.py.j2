@@ -3,7 +3,7 @@ Auto-generated CrewAI Flow: {{ flow_class }}
 """
 
 import dotenv
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from crewai.flow.flow import Flow, listen, router, start
 
 dotenv.load_dotenv()
@@ -25,13 +25,24 @@ class {{ state_class }}(BaseModel):
 
 class {{ flow_class }}(Flow[{{ state_class }}]):
 
+{# Fix #6: ``@listen()`` and ``@router()`` require a positional argument
+   (the predecessor method or branch label). Earlier emissions left the
+   parentheses empty when no dependency was recorded in the ABox, which
+   raised ``TypeError: listen() missing 1 required positional argument:
+   'condition'`` at decoration time. We now fall back to ``@start()`` —
+   a self-contained entry point — when no dependency is available, so
+   the resulting Flow remains importable. #}
 {% for step in steps %}
     {% if step.type == "start" %}
     @start({% if step.dependencies %}"{{ step.dependencies[0] }}"{% endif %})
+    {% elif step.type == "router" and step.dependencies %}
+    @router({{ step.dependencies[0] }})
     {% elif step.type == "router" %}
-    @router({% if step.dependencies %}{{ step.dependencies[0] }}{% endif %})
+    @start()
+    {% elif step.dependencies %}
+    @listen({{ step.dependencies[0] }})
     {% else %}
-    @listen({% if step.dependencies %}{{ step.dependencies[0] }}{% endif %})
+    @start()
     {% endif %}
     def {{ step.name }}(self):
 {% if step.body %}

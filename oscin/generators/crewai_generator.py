@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import textwrap
 from pathlib import Path
 from typing import Optional
@@ -133,12 +134,17 @@ class CrewAIGenerator(BaseCodeGenerator):
             return
 
         class_name = tool.class_name
+        # Fix #2: ``@tool``/``BaseTool`` reject an empty name string with
+        # ``ValueError: OpenAI function name cannot be empty``. When the
+        # ABox has no ``hasTitle`` for the tool, fall back to the class
+        # name so the runtime accepts the registration.
+        display_name = tool.name or class_name
 
         # Parse input schema for args
         args_code = self._generate_args_schema(tool.args_schema_json, class_name)
 
         code = f'''"""
-Auto-generated tool: {tool.name}
+Auto-generated tool: {display_name}
 {tool.description}
 """
 
@@ -151,7 +157,7 @@ from typing import Type
 
 
 class {class_name}(BaseTool):
-    name: str = "{tool.name}"
+    name: str = "{display_name}"
     description: str = """{tool.description}"""
     args_schema: Type[BaseModel] = {class_name}Schema
 
@@ -630,7 +636,7 @@ Auto-generated CrewAI Flow: {flow_class}
 """
 
 import dotenv
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from crewai.flow.flow import Flow, listen, router, start
 from pydantic import BaseModel
@@ -708,7 +714,9 @@ if __name__ == "__main__":
 """
 
         elif is_router:
-            # @router takes a method reference to the preceding step
+            # @router takes a method reference to the preceding step. Fix #6:
+            # a bare ``@router()`` raises TypeError at decoration time, so
+            # fall back to ``@start()`` when no predecessor is recorded.
             if step.dependencies:
                 arg = step.dependencies[0]
                 if arg in all_method_names:
@@ -716,7 +724,7 @@ if __name__ == "__main__":
                 else:
                     dec = f'@router("{arg}")'
             else:
-                dec = "@router()"
+                dec = "@start()"
             body = self._render_router_body(step)
             return f"""
     {dec}
@@ -725,10 +733,13 @@ if __name__ == "__main__":
 """
 
         else:  # regular/listen
+            # Fix #6: a bare ``@listen()`` raises
+            # ``TypeError: listen() missing 1 required positional argument:
+            # 'condition'`` at decoration time. Fall back to ``@start()``.
             if step.dependencies:
                 dec = f"@listen({self._render_decorator_args(step, all_method_names)})"
             else:
-                dec = "@listen()"
+                dec = "@start()"
             body = self._render_step_body(step)
             return f"""
     {dec}
@@ -753,10 +764,28 @@ if __name__ == "__main__":
             return f"{combinator}({', '.join(formatted)})"
         return formatted[0]
 
+    @staticmethod
+    def _rewrite_state_refs(body: str) -> str:
+        """Fix #5: when a function body originates from a LangGraph node
+        (``def node(state: AgentState): state['x']``), translate the bare
+        ``state`` parameter into ``self.state`` so the CrewAI Flow method
+        can access the flow's state correctly. The negative lookbehind
+        avoids re-prefixing identifiers that already include ``state``
+        as an attribute (``self.state``, ``my_state``) and the trailing
+        lookahead restricts the match to subscript / attribute / call
+        positions so identifiers like ``last_state`` or ``state_dict``
+        are left alone.
+        """
+        # state['x']  -> self.state['x']
+        # state.x     -> self.state.x
+        # state.get(...) -> self.state.get(...)
+        return re.sub(r"(?<![\w\.])state\b(?=\s*[\[\.\(])", "self.state", body)
+
     def _render_step_body(self, step: ExtractedFlowStep) -> str:
         """Render the body of a flow step method."""
         if step.function_body:
-            lines = step.function_body.strip().split("\n")
+            body = self._rewrite_state_refs(step.function_body)
+            lines = body.strip().split("\n")
             indented = "\n".join(f"        {line}" for line in lines)
             return indented
         if step.calls_crew:
@@ -774,6 +803,7 @@ if __name__ == "__main__":
             # Dedent the stored body to remove common leading whitespace,
             # then re-indent to method body level (8 spaces)
             dedented = textwrap.dedent(step.function_body).strip()
+            dedented = self._rewrite_state_refs(dedented)
             lines = dedented.split("\n")
             indented = "\n".join(f"        {line}" for line in lines)
             return indented

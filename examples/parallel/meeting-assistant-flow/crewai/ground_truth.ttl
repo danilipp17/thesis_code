@@ -47,25 +47,34 @@ ex:Agent_meeting_analyzer a agento:LLMAgent ;
     agento:useLanguageModel ex:LM_gpt_4 .
 
 ex:Goal_meeting_analyzer a agento:Goal ;
-    agentoscin:hasDescription "Analyze the provided meeting transcript and extract important, actionable tasks or issues."^^xsd:string .
+    agentoscin:hasDescription """Analyze the provided meeting transcript and extract important, actionable tasks or issues.  The goal is to break down the meeting content into well-structured,  detailed issues that can be easily understood and uploaded to Trello.
+Here is the meeting transcript for your reference:\\n\\n {transcript}"""^^xsd:string .
 
 ex:AgentPrompt_meeting_analyzer a agento:Prompt ;
     agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
     agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
-    agento:promptInstruction "Meeting Transcript Analysis Agent: Analyze the provided meeting transcript and extract important, actionable tasks or issues."^^xsd:string ;
-    agento:promptContext "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks."^^xsd:string .
+    agento:promptInstruction """Meeting Transcript Analysis Agent: Analyze the provided meeting transcript and extract important, actionable tasks or issues.  The goal is to break down the meeting content into well-structured,  detailed issues that can be easily understood and uploaded to Trello.
+Here is the meeting transcript for your reference:\\n\\n {transcript}"""^^xsd:string ;
+    agento:promptContext "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks.  Your ability to identify important issues helps ensure teams can follow up and address key points effectively."^^xsd:string .
 
 # ---------- task ----------
+ex:Schema_MeetingTaskList a agentoscin:Schema ;
+    agentoscin:hasTitle "MeetingTaskList"^^xsd:string ;
+    agentoscin:hasSourceAttribute "output_pydantic"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"properties\":{\"tasks\":{\"type\":\"string\"}},\"required\":[\"tasks\"],\"type\":\"object\"}"^^xsd:string .
+
 ex:Task_analyze_meeting a agento:Task ;
     agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
-    agentoscin:hasExpectedOutput "A JSON list of issues with titles and bodies, containing clear instructions, steps to reproduce, and acceptance criteria where applicable."^^xsd:string ;
+    agentoscin:hasExpectedOutput "A JSON list of issues with titles and bodies, containing clear instructions,  steps to reproduce, and acceptance criteria where applicable."^^xsd:string ;
+    agentoscin:hasOutputSchema ex:Schema_MeetingTaskList ;
     agento:performedByAgent ex:Agent_meeting_analyzer ;
     agento:taskPrompt ex:TaskPrompt_analyze_meeting .
 
 ex:TaskPrompt_analyze_meeting a agento:Prompt ;
     agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
-    agento:promptInstruction "Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion."^^xsd:string ;
-    agento:promptOutputIndicator "A JSON list of issues with titles and bodies, containing clear instructions, steps to reproduce, and acceptance criteria where applicable."^^xsd:string .
+    agento:promptInstruction """Analyze the provided meeting transcript and generate a set of detailed,  well-organized issues based on the discussion. Focus on breaking down the transcript into manageable tasks or issues,  making sure to document each issue thoroughly with steps to reproduce, acceptance criteria,  and any other relevant details.
+Here is the meeting transcript for your reference:\\n\\n {transcript}"""^^xsd:string ;
+    agento:promptOutputIndicator "A JSON list of issues with titles and bodies, containing clear instructions,  steps to reproduce, and acceptance criteria where applicable."^^xsd:string .
 
 # ---------- crew workflow ----------
 ex:CrewStep_MeetingAssistantCrew_analyze_meeting a agento:StartStep,
@@ -108,12 +117,12 @@ ex:FlowStep_add_tasks_to_trello a agento:EndStep,
 ex:FlowStep_save_new_tasks_to_csv a agento:EndStep,
         agento:WorkflowStep ;
     agentoscin:hasTitle "save_new_tasks_to_csv"^^xsd:string ;
-    agento:stepOrder 3 .
+    agento:stepOrder 4 .
 
 ex:FlowStep_send_slack_notification a agento:EndStep,
         agento:WorkflowStep ;
     agentoscin:hasTitle "send_slack_notification"^^xsd:string ;
-    agento:stepOrder 3 .
+    agento:stepOrder 5 .
 
 ex:FlowWorkflowPattern_MeetingFlow a agento:WorkflowPattern ;
     agento:hasWorkflowStep ex:FlowStep_load_meeting_notes,

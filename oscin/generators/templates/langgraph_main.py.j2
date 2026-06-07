@@ -3,15 +3,13 @@ Auto-generated LangGraph application: {{ system_name }}
 """
 
 import dotenv
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, Dict, List, Optional, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 dotenv.load_dotenv()
 from langgraph.graph.message import add_messages
 from langchain_openai import ChatOpenAI
-{% if has_system_prompts %}
-from langchain_core.messages import SystemMessage
-{% endif %}
+from langchain_core.messages import HumanMessage, SystemMessage
 
 {% if tools %}
 from tools import {{ tools | join(', ') }}

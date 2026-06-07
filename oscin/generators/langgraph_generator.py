@@ -173,10 +173,13 @@ class LangGraphGenerator(BaseCodeGenerator):
         if needs_checkpointer:
             lines.append("from langgraph.checkpoint.memory import MemorySaver")
 
-        # Determine which langchain_core.messages classes are needed
-        msg_imports: set[str] = set()
-        if has_system_prompts:
-            msg_imports.update({"SystemMessage", "HumanMessage"})
+        # Determine which langchain_core.messages classes are needed.
+        # Fix #1: import HumanMessage and SystemMessage unconditionally
+        # because the rendered node bodies reference them whenever the
+        # generator emits a task prompt, regardless of whether the
+        # ABox carried a system prompt. Skipping these imports raises
+        # ``NameError: name 'HumanMessage' is not defined`` at runtime.
+        msg_imports: set[str] = {"SystemMessage", "HumanMessage"}
         if needs_base_message:
             msg_imports.add("BaseMessage")
         msg_imports.update(langchain_messages)
