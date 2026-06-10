@@ -12,13 +12,24 @@ Features extracted per Python file:
 
 - ``imports``           — set of imported module names (``import X``, ``from X import ...``)
 - ``classes``           — set of class names
-- ``class_bases``       — set of ``"Class(Base1, Base2)"`` signatures
+- ``class_bases``       — set of sorted base-tuple signatures (no class name; the class
+                          name lives in ``classes`` and including it twice would
+                          double-count a class rename)
 - ``functions``         — set of top-level/method function names
 - ``decorators``        — set of ``"@name"`` or ``"@name(args...)"`` strings on funcs/methods
-- ``decorator_args``    — set of (decorator_name, first_literal_arg) pairs (for CrewAI ``@start("x")``, ``@listen("x")``)
 - ``state_fields``      — set of field names on TypedDict / BaseModel subclasses
 - ``state_annotations`` — set of ``(field_name, annotation_source)`` pairs preserving ``Annotated[...]`` reducers
 - ``graph_calls``       — set of ``(graph_var, method, first_arg_literal)`` for LangGraph StateGraph calls
+
+Comparison:
+
+- A feature class is *applicable* when at least one side has a non-empty set.
+  Empty/empty feature classes are excluded from the macro average so a
+  framework that does not use, say, LangGraph graph calls does not earn a free
+  1.0 on every cell.
+- The overall score is the macro F1 — the arithmetic mean of per-feature F1.
+  Macro precision and macro recall are also reported, computed the same way
+  (mean of per-feature P and R over applicable classes).
 """
 
 from __future__ import annotations
@@ -119,6 +130,12 @@ def _extract_graph_calls(tree: ast.AST) -> set[tuple[str, str, str]]:
     return out
 
 
+FEATURE_KEYS = (
+    "imports", "classes", "class_bases", "functions",
+    "decorators", "state_fields", "state_annotations", "graph_calls",
+)
+
+
 def extract_features(path: Path) -> dict[str, set]:
     """Extract structural features from a Python source file."""
     source = path.read_text(encoding="utf-8")
@@ -126,20 +143,13 @@ def extract_features(path: Path) -> dict[str, set]:
         tree = ast.parse(source)
     except SyntaxError as e:
         log.warning("Syntax error parsing %s: %s", path, e)
-        return {
-            k: set() for k in (
-                "imports", "classes", "class_bases", "functions",
-                "decorators", "decorator_args", "state_fields",
-                "state_annotations", "graph_calls",
-            )
-        }
+        return {k: set() for k in FEATURE_KEYS}
 
     imports: set[str] = set()
     classes: set[str] = set()
     class_bases: set[str] = set()
     functions: set[str] = set()
     decorators: set[str] = set()
-    decorator_args: set[tuple[str, str]] = set()
     state_fields: set[str] = set()
     state_annotations: set[tuple[str, str]] = set()
 
@@ -152,8 +162,11 @@ def extract_features(path: Path) -> dict[str, set]:
                 imports.add(node.module.split(".")[0])
         elif isinstance(node, ast.ClassDef):
             classes.add(node.name)
-            base_names = [_name(b) or "?" for b in node.bases]
-            class_bases.add(f"{node.name}({','.join(base_names)})")
+            # Sorted base tuple, without the class name (the class name is
+            # already in ``classes``; including it twice would double-count a
+            # class rename).
+            base_names = sorted([_name(b) or "?" for b in node.bases])
+            class_bases.add(",".join(base_names))
             if _is_state_class(node):
                 for fname, ann in _extract_state_fields(node):
                     state_fields.add(fname)
@@ -162,11 +175,6 @@ def extract_features(path: Path) -> dict[str, set]:
             functions.add(node.name)
             for dec in node.decorator_list:
                 decorators.add(_decorator_key(dec))
-                if isinstance(dec, ast.Call) and dec.args:
-                    lit = _literal(dec.args[0])
-                    if lit is not None:
-                        dec_name = _name(dec.func) or "?"
-                        decorator_args.add((dec_name, lit))
 
     return {
         "imports": imports,
@@ -174,7 +182,6 @@ def extract_features(path: Path) -> dict[str, set]:
         "class_bases": class_bases,
         "functions": functions,
         "decorators": decorators,
-        "decorator_args": decorator_args,
         "state_fields": state_fields,
         "state_annotations": state_annotations,
         "graph_calls": _extract_graph_calls(tree),
@@ -227,9 +234,16 @@ def merge_features(paths: list[Path]) -> dict[str, set]:
 # --------------------------------------------------------------------
 
 
-def _prf(ref: set, cand: set) -> tuple[float, float, float]:
+def _prf(ref: set, cand: set) -> tuple[float | None, float | None, float | None]:
+    """Per-feature precision/recall/F1.
+
+    Returns ``(None, None, None)`` when ``ref`` and ``cand`` are both empty so
+    the aggregator can skip these inapplicable feature classes (otherwise a
+    framework that does not use, say, LangGraph graph calls would earn a free
+    1.0 on every cell).
+    """
     if not ref and not cand:
-        return 1.0, 1.0, 1.0
+        return None, None, None
     inter = ref & cand
     p = len(inter) / len(cand) if cand else 0.0
     r = len(inter) / len(ref) if ref else 0.0
@@ -246,13 +260,21 @@ def _serializable(v: Any) -> Any:
 
 
 def compare(ref_paths: list[Path], cand_paths: list[Path]) -> dict:
-    """Compare feature sets between reference and candidate source trees."""
+    """Compare feature sets between reference and candidate source trees.
+
+    Overall scores are computed as macro averages — the arithmetic mean of
+    per-feature precision, recall and F1 — over *applicable* feature classes
+    (those where at least one side is non-empty). Inapplicable feature
+    classes are excluded from the average and reported with ``f1=None`` in
+    the per-feature breakdown.
+    """
     ref = merge_features(ref_paths)
     cand = merge_features(cand_paths)
 
     per_feature = {}
-    prs = []
-    rrs = []
+    applicable_ps: list[float] = []
+    applicable_rs: list[float] = []
+    applicable_fs: list[float] = []
     for key in ref.keys() | cand.keys():
         r_set = ref.get(key, set())
         c_set = cand.get(key, set())
@@ -261,6 +283,7 @@ def compare(ref_paths: list[Path], cand_paths: list[Path]) -> dict:
             "precision": p,
             "recall": r,
             "f1": f,
+            "applicable": p is not None,
             "ref_count": len(r_set),
             "cand_count": len(c_set),
             "missing": sorted(
@@ -273,15 +296,14 @@ def compare(ref_paths: list[Path], cand_paths: list[Path]) -> dict:
                 _serializable(x) for x in r_set & c_set
             ),
         }
-        prs.append(p)
-        rrs.append(r)
+        if p is not None:
+            applicable_ps.append(p)
+            applicable_rs.append(r)
+            applicable_fs.append(f)
 
-    overall_p = round(sum(prs) / len(prs), 3) if prs else 0.0
-    overall_r = round(sum(rrs) / len(rrs), 3) if rrs else 0.0
-    overall_f = (
-        round(2 * overall_p * overall_r / (overall_p + overall_r), 3)
-        if (overall_p + overall_r) else 0.0
-    )
+    overall_p = round(sum(applicable_ps) / len(applicable_ps), 3) if applicable_ps else 0.0
+    overall_r = round(sum(applicable_rs) / len(applicable_rs), 3) if applicable_rs else 0.0
+    overall_f = round(sum(applicable_fs) / len(applicable_fs), 3) if applicable_fs else 0.0
 
     return {
         "metric": NAME,
@@ -289,6 +311,8 @@ def compare(ref_paths: list[Path], cand_paths: list[Path]) -> dict:
             "precision": overall_p,
             "recall": overall_r,
             "f1": overall_f,
+            "applicable_features": len(applicable_fs),
+            "total_features": len(per_feature),
         },
         "per_feature": per_feature,
         "ref_files": [str(p) for p in ref_paths],
@@ -319,10 +343,10 @@ def row(result: dict) -> dict:
         "ast_overall_f1": overall.get("f1"),
         "ast_overall_precision": overall.get("precision"),
         "ast_overall_recall": overall.get("recall"),
-        "ast_decorator_args_f1": (per.get("decorator_args") or {}).get("f1"),
         "ast_state_fields_f1": (per.get("state_fields") or {}).get("f1"),
         "ast_imports_f1": (per.get("imports") or {}).get("f1"),
         "ast_functions_f1": (per.get("functions") or {}).get("f1"),
+        "ast_decorators_f1": (per.get("decorators") or {}).get("f1"),
     }
 
 

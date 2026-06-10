@@ -1,0 +1,171 @@
+# ============================================================
+# feature_demo.ttl
+# Synthetic ABox that exercises the ontology features which the
+# original parallel-corpus systems do not populate (reasoning
+# patterns, memory bindings, memory persistence, task-level tools,
+# guardrails, human checkpoints). This lets every competency query
+# return at least one row against the combined knowledge graph.
+#
+# IRI namespace:  http://example.org/demo/feature_demo#
+# Prefix:         demo:
+# ============================================================
+
+@prefix agento:     <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix demo:       <http://example.org/demo/feature_demo#> .
+@prefix owl:        <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:        <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------- system root ----------
+demo:feature_demo a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "FeatureDemo"^^xsd:string ;
+    agentoscin:hasTitle "feature_demo"^^xsd:string ;
+    agentoscin:containsAgent demo:Agent_planner,
+                             demo:Agent_executor,
+                             demo:Agent_human_approver ;
+    agentoscin:containsTeam demo:Team_demo ;
+    agentoscin:containsOrchestration demo:Orchestration_demo ;
+    agentoscin:hasMemoryBinding demo:MemBinding_system .
+
+# ---------- language model ----------
+demo:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agents (one reasoning agent, one worker, one human proxy) ----------
+demo:Agent_planner a agento:LLMAgent ;
+    agento:agentID "planner"^^xsd:string ;
+    agento:agentRole "Planner"^^xsd:string ;
+    agento:useLanguageModel demo:LM_gpt_4o ;
+    agentoscin:agentType "Manager"^^xsd:string ;
+    agentoscin:hasReasoningEnabled true ;
+    agentoscin:employsReasoningPattern demo:ReAct_planner ;
+    agentoscin:hasReasoningOrigin "model-native"^^xsd:string ;
+    agentoscin:hasMemoryBinding demo:MemBinding_agent .
+
+demo:ReAct_planner a agentoscin:ReAct .
+
+demo:Agent_executor a agento:LLMAgent ;
+    agento:agentID "executor"^^xsd:string ;
+    agento:agentRole "Worker"^^xsd:string ;
+    agento:useLanguageModel demo:LM_gpt_4o ;
+    agentoscin:agentType "Worker"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentToolUsage demo:Tool_search .
+
+demo:Agent_human_approver a agento:LLMAgent ;
+    agento:agentID "human_approver"^^xsd:string ;
+    agento:agentRole "Human Proxy"^^xsd:string ;
+    agentoscin:agentType "HumanProxy"^^xsd:string .
+
+# ---------- memory & bindings ----------
+demo:Memory_agent_scratchpad a agento:Memory ;
+    agentoscin:hasTitle "PlannerScratchpad"^^xsd:string ;
+    agentoscin:hasPersistenceScope "execution"^^xsd:string .
+
+demo:Memory_team_shared a agento:Memory ;
+    agentoscin:hasTitle "TeamSharedMemory"^^xsd:string ;
+    agentoscin:hasPersistenceScope "thread"^^xsd:string .
+
+demo:Memory_system_global a agento:Memory ;
+    agentoscin:hasTitle "GlobalMemory"^^xsd:string ;
+    agentoscin:hasPersistenceScope "global"^^xsd:string .
+
+demo:MemBinding_agent a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory demo:Memory_agent_scratchpad ;
+    agentoscin:hasMemoryScope "private"^^xsd:string .
+
+demo:MemBinding_team a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory demo:Memory_team_shared ;
+    agentoscin:hasMemoryScope "team"^^xsd:string .
+
+demo:MemBinding_system a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory demo:Memory_system_global ;
+    agentoscin:hasMemoryScope "global"^^xsd:string .
+
+# ---------- tools ----------
+demo:Tool_search a agento:Tool ;
+    agentoscin:hasTitle "search"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}"^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.search"^^xsd:string .
+
+demo:Tool_calculator a agento:Tool ;
+    agentoscin:hasTitle "calculator"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"expression\": {\"type\": \"string\"}}}"^^xsd:string .
+
+# ---------- tasks ----------
+demo:Task_plan a agento:Task ;
+    agentoscin:hasDescription "Plan the sequence of actions."^^xsd:string ;
+    agentoscin:hasDelegationStrategy "Orchestrator"^^xsd:string ;
+    agentoscin:hasExpectedOutput "an ordered list of steps"^^xsd:string ;
+    agento:performedByAgent demo:Agent_planner ;
+    agento:taskPrompt demo:TaskPrompt_plan ;
+    agentoscin:hasGuardrail demo:Guardrail_plan_validation ;
+    agentoscin:hasHumanCheckpoint demo:Checkpoint_plan_approval .
+
+demo:TaskPrompt_plan a agento:Prompt ;
+    agento:promptInstruction "Produce a short execution plan."^^xsd:string ;
+    agento:promptOutputIndicator "Plan:"^^xsd:string .
+
+demo:Task_execute a agento:Task ;
+    agentoscin:hasDescription "Execute each step using available tools."^^xsd:string ;
+    agentoscin:hasDelegationStrategy "SelfAssign"^^xsd:string ;
+    agentoscin:hasExpectedOutput "execution log"^^xsd:string ;
+    agento:performedByAgent demo:Agent_executor ;
+    agento:taskPrompt demo:TaskPrompt_execute ;
+    agentoscin:taskToolUsage demo:Tool_calculator ;
+    agentoscin:dependsOn demo:Task_plan ;
+    agentoscin:hasDependencyType "sequential"^^xsd:string .
+
+demo:TaskPrompt_execute a agento:Prompt ;
+    agento:promptInstruction "Run each plan step in order."^^xsd:string .
+
+# ---------- guardrail ----------
+demo:Guardrail_plan_validation a agentoscin:Guardrail ;
+    agentoscin:hasGuardrailType "schema_validation"^^xsd:string ;
+    agentoscin:hasValidationLogic "Output must contain at least one numbered step."^^xsd:string ;
+    agentoscin:hasMaxRetries 3 .
+
+# ---------- human checkpoint ----------
+demo:Checkpoint_plan_approval a agentoscin:HumanCheckpoint ;
+    agentoscin:hasCheckpointPosition "before_execute"^^xsd:string ;
+    agentoscin:hasCheckpointType "approval"^^xsd:string ;
+    agentoscin:isMandatory true .
+
+# ---------- team & nesting ----------
+demo:Team_demo a agento:Team ;
+    agentoscin:hasTitle "DemoTeam"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition demo:Term_demo ;
+    agento:hasAgentMember demo:Agent_planner,
+                          demo:Agent_executor,
+                          demo:Agent_human_approver ;
+    agentoscin:containsTeam demo:SubTeam_review .
+
+demo:SubTeam_review a agento:Team ;
+    agentoscin:hasTitle "ReviewSubTeam"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:RoundRobin ;
+    agento:hasAgentMember demo:Agent_human_approver .
+
+demo:Term_demo a agentoscin:TaskCompletionTermination ;
+    agentoscin:hasTitle "TaskCompletion"^^xsd:string .
+
+# ---------- workflow ----------
+demo:Step_plan a agento:WorkflowStep, agento:StartStep ;
+    agentoscin:hasTitle "plan"^^xsd:string ;
+    agentoscin:hasAssociatedTask demo:Task_plan ;
+    agento:stepOrder 1 ;
+    agento:nextStep demo:Step_execute .
+
+demo:Step_execute a agento:WorkflowStep, agento:EndStep ;
+    agentoscin:hasTitle "execute"^^xsd:string ;
+    agentoscin:hasAssociatedTask demo:Task_execute ;
+    agento:stepOrder 2 .
+
+demo:WorkflowPattern_demo a agento:WorkflowPattern ;
+    agento:hasWorkflowStep demo:Step_plan, demo:Step_execute .
+
+demo:Orchestration_demo a agentoscin:Orchestration ;
+    agentoscin:hasTitle "DemoOrchestration"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:orchestratesTeam demo:Team_demo ;
+    agento:hasWorkflowPattern demo:WorkflowPattern_demo .
