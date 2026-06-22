@@ -1,0 +1,115 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/rag#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# rag (LangGraph) — hand-authored ground-truth.
+# Captures the source semantics:
+#   - Single LLM agent (node "llm") in a ReAct loop with one
+#     retriever_tool over a PDF knowledge base (RAG).
+#   - StateGraph alternates llm <-> retriever_agent until the LLM
+#     stops requesting tool calls; the conditional edge
+#     llm --(should_continue)--> {retriever_agent, END} is captured
+#     as a ConditionalStep on the llm node.
+# Same structural pattern as the ReAct family (cf. maths/langgraph):
+# inline SystemMessage means no top-level Goal individual is minted.
+# ============================================================
+
+ex:rag a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "rag"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_llm ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools ----------
+ex:Tool_retriever_tool a agento:Tool ;
+    agentoscin:hasDescription "This tool searches and returns the information from the Stock Market Performance 2024 document."^^xsd:string ;
+    agentoscin:hasImplementationReference "main.retriever_tool"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "retriever_tool"^^xsd:string .
+
+# ---------- agent ----------
+ex:Agent_llm a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "llm"^^xsd:string ;
+    agento:agentRole "llm"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_llm ;
+    agento:agentToolUsage ex:Tool_retriever_tool ;
+    agento:hasAgentGoal ex:Goal_llm ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+# Goal is minted from the call_llm node docstring (LangGraph node-function
+# convention; cf. the inline-SystemMessage ReAct case which has none).
+ex:Goal_llm a agento:Goal ;
+    agentoscin:hasDescription "Function to call the LLM with the current state."^^xsd:string .
+
+ex:AgentPrompt_llm a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptContext "You are an intelligent AI assistant who answers questions about Stock Market Performance in 2024 based on the PDF document loaded into your knowledge base. Use the retriever tool available to answer questions about the stock market performance data. You can make multiple calls if needed. If you need to look up some information before asking a follow up question, you are allowed to do that! Please always cite the specific parts of the documents you use in your answers."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_task_llm a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agento:performedByAgent ex:Agent_llm ;
+    agento:taskPrompt ex:TaskPrompt_task_llm .
+
+ex:TaskPrompt_task_llm a agento:Prompt ;
+    agento:promptInstruction "Perform llm responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "messages"^^xsd:string .
+
+# ---------- node-level workflow ----------
+# Conditional edge llm --(should_continue)--> {retriever_agent, END}
+# captured on the llm step (the gate lives at the agent node).
+ex:FlowStep_llm a agentoscin:ConditionalStep,
+        agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_llm ;
+    agentoscin:hasEdgeMapping "{\"True\": \"retriever_agent\", \"False\": \"END\"}"^^xsd:string ;
+    agentoscin:hasRoutingLogic """result = state['messages'][-1]
+return hasattr(result, 'tool_calls') and len(result.tool_calls) > 0"""^^xsd:string ;
+    agentoscin:hasTitle "llm"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_retriever_agent .
+
+ex:FlowStep_retriever_agent a agento:WorkflowStep ;
+    agentoscin:hasTitle "retriever_agent"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_llm .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_llm,
+        ex:FlowStep_retriever_agent .
+
+# ---------- task-level workflow ----------
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "AgentState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], add_messages]\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:ReActLoop ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_llm ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .

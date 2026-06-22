@@ -1,0 +1,216 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/company_research#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# company-research (CrewAI) — hand-authored ground-truth.
+# CrewAI Flow port of the AutoGen original: a sequential
+# CompanyResearchCrew of three agents (search -> analysis -> report)
+# with two @tool callables (google_search, analyze_stock), wrapped by
+# a top-level CompanyResearchFlow.
+# ============================================================
+
+ex:company_research a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "company_research"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_search_agent,
+        ex:Agent_analysis_agent,
+        ex:Agent_report_agent ;
+    agentoscin:containsTeam ex:Team_CompanyResearchCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_CompanyResearchFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- verbose=True configs (3 agents + 1 team) ----------
+ex:Config_verbose_Agent_search_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_analysis_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_report_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_CompanyResearchCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- tools (@tool callables) ----------
+ex:Tool_google_search a agento:Tool ;
+    agentoscin:hasDescription "Search Google for information, returns results with a snippet and body content"^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.research_tools.google_search"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "google_search"^^xsd:string .
+
+ex:Tool_analyze_stock a agento:Tool ;
+    agentoscin:hasDescription "Analyze stock data and generate a plot"^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.research_tools.analyze_stock"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "analyze_stock"^^xsd:string .
+
+# ---------- agents (CrewAI: role+goal+backstory -> DualDirective prompt) ----------
+ex:Agent_search_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "search_agent"^^xsd:string ;
+    agento:agentRole "Web Search Specialist"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_search_agent ;
+    agento:agentToolUsage ex:Tool_google_search ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_search_agent ;
+    agento:hasAgentGoal ex:Goal_search_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_search_agent a agento:Goal ;
+    agentoscin:hasDescription "Search the web for the latest information about the requested company and return concise, relevant findings with snippets and source content."^^xsd:string .
+
+ex:AgentPrompt_search_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Web Search Specialist: Search the web for the latest information about the requested company and return concise, relevant findings with snippets and source content."^^xsd:string ;
+    agento:promptContext "You are a helpful AI assistant who solves research tasks using your search tools. You excel at locating the most relevant, up-to-date sources on a company and distilling them into useful context for downstream analysis."^^xsd:string .
+
+ex:Agent_analysis_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "analysis_agent"^^xsd:string ;
+    agento:agentRole "Stock Analysis Expert"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_analysis_agent ;
+    agento:agentToolUsage ex:Tool_analyze_stock ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_analysis_agent ;
+    agento:hasAgentGoal ex:Goal_analysis_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_analysis_agent a agento:Goal ;
+    agentoscin:hasDescription "Analyze the company's stock data and produce key quantitative metrics and a trend assessment, including a saved price plot."^^xsd:string .
+
+ex:AgentPrompt_analysis_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Stock Analysis Expert: Analyze the company's stock data and produce key quantitative metrics and a trend assessment, including a saved price plot."^^xsd:string ;
+    agento:promptContext "You perform rigorous quantitative data analysis. Given a ticker you compute moving averages, volatility, and an overall trend, and you generate a chart of the recent price history."^^xsd:string .
+
+ex:Agent_report_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "report_agent"^^xsd:string ;
+    agento:agentRole "Financial Report Writer"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_report_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_report_agent ;
+    agento:hasAgentGoal ex:Goal_report_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_report_agent a agento:Goal ;
+    agentoscin:hasDescription "Generate a comprehensive financial report based on the search findings and the results of the stock analysis."^^xsd:string .
+
+ex:AgentPrompt_report_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Financial Report Writer: Generate a comprehensive financial report based on the search findings and the results of the stock analysis."^^xsd:string ;
+    agento:promptContext "You are a helpful assistant that can generate a comprehensive report on a given company based on web search and stock analysis. You synthesise the evidence into a clear, well-structured report."^^xsd:string .
+
+# ---------- tasks (CrewAI: ExplicitAssignment; sequential dependsOn chain) ----------
+ex:Task_search_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A set of relevant search results for {company}, each with a snippet and body content."^^xsd:string ;
+    agento:performedByAgent ex:Agent_search_agent ;
+    agento:taskPrompt ex:TaskPrompt_search_task .
+
+ex:TaskPrompt_search_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Search the web for recent, relevant information about {company}. Gather news, background, and any material that would inform a financial report."^^xsd:string ;
+    agento:promptOutputIndicator "A set of relevant search results for {company}, each with a snippet and body content."^^xsd:string .
+
+ex:Task_analysis_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A dictionary of stock metrics and a trend assessment for {company}, plus a saved plot path."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_search_task ;
+    agento:performedByAgent ex:Agent_analysis_agent ;
+    agento:taskPrompt ex:TaskPrompt_analysis_task .
+
+ex:TaskPrompt_analysis_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Analyze the stock for {company}. Compute key metrics (moving averages, volatility) and determine the overall trend, generating a price plot."^^xsd:string ;
+    agento:promptOutputIndicator "A dictionary of stock metrics and a trend assessment for {company}, plus a saved plot path."^^xsd:string .
+
+ex:Task_report_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A comprehensive, well-structured financial report on {company}."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_analysis_task ;
+    agento:performedByAgent ex:Agent_report_agent ;
+    agento:taskPrompt ex:TaskPrompt_report_task .
+
+ex:TaskPrompt_report_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Write a comprehensive financial report on {company} using the web search findings and the stock analysis results."^^xsd:string ;
+    agento:promptOutputIndicator "A comprehensive, well-structured financial report on {company}."^^xsd:string .
+
+# ---------- crew workflow (tasks-as-steps) ----------
+ex:CrewStep_CompanyResearchCrew_search_task a agento:StartStep ;
+    agentoscin:hasTitle "search_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_search_task ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_CompanyResearchCrew_analysis_task .
+
+ex:CrewStep_CompanyResearchCrew_analysis_task a agento:WorkflowStep ;
+    agentoscin:hasTitle "analysis_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_analysis_task ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_CompanyResearchCrew_report_task .
+
+ex:CrewStep_CompanyResearchCrew_report_task a agento:EndStep ;
+    agentoscin:hasTitle "report_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_report_task ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_CompanyResearchCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_CompanyResearchCrew_search_task,
+        ex:CrewStep_CompanyResearchCrew_analysis_task,
+        ex:CrewStep_CompanyResearchCrew_report_task .
+
+# ---------- team (Process.sequential) ----------
+ex:Team_CompanyResearchCrew a agento:Team ;
+    agentoscin:hasTitle "CompanyResearchCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_search_agent,
+        ex:Agent_analysis_agent,
+        ex:Agent_report_agent ;
+    agento:hasSystemConfig ex:Config_verbose_Team_CompanyResearchCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_CompanyResearchCrew .
+
+# ---------- Flow-level orchestration (CompanyResearchFlow wraps the crew) ----------
+ex:FlowStep_research_company a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "research_company"^^xsd:string ;
+    agentoscin:callsCrew "CompanyResearchCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_publish .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_CompanyResearchFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_research_company,
+        ex:FlowStep_publish .
+
+ex:StateSchema_CompanyResearchFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "CompanyResearchState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"company\": \"str\", \"report\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_CompanyResearchFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "CompanyResearchFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_CompanyResearchFlow ;
+    agentoscin:orchestratesTeam ex:Team_CompanyResearchCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_CompanyResearchFlow .

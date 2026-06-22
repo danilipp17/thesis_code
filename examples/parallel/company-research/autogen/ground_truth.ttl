@@ -1,0 +1,136 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/company_research#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# company-research (AutoGen v0.4) — hand-authored ground-truth.
+# Captures the source semantics:
+#   - RoundRobinGroupChat(max_turns=3) -> TurnLimitTermination(3).
+#   - 3 AssistantAgents: a web-search agent (google_search tool),
+#     a stock-analysis agent (analyze_stock tool), and a report
+#     agent (no tools) that emits TERMINATE.
+#   - Each agent carries both system_message (-> Goal + prompt
+#     instruction) and description (-> prompt context).
+# Note: get_page_content is an inner helper of google_search, not a
+# FunctionTool, so it is NOT minted as a Tool individual.
+# ============================================================
+
+ex:company_research a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "AutoGen_v0.4"^^xsd:string ;
+    agentoscin:hasTitle "company_research"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_Google_Search_Agent,
+        ex:Agent_Stock_Analysis_Agent,
+        ex:Agent_Report_Agent ;
+    agentoscin:containsTeam ex:Team_RoundRobinGroupChat_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_AutoGenFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools (FunctionTool wrappers) ----------
+ex:Tool_google_search a agento:Tool ;
+    agentoscin:hasDescription "Search Google for information, returns results with a snippet and body content"^^xsd:string ;
+    agentoscin:hasImplementationReference "main.google_search"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"query\": {\"type\": \"string\"}, \"num_results\": {\"type\": \"integer\"}, \"max_chars\": {\"type\": \"integer\"}}, \"required\": [\"query\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "google_search"^^xsd:string .
+
+ex:Tool_analyze_stock a agento:Tool ;
+    agentoscin:hasDescription "Analyze stock data and generate a plot"^^xsd:string ;
+    agentoscin:hasImplementationReference "main.analyze_stock"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"ticker\": {\"type\": \"string\"}}, \"required\": [\"ticker\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "analyze_stock"^^xsd:string .
+
+# ---------- agents (AutoGen: system_message -> Goal + prompt; description -> promptContext) ----------
+ex:Agent_Google_Search_Agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "Google_Search_Agent"^^xsd:string ;
+    agento:agentRole "Google_Search_Agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_Google_Search_Agent ;
+    agento:agentToolUsage ex:Tool_google_search ;
+    agento:hasAgentGoal ex:Goal_Google_Search_Agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_Google_Search_Agent a agento:Goal ;
+    agentoscin:hasDescription "You are a helpful AI assistant. Solve tasks using your tools."^^xsd:string .
+
+ex:AgentPrompt_Google_Search_Agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "You are a helpful AI assistant. Solve tasks using your tools."^^xsd:string ;
+    agento:promptContext "Search Google for information, returns top 2 results with a snippet and body content"^^xsd:string .
+
+ex:Agent_Stock_Analysis_Agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "Stock_Analysis_Agent"^^xsd:string ;
+    agento:agentRole "Stock_Analysis_Agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_Stock_Analysis_Agent ;
+    agento:agentToolUsage ex:Tool_analyze_stock ;
+    agento:hasAgentGoal ex:Goal_Stock_Analysis_Agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_Stock_Analysis_Agent a agento:Goal ;
+    agentoscin:hasDescription "Perform data analysis."^^xsd:string .
+
+ex:AgentPrompt_Stock_Analysis_Agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "Perform data analysis."^^xsd:string ;
+    agento:promptContext "Analyze stock data and generate a plot"^^xsd:string .
+
+ex:Agent_Report_Agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "Report_Agent"^^xsd:string ;
+    agento:agentRole "Report_Agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_Report_Agent ;
+    agento:hasAgentGoal ex:Goal_Report_Agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_Report_Agent a agento:Goal ;
+    agentoscin:hasDescription "You are a helpful assistant that can generate a comprehensive report on a given topic based on search and stock analysis. When you done with generating the report, reply with TERMINATE."^^xsd:string .
+
+ex:AgentPrompt_Report_Agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_message"^^xsd:string ;
+    agento:promptInstruction "You are a helpful assistant that can generate a comprehensive report on a given topic based on search and stock analysis. When you done with generating the report, reply with TERMINATE."^^xsd:string ;
+    agento:promptContext "Generate a report based the search and results of stock analysis"^^xsd:string .
+
+# ---------- team + termination ----------
+ex:TurnLimit_RoundRobinGroupChat_0 a agentoscin:TurnLimitTermination ;
+    agentoscin:hasMaxTurns 3 .
+
+ex:Team_RoundRobinGroupChat_0 a agento:Team ;
+    agentoscin:hasTitle "RoundRobinGroupChat"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:RoundRobin ;
+    agentoscin:hasTerminationCondition ex:TurnLimit_RoundRobinGroupChat_0 ;
+    agento:hasAgentMember ex:Agent_Stock_Analysis_Agent,
+        ex:Agent_Google_Search_Agent,
+        ex:Agent_Report_Agent .
+
+# ---------- team.run_stream reified ----------
+ex:Task_autogen_task_0 a agento:Task ;
+    agentoscin:hasDelegationStrategy "OrchestratorDelegated"^^xsd:string ;
+    agento:taskPrompt ex:TaskPrompt_autogen_task_0 .
+
+ex:TaskPrompt_autogen_task_0 a agento:Prompt ;
+    agentoscin:hasSourceAttribute "task"^^xsd:string ;
+    agento:promptInstruction "Write a financial report on American airlines"^^xsd:string .
+
+ex:FlowStep_run_team a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "run_team"^^xsd:string ;
+    agentoscin:callsCrew "team"^^xsd:string ;
+    agento:stepOrder 1 .
+
+ex:FlowWorkflowPattern_AutoGenFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_run_team .
+
+ex:Orchestration_AutoGenFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "AutoGenFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_AutoGenFlow .

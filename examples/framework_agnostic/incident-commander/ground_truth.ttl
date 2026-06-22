@@ -1,0 +1,268 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/incident_commander#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# incident-commander — FRAMEWORK-AGNOSTIC ground-truth.
+# A DevOps incident-response system described purely at the semantic
+# level (hasSourceFramework "Agnostic"), with no framework-specific
+# idioms, so it can be generated into CrewAI, LangGraph, or AutoGen.
+#
+# Structure: a hierarchical team led by an Incident Commander manager
+# that orchestrates three tool-using specialists (log analyst,
+# diagnostician, remediator). Exercises: hierarchical coordination,
+# reasoning patterns, memory binding, knowledge sources, tools with
+# input schemas, task dependencies, an output schema, a human
+# checkpoint, a guardrail, and a turn-limit termination.
+# ============================================================
+
+ex:IncidentCommanderSystem a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "Agnostic"^^xsd:string ;
+    agentoscin:hasTitle "incident_commander"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_incident_commander,
+        ex:Agent_log_analyst,
+        ex:Agent_diagnostician,
+        ex:Agent_remediator ;
+    agentoscin:containsTeam ex:Team_IncidentResponseTeam ;
+    agentoscin:containsOrchestration ex:Orchestration_IncidentFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools ----------
+ex:Tool_query_logs a agento:Tool ;
+    agentoscin:hasTitle "query_logs"^^xsd:string ;
+    agentoscin:hasDescription "Query the centralized log store for entries matching a service and time window."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.observability.query_logs"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"service\": {\"type\": \"string\"}, \"since_minutes\": {\"type\": \"integer\"}, \"level\": {\"type\": \"string\"}}, \"required\": [\"service\"], \"type\": \"object\"}"^^xsd:string .
+
+ex:Tool_run_diagnostics a agento:Tool ;
+    agentoscin:hasTitle "run_diagnostics"^^xsd:string ;
+    agentoscin:hasDescription "Run health and dependency diagnostics against a service and return findings."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.observability.run_diagnostics"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"service\": {\"type\": \"string\"}, \"checks\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}}, \"required\": [\"service\"], \"type\": \"object\"}"^^xsd:string .
+
+ex:Tool_apply_remediation a agento:Tool ;
+    agentoscin:hasTitle "apply_remediation"^^xsd:string ;
+    agentoscin:hasDescription "Apply a remediation action (restart, scale, rollback) to a service."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.actions.apply_remediation"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"service\": {\"type\": \"string\"}, \"action\": {\"type\": \"string\", \"enum\": [\"restart\", \"scale\", \"rollback\"]}}, \"required\": [\"service\", \"action\"], \"type\": \"object\"}"^^xsd:string .
+
+# ---------- manager agent (hierarchical lead) ----------
+ex:Agent_incident_commander a agento:LLMAgent ;
+    agentoscin:agentType "Manager"^^xsd:string ;
+    agentoscin:hasReasoningEnabled true ;
+    agentoscin:hasMaxReasoningAttempts 5 ;
+    agentoscin:employsReasoningPattern ex:Reasoning_commander ;
+    agentoscin:hasMemoryBinding ex:MemoryBinding_commander ;
+    agento:agentID "incident_commander"^^xsd:string ;
+    agento:agentRole "Incident Commander"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_incident_commander ;
+    agento:hasAgentGoal ex:Goal_incident_commander ;
+    agento:hasKnowledge ex:Knowledge_runbooks ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Reasoning_commander a agentoscin:ChainOfThought .
+
+ex:MemoryBinding_commander a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory ex:Memory_incident_history .
+
+ex:Memory_incident_history a agentoscin:Memory ;
+    agentoscin:hasPersistenceScope "Persistent"^^xsd:string .
+
+ex:Knowledge_runbooks a agento:KnowledgeSource ;
+    agentoscin:hasTitle "OperationalRunbooks"^^xsd:string .
+
+ex:Goal_incident_commander a agento:Goal ;
+    agentoscin:hasDescription "Coordinate the incident response: delegate analysis, diagnosis, and remediation, and decide when the incident is resolved."^^xsd:string .
+
+ex:AgentPrompt_incident_commander a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Incident Commander: Coordinate the incident response, delegating to specialists and deciding when the incident is resolved."^^xsd:string ;
+    agento:promptContext "A calm, experienced site-reliability lead who triages production incidents, delegates to specialists, and keeps a clear timeline of actions."^^xsd:string .
+
+# ---------- log analyst ----------
+ex:Agent_log_analyst a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "log_analyst"^^xsd:string ;
+    agento:agentRole "Log Analyst"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_log_analyst ;
+    agento:agentToolUsage ex:Tool_query_logs ;
+    agento:hasAgentGoal ex:Goal_log_analyst ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_log_analyst a agento:Goal ;
+    agentoscin:hasDescription "Search the logs for the affected service and surface the error signatures and their first occurrence."^^xsd:string .
+
+ex:AgentPrompt_log_analyst a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Log Analyst: Search the logs and surface error signatures and their first occurrence."^^xsd:string ;
+    agento:promptContext "A meticulous engineer who lives in log aggregators and can spot the one error line that matters among thousands."^^xsd:string .
+
+# ---------- diagnostician (ReAct) ----------
+ex:Agent_diagnostician a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled true ;
+    agentoscin:employsReasoningPattern ex:Reasoning_diagnostician ;
+    agento:agentID "diagnostician"^^xsd:string ;
+    agento:agentRole "Diagnostician"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_diagnostician ;
+    agento:agentToolUsage ex:Tool_run_diagnostics ;
+    agento:hasAgentGoal ex:Goal_diagnostician ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Reasoning_diagnostician a agentoscin:ReAct .
+
+ex:Goal_diagnostician a agento:Goal ;
+    agentoscin:hasDescription "Determine the root cause of the incident from the log findings and diagnostic checks."^^xsd:string .
+
+ex:AgentPrompt_diagnostician a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Diagnostician: Determine the root cause from log findings and diagnostic checks."^^xsd:string ;
+    agento:promptContext "A systems thinker who forms hypotheses, runs targeted diagnostics, and narrows down to the true root cause."^^xsd:string .
+
+# ---------- remediator ----------
+ex:Agent_remediator a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "remediator"^^xsd:string ;
+    agento:agentRole "Remediator"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_remediator ;
+    agento:agentToolUsage ex:Tool_apply_remediation ;
+    agento:hasAgentGoal ex:Goal_remediator ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_remediator a agento:Goal ;
+    agentoscin:hasDescription "Propose and apply the safest remediation that resolves the root cause, then verify recovery."^^xsd:string .
+
+ex:AgentPrompt_remediator a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Remediator: Propose and apply the safest remediation, then verify recovery."^^xsd:string ;
+    agento:promptContext "A careful operator who prefers reversible fixes and always confirms the service has recovered before standing down."^^xsd:string .
+
+# ---------- output schema for the remediation plan ----------
+ex:Schema_RemediationPlan a agentoscin:Schema ;
+    agentoscin:hasTitle "RemediationPlan"^^xsd:string ;
+    agentoscin:hasSourceAttribute "output_pydantic"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"properties\": {\"root_cause\": {\"type\": \"string\"}, \"action\": {\"type\": \"string\"}, \"service\": {\"type\": \"string\"}, \"verified\": {\"type\": \"boolean\"}}, \"required\": [\"root_cause\", \"action\", \"service\", \"verified\"], \"type\": \"object\"}" .
+
+# ---------- human checkpoint (approval before remediation) ----------
+ex:HumanCheckpoint_remediation_approval a agentoscin:HumanCheckpoint ;
+    agentoscin:hasCheckpointType "Approval"^^xsd:string ;
+    agentoscin:isMandatory true .
+
+# ---------- guardrail on the remediation task ----------
+ex:Guardrail_safe_action a agentoscin:Guardrail ;
+    agentoscin:hasGuardrailType "FunctionBased"^^xsd:string ;
+    agentoscin:hasValidationLogic "Reject any action that is not one of {restart, scale, rollback}."^^xsd:string ;
+    agentoscin:hasMaxRetries 2 .
+
+# ---------- tasks ----------
+ex:Task_analyze_logs a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A list of error signatures with first-occurrence timestamps for the affected service."^^xsd:string ;
+    agento:performedByAgent ex:Agent_log_analyst ;
+    agentoscin:taskToolUsage ex:Tool_query_logs ;
+    agento:taskPrompt ex:TaskPrompt_analyze_logs .
+
+ex:TaskPrompt_analyze_logs a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Query the logs for {service} over the last {since_minutes} minutes and identify the dominant error signatures."^^xsd:string ;
+    agento:promptOutputIndicator "A list of error signatures with first-occurrence timestamps."^^xsd:string .
+
+ex:Task_diagnose_issue a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A root-cause statement supported by diagnostic evidence."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_analyze_logs ;
+    agento:performedByAgent ex:Agent_diagnostician ;
+    agentoscin:taskToolUsage ex:Tool_run_diagnostics ;
+    agento:taskPrompt ex:TaskPrompt_diagnose_issue .
+
+ex:TaskPrompt_diagnose_issue a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Using the error signatures, run diagnostics on {service} and determine the root cause."^^xsd:string ;
+    agento:promptOutputIndicator "A root-cause statement supported by diagnostic evidence."^^xsd:string .
+
+ex:Task_remediate a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A completed RemediationPlan with the applied action and verification result."^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_diagnose_issue ;
+    agentoscin:hasOutputSchema ex:Schema_RemediationPlan ;
+    agentoscin:hasHumanCheckpoint ex:HumanCheckpoint_remediation_approval ;
+    agentoscin:hasGuardrail ex:Guardrail_safe_action ;
+    agento:performedByAgent ex:Agent_remediator ;
+    agentoscin:taskToolUsage ex:Tool_apply_remediation ;
+    agento:taskPrompt ex:TaskPrompt_remediate .
+
+ex:TaskPrompt_remediate a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Given the root cause, choose the safest action for {service}, get human approval, apply it, and verify recovery."^^xsd:string ;
+    agento:promptOutputIndicator "A completed RemediationPlan with the applied action and verification result."^^xsd:string .
+
+# ---------- crew/team workflow (tasks-as-steps) ----------
+ex:Step_analyze_logs a agento:StartStep ;
+    agentoscin:hasTitle "analyze_logs"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_analyze_logs ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:Step_diagnose_issue .
+
+ex:Step_diagnose_issue a agento:WorkflowStep ;
+    agentoscin:hasTitle "diagnose_issue"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_diagnose_issue ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:Step_remediate .
+
+ex:Step_remediate a agento:EndStep ;
+    agentoscin:hasTitle "remediate"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_remediate ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_IncidentResponseTeam a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:Step_analyze_logs,
+        ex:Step_diagnose_issue,
+        ex:Step_remediate .
+
+# ---------- termination ----------
+ex:TurnLimit_IncidentResponseTeam a agentoscin:TurnLimitTermination ;
+    agentoscin:hasMaxTurns 12 .
+
+# ---------- verbose config ----------
+ex:Config_verbose_Team_IncidentResponseTeam a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- team (hierarchical, manager-led) ----------
+ex:Team_IncidentResponseTeam a agento:Team ;
+    agentoscin:hasTitle "IncidentResponseTeam"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasTerminationCondition ex:TurnLimit_IncidentResponseTeam ;
+    agento:hasAgentMember ex:Agent_incident_commander,
+        ex:Agent_log_analyst,
+        ex:Agent_diagnostician,
+        ex:Agent_remediator ;
+    agento:hasSystemConfig ex:Config_verbose_Team_IncidentResponseTeam ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_IncidentResponseTeam .
+
+# ---------- orchestration state schema (flat field -> type) ----------
+ex:StateSchema_IncidentFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "IncidentState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"service\": \"str\", \"error_signatures\": \"str\", \"root_cause\": \"str\", \"remediation\": \"str\"}" .
+
+# ---------- orchestration ----------
+ex:Orchestration_IncidentFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "IncidentFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasOutputSchema ex:StateSchema_IncidentFlow ;
+    agentoscin:orchestratesTeam ex:Team_IncidentResponseTeam ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_IncidentResponseTeam .

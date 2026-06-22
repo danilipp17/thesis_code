@@ -64,19 +64,24 @@ def _rebase_graph(g_in: Graph, instance_ns: str) -> Graph:
         g_out.add((rewrite(s), rewrite(p), rewrite(o)))
     return g_out
 
+import os as _os
+
 FAMILIES = [
     "joke",
     "code-review",
     "tech-blog",
     "meeting-assistant-flow",
     "travel-planning",
-    "react",
+    "maths",
 ]
 FRAMEWORKS = ["crewai", "langgraph", "autogen"]
 
 PROVIDER = "openai"
-MODEL = "gpt-4o"
-OUT_ROOT = ROOT / "output" / "llm_baseline_parallel"
+# Model + output dir overridable via env so the same script can be run for
+# multiple baseline models without clobbering each other's extracted TTLs.
+MODEL = _os.environ.get("OSCIN_LLM_MODEL", "gpt-4o")
+_slug = MODEL.replace(".", "").replace("/", "_")
+OUT_ROOT = ROOT / "output" / f"llm_baseline_parallel_{_slug}"
 
 
 def _repair_ttl(text: str) -> str:
@@ -95,6 +100,11 @@ def _repair_ttl(text: str) -> str:
         ("dc", "http://purl.org/dc/elements/1.1/"),
         ("foaf", "http://xmlns.com/foaf/0.1/"),
         ("skos", "http://www.w3.org/2004/02/skos/core#"),
+        # The two project ontologies: the model sometimes uses the explicit
+        # ``agentoscin:`` / ``agento:`` prefixes without declaring them (it
+        # may only bind the default ``:`` to the agentoscin namespace).
+        ("agentoscin", "http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/"),
+        ("agento", "http://www.w3id.org/agentic-ai/onto#"),
     ]
     for prefix, uri in needed:
         if f"@prefix {prefix}:" not in text:

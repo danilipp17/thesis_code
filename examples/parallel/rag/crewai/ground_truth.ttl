@@ -1,0 +1,119 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/rag#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# rag (CrewAI) — hand-authored ground-truth.
+# CrewAI Flow port of the LangGraph original: a single-agent RagCrew
+# whose rag_agent answers questions using one @tool (retriever_tool)
+# over the Stock Market 2024 document, wrapped by a top-level RagFlow.
+# ============================================================
+
+ex:rag a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "rag"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_rag_agent ;
+    agentoscin:containsTeam ex:Team_RagCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_RagFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- verbose=True configs (agent + team) ----------
+ex:Config_verbose_Agent_rag_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_RagCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- tools (@tool callable) ----------
+ex:Tool_retriever_tool a agento:Tool ;
+    agentoscin:hasDescription "This tool searches and returns the information from the Stock Market Performance 2024 document."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.retriever.retriever_tool"^^xsd:string ;
+    agentoscin:hasInputSchema "{}"^^xsd:string ;
+    agentoscin:hasTitle "retriever_tool"^^xsd:string .
+
+# ---------- agent (CrewAI: role+goal+backstory -> DualDirective prompt) ----------
+ex:Agent_rag_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "rag_agent"^^xsd:string ;
+    agento:agentRole "Stock Market Research Assistant"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_rag_agent ;
+    agento:agentToolUsage ex:Tool_retriever_tool ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_rag_agent ;
+    agento:hasAgentGoal ex:Goal_rag_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Goal_rag_agent a agento:Goal ;
+    agentoscin:hasDescription "Answer questions about Stock Market Performance in 2024 using the retriever tool, always citing the specific parts of the document used."^^xsd:string .
+
+ex:AgentPrompt_rag_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Stock Market Research Assistant: Answer questions about Stock Market Performance in 2024 using the retriever tool, always citing the specific parts of the document used."^^xsd:string ;
+    agento:promptContext "You are an intelligent AI assistant who answers questions about Stock Market Performance in 2024 based on the PDF document loaded into your knowledge base. You use the retriever tool to ground every answer, making multiple calls when needed, and you always cite the specific parts of the documents you rely on."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_answer_question a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A grounded, well-cited answer to the question based on the Stock Market Performance 2024 document."^^xsd:string ;
+    agento:performedByAgent ex:Agent_rag_agent ;
+    agento:taskPrompt ex:TaskPrompt_answer_question .
+
+ex:TaskPrompt_answer_question a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction "Answer the following question about Stock Market Performance in 2024 using the retriever tool to ground your answer, citing the specific document parts you use: {question}"^^xsd:string ;
+    agento:promptOutputIndicator "A grounded, well-cited answer to the question based on the Stock Market Performance 2024 document."^^xsd:string .
+
+# ---------- crew workflow ----------
+ex:CrewStep_RagCrew_answer_question a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "answer_question"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_answer_question ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_RagCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_RagCrew_answer_question .
+
+# ---------- team (Process.sequential) ----------
+ex:Team_RagCrew a agento:Team ;
+    agentoscin:hasTitle "RagCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_rag_agent ;
+    agento:hasSystemConfig ex:Config_verbose_Team_RagCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_RagCrew .
+
+# ---------- Flow-level orchestration (RagFlow wraps the crew) ----------
+ex:FlowStep_answer a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "answer"^^xsd:string ;
+    agentoscin:callsCrew "RagCrew"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_publish .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_RagFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_answer,
+        ex:FlowStep_publish .
+
+ex:StateSchema_RagFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "RagState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"question\": \"str\", \"answer\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_RagFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "RagFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_RagFlow ;
+    agentoscin:orchestratesTeam ex:Team_RagCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_RagFlow .

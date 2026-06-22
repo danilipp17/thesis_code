@@ -182,6 +182,33 @@ def _get_used_properties(g: Graph) -> set[str]:
     return props
 
 
+def _get_property_counts(g: Graph) -> dict[str, int]:
+    """Count ABox usages of each agentoscin property.
+
+    Mirrors ``_get_abox_individuals`` but for predicates: instead of grouping
+    individuals by class, it groups triples by predicate and counts how many
+    times each property is exercised. Property F1 then matches these counts the
+    same way individual F1 matches per-class instance counts (``min`` per key),
+    so a property used three times in the reference but only once in the
+    candidate earns partial — not full — credit.
+
+    Uses the same triple filtering as ``_get_normalized_triples`` (TBox,
+    ontology-level subjects and blank-node triples are excluded) so the
+    counts are comparable across independent serializations.
+    """
+    counts: dict[str, int] = defaultdict(int)
+    for s, p, o in g:
+        if _is_tbox_triple(s, p, o):
+            continue
+        if isinstance(s, URIRef) and is_ontology_uri(s):
+            continue
+        if isinstance(s, BNode) or isinstance(o, BNode):
+            continue
+        if is_ontology_uri(str(p)):
+            counts[_local_name(p)] += 1
+    return dict(counts)
+
+
 def _get_abox_triples(g: Graph) -> int:
     """Count ABox triples only (excluding blank node triples)."""
     count = 0
@@ -344,15 +371,35 @@ def compute_pairwise(reference: Graph, candidate: Graph) -> PairwiseMetrics:
             m.extra_individuals.append(f"{cls} ({cand_count} extra)")
 
     # --- Property-level ---
-    ref_props = _get_used_properties(reference)
-    cand_props = _get_used_properties(candidate)
+    # Symmetric with the individual-level metric: instead of matching
+    # individuals by per-class count, match properties by per-predicate usage
+    # count. Each predicate contributes ``min(ref_uses, cand_uses)`` matches, so
+    # a property is credited in proportion to how often it is *correctly*
+    # exercised, not merely whether it appears at all.
+    ref_pc = _get_property_counts(reference)
+    cand_pc = _get_property_counts(candidate)
 
-    common_props = ref_props & cand_props
-    m.property_precision = len(common_props) / len(cand_props) if cand_props else 0.0
-    m.property_recall = len(common_props) / len(ref_props) if ref_props else 0.0
+    all_props = set(ref_pc) | set(cand_pc)
+    total_ref_uses = 0
+    total_cand_uses = 0
+    total_matched_uses = 0
+    for prop in all_props:
+        rc = ref_pc.get(prop, 0)
+        cc = cand_pc.get(prop, 0)
+        total_ref_uses += rc
+        total_cand_uses += cc
+        total_matched_uses += min(rc, cc)
+
+    m.property_precision = (
+        total_matched_uses / total_cand_uses if total_cand_uses else 0.0
+    )
+    m.property_recall = (
+        total_matched_uses / total_ref_uses if total_ref_uses else 0.0
+    )
     m.property_f1 = _f1(m.property_precision, m.property_recall)
-    m.missing_properties = sorted(ref_props - cand_props)
-    m.extra_properties = sorted(cand_props - ref_props)
+    # Missing / extra reported as presence/absence for readability.
+    m.missing_properties = sorted(set(ref_pc) - set(cand_pc))
+    m.extra_properties = sorted(set(cand_pc) - set(ref_pc))
 
     # --- Triple-level ---
     ref_triples = _get_normalized_triples(reference)

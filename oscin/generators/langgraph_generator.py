@@ -311,13 +311,60 @@ class LangGraphGenerator(BaseCodeGenerator):
                 "",
                 "",
                 'if __name__ == "__main__":',
-                '    result = app.invoke({"messages": ["Start the task."]})',
-                '    print(result["messages"][-1].content)',
+                f"    result = app.invoke({self._initial_state_literal()})",
+                "    if isinstance(result, dict):",
+                "        for _k, _v in result.items():",
+                '            _s = _v[-1].content if isinstance(_v, list) and _v and hasattr(_v[-1], "content") else _v',
+                '            print(f"=== {_k} ===")',
+                "            print(str(_s)[:800])",
+                "    else:",
+                "        print(result)",
                 "",
             ]
         )
 
         self._write_file("main.py", "\n".join(lines))
+
+    def _initial_state_literal(self) -> str:
+        """Build the dict literal passed to ``app.invoke`` at the entry point.
+
+        Seeds every declared state field with a type-appropriate default so a
+        node that consumes a field before it is produced does not raise
+        ``KeyError``. The seed ``messages`` entry is a proper ``HumanMessage``
+        (not a raw string) so nodes that read ``.content`` do not raise
+        ``AttributeError``.
+        """
+        state_fields: dict[str, str] = {}
+        if self.reader.flow and hasattr(self.reader.flow, "state_fields"):
+            state_fields = self.reader.flow.state_fields or {}
+
+        items = ['"messages": [HumanMessage(content="Start the task.")]']
+        for name, ftype in state_fields.items():
+            if name == "messages":
+                continue
+            items.append(f'"{name}": {self._default_for_type(ftype, name)}')
+        return "{" + ", ".join(items) + "}"
+
+    @staticmethod
+    def _default_for_type(ftype: str, name: str) -> str:
+        """Pick a runnable default literal for a declared state field type."""
+        t = (ftype or "").strip()
+        low = t.lower()
+        if low.startswith("annotated["):  # unwrap Annotated[X, reducer]
+            low = t[len("Annotated["):].split(",")[0].strip().lower()
+        if low.startswith(("list", "sequence", "tuple", "array")):
+            return "[]"
+        if low.startswith(("dict", "mapping", "object")):
+            return "{}"
+        if low in ("int", "integer"):
+            return "0"
+        if low in ("float", "number"):
+            return "0.0"
+        if low in ("bool", "boolean"):
+            return "False"
+        if low.startswith("optional"):
+            return "None"
+        return f'"sample {name}"'  # str / unknown -> placeholder text
 
     # -----------------------------------------------------------
     # State Class Generation

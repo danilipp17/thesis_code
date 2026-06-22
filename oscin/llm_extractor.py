@@ -151,12 +151,18 @@ def call_openai(prompt: str, model: str = "gpt-4o") -> str:
     client = openai.OpenAI(api_key=api_key)
 
     log.info("  Calling OpenAI API (model: %s)...", model)
-    response = client.chat.completions.create(
-        model=model,
-        max_tokens=16384,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    # Reasoning models (gpt-5*, o1*, o3*) reject ``max_tokens`` and require
+    # ``max_completion_tokens``; they also spend part of that budget on
+    # internal reasoning, so allow a larger ceiling to leave room for the
+    # full Turtle output.
+    is_reasoning = model.startswith(("gpt-5", "o1", "o3", "o4"))
+    kwargs = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    if is_reasoning:
+        kwargs["max_completion_tokens"] = 32768
+    else:
+        kwargs["max_tokens"] = 16384
 
+    response = client.chat.completions.create(**kwargs)
     return response.choices[0].message.content
 
 
@@ -196,12 +202,28 @@ def run_llm_extraction(
     if model is None:
         model = DEFAULT_MODELS.get(provider, "claude-sonnet-4-20250514")
 
-    # Load ontology
-    ontology_path = Path(__file__).resolve().parent.parent / "ontology" / "agentoscin.ttl"
-    if not ontology_path.is_file():
-        raise FileNotFoundError(f"Ontology file not found: {ontology_path}")
-    ontology_text = ontology_path.read_text(encoding="utf-8")
-    log.info("  Loaded ontology from %s (%d chars)", ontology_path, len(ontology_text))
+    # Load ontology. The OSCIN extension (agentoscin.ttl) only ``owl:imports``
+    # the base agentic-ai ontology (agentO.ttl) by URL — it does not inline its
+    # definitions. An LLM reading the file text cannot dereference that import,
+    # so it would never see the base vocabulary (agentPrompt, hasAgentGoal,
+    # taskPrompt, promptInstruction, agentRole, nextStep, …) that the ground
+    # truths use for the majority of their triples. We therefore feed BOTH the
+    # base ontology and the OSCIN extension concatenated, so the model sees the
+    # full TBox the deterministic pipeline knows.
+    ontology_dir = Path(__file__).resolve().parent.parent / "ontology"
+    base_path = ontology_dir / "agentO.ttl"
+    ext_path = ontology_dir / "agentoscin.ttl"
+    parts = []
+    for p in (base_path, ext_path):
+        if p.is_file():
+            parts.append(f"# ===== {p.name} =====\n{p.read_text(encoding='utf-8')}")
+    if not parts:
+        raise FileNotFoundError(f"No ontology files found in {ontology_dir}")
+    ontology_text = "\n\n".join(parts)
+    log.info(
+        "  Loaded ontology from %s + %s (%d chars total)",
+        base_path.name, ext_path.name, len(ontology_text),
+    )
 
     # Collect source
     source_code = collect_source_files(source_dir)

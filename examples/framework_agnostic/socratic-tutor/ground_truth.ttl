@@ -1,0 +1,137 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/socratic_tutor#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# socratic-tutor — FRAMEWORK-AGNOSTIC ground-truth.
+# A single reasoning tutor agent that answers a learner's question by
+# interleaving reasoning with tool calls (a concept-lookup retrieval
+# tool and a calculator) in a ReAct loop, then stops when no further
+# tool call is needed. Exercises: a single-agent ReAct loop, multiple
+# tools on one agent, ChainOfThought reasoning, conversation memory,
+# a knowledge source, a conditional (gated) workflow, and a routing
+# termination.
+# ============================================================
+
+ex:SocraticTutorSystem a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "Agnostic"^^xsd:string ;
+    agentoscin:hasTitle "socratic_tutor"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_tutor ;
+    agentoscin:containsTeam ex:Team_TutorLoop ;
+    agentoscin:containsOrchestration ex:Orchestration_TutorFlow .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools ----------
+ex:Tool_lookup_concept a agento:Tool ;
+    agentoscin:hasTitle "lookup_concept"^^xsd:string ;
+    agentoscin:hasDescription "Retrieve an explanation and worked examples for a named concept from the curriculum knowledge base."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.curriculum.lookup_concept"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"concept\": {\"type\": \"string\"}}, \"required\": [\"concept\"], \"type\": \"object\"}"^^xsd:string .
+
+ex:Tool_calculator a agento:Tool ;
+    agentoscin:hasTitle "calculator"^^xsd:string ;
+    agentoscin:hasDescription "Evaluate an arithmetic expression and return the numeric result."^^xsd:string ;
+    agentoscin:hasImplementationReference "tools.math.calculator"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"expression\": {\"type\": \"string\"}}, \"required\": [\"expression\"], \"type\": \"object\"}"^^xsd:string .
+
+# ---------- the tutor agent ----------
+ex:Agent_tutor a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled true ;
+    agentoscin:hasMaxReasoningAttempts 6 ;
+    agentoscin:hasReasoningOrigin "ModelNative"^^xsd:string ;
+    agentoscin:employsReasoningPattern ex:Reasoning_tutor ;
+    agentoscin:hasMemoryBinding ex:MemoryBinding_tutor ;
+    agento:agentID "tutor"^^xsd:string ;
+    agento:agentRole "Socratic Tutor"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_tutor ;
+    agento:agentToolUsage ex:Tool_lookup_concept,
+        ex:Tool_calculator ;
+    agento:hasAgentGoal ex:Goal_tutor ;
+    agento:hasKnowledge ex:Knowledge_curriculum ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:Reasoning_tutor a agentoscin:ChainOfThought .
+
+ex:MemoryBinding_tutor a agentoscin:MemoryBinding ;
+    agentoscin:bindsMemory ex:Memory_conversation .
+
+ex:Memory_conversation a agentoscin:Memory ;
+    agentoscin:hasPersistenceScope "ExecutionScoped"^^xsd:string .
+
+ex:Knowledge_curriculum a agento:KnowledgeSource ;
+    agentoscin:hasTitle "CurriculumKnowledgeBase"^^xsd:string .
+
+ex:Goal_tutor a agento:Goal ;
+    agentoscin:hasDescription "Help the learner reach the answer themselves through guiding questions, looking up concepts and computing values only when needed."^^xsd:string .
+
+ex:AgentPrompt_tutor a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptContext "You are a patient Socratic tutor. Guide the learner with questions rather than direct answers. Use the lookup_concept tool to ground explanations and the calculator for any arithmetic. Make multiple tool calls if needed, and stop once the learner can finish on their own."^^xsd:string .
+
+# ---------- task ----------
+ex:Task_tutor_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A guided, worked explanation that leads the learner to the answer."^^xsd:string ;
+    agento:performedByAgent ex:Agent_tutor ;
+    agentoscin:taskToolUsage ex:Tool_lookup_concept,
+        ex:Tool_calculator ;
+    agento:taskPrompt ex:TaskPrompt_tutor_task .
+
+ex:TaskPrompt_tutor_task a agento:Prompt ;
+    agento:promptInstruction "Help the learner with their question: {question}"^^xsd:string ;
+    agento:promptOutputIndicator "A guided, worked explanation that leads the learner to the answer."^^xsd:string .
+
+# ---------- conditional ReAct workflow ----------
+ex:Step_tutor a agentoscin:ConditionalStep,
+        agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "tutor"^^xsd:string ;
+    agentoscin:hasAssociatedAgent ex:Agent_tutor ;
+    agentoscin:hasEdgeMapping "{\"continue\": \"tools\", \"end\": \"END\"}"^^xsd:string ;
+    agentoscin:hasRoutingLogic """last_message = state['messages'][-1]
+if getattr(last_message, 'tool_calls', None):
+    return 'continue'
+return 'end'"""^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:Step_tools .
+
+ex:Step_tools a agento:WorkflowStep ;
+    agentoscin:hasTitle "tools"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:Step_tutor .
+
+ex:WorkflowPattern_TutorLoop a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:Step_tutor,
+        ex:Step_tools .
+
+# ---------- state schema ----------
+ex:Schema_TutorState a agentoscin:Schema ;
+    agentoscin:hasTitle "TutorState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"list\", \"question\": \"str\", \"answer\": \"str\"}" .
+
+# ---------- termination ----------
+ex:RoutingTermination_TutorLoop a agentoscin:RoutingTermination .
+
+# ---------- team (single-agent ReAct loop) ----------
+ex:Team_TutorLoop a agento:Team ;
+    agentoscin:hasTitle "TutorLoop"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:ReActLoop ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_TutorLoop ;
+    agento:hasAgentMember ex:Agent_tutor ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_TutorLoop .
+
+# ---------- orchestration ----------
+ex:Orchestration_TutorFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "TutorFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:ReActLoop ;
+    agentoscin:hasOutputSchema ex:Schema_TutorState ;
+    agentoscin:orchestratesTeam ex:Team_TutorLoop ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_TutorLoop .

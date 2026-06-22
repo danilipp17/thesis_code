@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT))
 from oscin.evaluator import compute_pairwise  # noqa: E402
 
 FAMILIES = ["joke", "code-review", "tech-blog",
-            "meeting-assistant-flow", "travel-planning", "react"]
+            "meeting-assistant-flow", "travel-planning", "maths"]
 FRAMEWORKS = ["crewai", "langgraph", "autogen"]
 
 OUT = ROOT / "output" / "gt_baseline"

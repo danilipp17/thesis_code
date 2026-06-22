@@ -1,0 +1,287 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/lead_scoring#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# lead-scoring (CrewAI) — hand-authored ground-truth.
+# A CrewAI Flow (LeadScoreFlow) orchestrating TWO sub-crews:
+#   - LeadScoreCrew  (hr_evaluation_agent / evaluate_candidate)
+#   - LeadResponseCrew (email_followup_agent / send_followup_email)
+# Flow control:
+#   @start load_leads
+#     -> @listen(or_(load_leads,"scored_leads_feedback")) score_leads  (calls LeadScoreCrew)
+#       -> @router(score_leads) human_in_the_loop  (ConditionalStep; human input() gate)
+#            returns "scored_leads_feedback" -> loops back to score_leads
+#            returns "generate_emails"       -> write_and_save_emails
+#            returns "human_in_the_loop"     -> retries itself
+#         -> @listen("generate_emails") write_and_save_emails  (calls LeadResponseCrew)
+# No llm= is specified on either Agent, so no LanguageModel individual
+# is minted (the crews use the framework-default model).
+# The human-in-the-loop is captured as the ConditionalStep routing
+# logic (the input() prompts live in the router body).
+# ============================================================
+
+ex:lead_scoring a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "CrewAI"^^xsd:string ;
+    agentoscin:hasTitle "lead_scoring"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_hr_evaluation_agent,
+        ex:Agent_email_followup_agent ;
+    agentoscin:containsTeam ex:Team_LeadScoreCrew,
+        ex:Team_LeadResponseCrew ;
+    agentoscin:containsOrchestration ex:Orchestration_LeadScoreFlow .
+
+# ---------- configs ----------
+ex:Config_verbose_Agent_hr_evaluation_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Agent_email_followup_agent a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_allow_delegation_Agent_email_followup_agent a agento:Config ;
+    agento:configKey "allow_delegation"^^xsd:string ;
+    agento:configValue "false"^^xsd:string .
+
+ex:Config_verbose_Team_LeadScoreCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+ex:Config_verbose_Team_LeadResponseCrew a agento:Config ;
+    agento:configKey "verbose"^^xsd:string ;
+    agento:configValue "true"^^xsd:string .
+
+# ---------- agents (CrewAI: role+goal+backstory -> DualDirective prompt) ----------
+ex:Agent_hr_evaluation_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "hr_evaluation_agent"^^xsd:string ;
+    agento:agentRole "Senior HR Evaluation Expert"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_hr_evaluation_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_hr_evaluation_agent ;
+    agento:hasAgentGoal ex:Goal_hr_evaluation_agent .
+
+ex:Goal_hr_evaluation_agent a agento:Goal ;
+    agentoscin:hasDescription "Analyze candidates' qualifications and compare them against the job description to provide a score and reasoning."^^xsd:string .
+
+ex:AgentPrompt_hr_evaluation_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "Senior HR Evaluation Expert: Analyze candidates' qualifications and compare them against the job description to provide a score and reasoning."^^xsd:string ;
+    agento:promptContext "As a Senior HR Evaluation Expert, you have extensive experience in assessing candidate profiles. You excel at evaluating how well candidates match job descriptions by analyzing their skills, experience, cultural fit, and growth potential. Your professional background allows you to provide comprehensive evaluations with clear reasoning."^^xsd:string .
+
+ex:Agent_email_followup_agent a agento:LLMAgent ;
+    agentoscin:agentType "GeneralPurpose"^^xsd:string ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "email_followup_agent"^^xsd:string ;
+    agento:agentRole "HR Coordinator"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_email_followup_agent ;
+    agento:hasAgentConfig ex:Config_verbose_Agent_email_followup_agent,
+        ex:Config_allow_delegation_Agent_email_followup_agent ;
+    agento:hasAgentGoal ex:Goal_email_followup_agent .
+
+ex:Goal_email_followup_agent a agento:Goal ;
+    agentoscin:hasDescription "Compose personalized follow-up emails to candidates based on their bio and whether they are being pursued for the job. If we are proceeding, request availability for a Zoom call. Otherwise, send a polite rejection email."^^xsd:string .
+
+ex:AgentPrompt_email_followup_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "DualDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "role, goal, backstory"^^xsd:string ;
+    agento:promptInstruction "HR Coordinator: Compose personalized follow-up emails to candidates based on their bio and whether they are being pursued for the job. If we are proceeding, request availability for a Zoom call. Otherwise, send a polite rejection email."^^xsd:string ;
+    agento:promptContext "You are an HR professional named Sarah who works at CrewAI with excellent communication skills and a talent for crafting personalized and thoughtful emails to job candidates. You understand the importance of maintaining a positive and professional tone in all correspondence."^^xsd:string .
+
+# ---------- output schema (evaluate_candidate.output_pydantic = CandidateScore) ----------
+ex:Schema_CandidateScore a agentoscin:Schema ;
+    agentoscin:hasTitle "CandidateScore"^^xsd:string ;
+    agentoscin:hasSourceAttribute "output_pydantic"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"properties\": {\"id\": {\"type\": \"string\"}, \"score\": {\"type\": \"integer\"}, \"reason\": {\"type\": \"string\"}}, \"required\": [\"id\", \"score\", \"reason\"], \"type\": \"object\"}"^^xsd:string .
+
+# ---------- tasks ----------
+ex:Task_evaluate_candidate_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A very specific score from 1 to 100 for the candidate, along with a detailed reasoning explaining why you assigned this score."^^xsd:string ;
+    agentoscin:hasOutputSchema ex:Schema_CandidateScore ;
+    agento:performedByAgent ex:Agent_hr_evaluation_agent ;
+    agento:taskPrompt ex:TaskPrompt_evaluate_candidate_task .
+
+ex:TaskPrompt_evaluate_candidate_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction """Evaluate a candidate's bio based on the provided job description.
+Use your expertise to carefully assess how well the candidate fits the job requirements. Consider key factors such as:
+- Skill match
+- Relevant experience
+- Cultural fit
+- Growth potential
+CANDIDATE BIO
+-------------
+Candidate ID: {candidate_id}
+Name: {name}
+Bio:
+{bio}
+JOB DESCRIPTION
+---------------
+{job_description}
+ADDITIONAL INSTRUCTIONS
+-----------------------
+Your final answer MUST include:
+- The candidates unique ID
+- A score between 1 and 100. Don't use numbers like 100, 75, or 50. Instead, use specific numbers like 87, 63, or 42.
+- A detailed reasoning, considering the candidate's skill match, experience, cultural fit, and growth potential.
+{additional_instructions}"""^^xsd:string ;
+    agento:promptOutputIndicator "A very specific score from 1 to 100 for the candidate, along with a detailed reasoning explaining why you assigned this score."^^xsd:string .
+
+ex:Task_send_followup_email_task a agento:Task ;
+    agentoscin:hasDelegationStrategy "ExplicitAssignment"^^xsd:string ;
+    agentoscin:hasExpectedOutput "A personalized email based on the candidate's information. It should be professional and respectful, either inviting them for a Zoom call or letting them know we are pursuing other candidates."^^xsd:string ;
+    agento:performedByAgent ex:Agent_email_followup_agent ;
+    agento:taskPrompt ex:TaskPrompt_send_followup_email_task .
+
+ex:TaskPrompt_send_followup_email_task a agento:Prompt ;
+    agentoscin:hasSourceAttribute "description, expected_output"^^xsd:string ;
+    agento:promptInstruction """Compose personalized follow-up emails for candidates who applied to a specific job.
+You will use the candidate's name, bio, and whether the company wants to proceed with them to generate the email. If the candidate is proceeding, ask them for their availability for a Zoom call in the upcoming days. If not, send a polite rejection email.
+CANDIDATE DETAILS
+-----------------
+Candidate ID: {candidate_id}
+Name: {name}
+Bio:
+{bio}
+PROCEEDING WITH CANDIDATE: {proceed_with_candidate}
+ADDITIONAL INSTRUCTIONS
+-----------------------
+- If we are proceeding, ask for their availability for a Zoom call within the next few days.
+- If we are not proceeding, send a polite rejection email, acknowledging their effort in applying and appreciating their time."""^^xsd:string ;
+    agento:promptOutputIndicator "A personalized email based on the candidate's information. It should be professional and respectful, either inviting them for a Zoom call or letting them know we are pursuing other candidates."^^xsd:string .
+
+# ---------- per-sub-crew workflow patterns + crew steps ----------
+ex:CrewStep_LeadScoreCrew_evaluate_candidate_task a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "evaluate_candidate_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_evaluate_candidate_task ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_LeadScoreCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_LeadScoreCrew_evaluate_candidate_task .
+
+ex:CrewStep_LeadResponseCrew_send_followup_email_task a agento:StartStep,
+        agento:EndStep ;
+    agentoscin:hasTitle "send_followup_email_task"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_send_followup_email_task ;
+    agento:stepOrder 1 .
+
+ex:WorkflowPattern_LeadResponseCrew a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_LeadResponseCrew_send_followup_email_task .
+
+# ---------- per-sub-crew teams (Process.sequential, one agent each) ----------
+ex:Team_LeadScoreCrew a agento:Team ;
+    agentoscin:hasTitle "LeadScoreCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_hr_evaluation_agent ;
+    agento:hasSystemConfig ex:Config_verbose_Team_LeadScoreCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_LeadScoreCrew .
+
+ex:Team_LeadResponseCrew a agento:Team ;
+    agentoscin:hasTitle "LeadResponseCrew"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasAgentMember ex:Agent_email_followup_agent ;
+    agento:hasSystemConfig ex:Config_verbose_Team_LeadResponseCrew ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_LeadResponseCrew .
+
+# ---------- Flow-level orchestration with the @router human-in-the-loop gate ----------
+ex:FlowStep_load_leads a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "load_leads"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_score_leads .
+
+# @listen(or_(load_leads, "scored_leads_feedback")): or_ aggregation +
+# a string back-edge that the @router below can re-trigger (the loop).
+ex:FlowStep_score_leads a agento:WorkflowStep ;
+    agentoscin:hasTitle "score_leads"^^xsd:string ;
+    agentoscin:callsCrew "LeadScoreCrew"^^xsd:string ;
+    agentoscin:hasAggregationCombinator "or_"^^xsd:string ;
+    agentoscin:hasDecoratorArgument "scored_leads_feedback"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_human_in_the_loop .
+
+# @router(score_leads): CrewAI routers carry routing logic only (no edge
+# mapping — that is a LangGraph construct). The human input() gate lives
+# inside this routing body. routingLogic is the verbatim method body.
+ex:FlowStep_human_in_the_loop a agentoscin:ConditionalStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "human_in_the_loop"^^xsd:string ;
+    agentoscin:hasRoutingLogic """        print("Finding the top 3 candidates for human to review")
+
+        # Combine candidates with their scores using the helper function
+        self.state.hydrated_candidates = combine_candidates_with_scores(
+            self.state.candidates, self.state.candidate_score
+        )
+
+        # Sort the scored candidates by their score in descending order
+        sorted_candidates = sorted(
+            self.state.hydrated_candidates, key=lambda c: c.score, reverse=True
+        )
+        self.state.hydrated_candidates = sorted_candidates
+
+        # Select the top 3 candidates
+        top_candidates = sorted_candidates[:3]
+
+        print("Here are the top 3 candidates:")
+        for candidate in top_candidates:
+            print(
+                f"ID: {candidate.id}, Name: {candidate.name}, Score: {candidate.score}, Reason: {candidate.reason}"
+            )
+
+        # Present options to the user
+        print("\\nPlease choose an option:")
+        print("1. Quit")
+        print("2. Redo lead scoring with additional feedback")
+        print("3. Proceed with writing emails to all leads")
+
+        choice = input("Enter the number of your choice: ")
+
+        if choice == "1":
+            print("Exiting the program.")
+            exit()
+        elif choice == "2":
+            feedback = input(
+                "\\nPlease provide additional feedback on what you're looking for in candidates:\\n"
+            )
+            self.state.scored_leads_feedback = feedback
+            print("\\nRe-running lead scoring with your feedback...")
+            return "scored_leads_feedback"
+        elif choice == "3":
+            print("\\nProceeding to write emails to all leads.")
+            return "generate_emails"
+        else:
+            print("\\nInvalid choice. Please try again.")
+            return "human_in_the_loop""""^^xsd:string ;
+    agento:stepOrder 3 ;
+    agento:nextStep ex:FlowStep_write_and_save_emails .
+
+ex:FlowStep_write_and_save_emails a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "write_and_save_emails"^^xsd:string ;
+    agentoscin:callsCrew "LeadResponseCrew"^^xsd:string ;
+    agentoscin:hasDecoratorArgument "generate_emails"^^xsd:string ;
+    agento:stepOrder 4 .
+
+ex:FlowWorkflowPattern_LeadScoreFlow a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_load_leads,
+        ex:FlowStep_score_leads,
+        ex:FlowStep_human_in_the_loop,
+        ex:FlowStep_write_and_save_emails .
+
+ex:StateSchema_LeadScoreFlow a agentoscin:Schema ;
+    agentoscin:hasTitle "LeadScoreState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"candidates\": \"List[Candidate]\", \"candidate_score\": \"List[CandidateScore]\", \"hydrated_candidates\": \"List[ScoredCandidate]\", \"scored_leads_feedback\": \"str\"}"^^xsd:string .
+
+ex:Orchestration_LeadScoreFlow a agentoscin:Orchestration ;
+    agentoscin:hasTitle "LeadScoreFlow"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasOutputSchema ex:StateSchema_LeadScoreFlow ;
+    agentoscin:orchestratesTeam ex:Team_LeadScoreCrew,
+        ex:Team_LeadResponseCrew ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_LeadScoreFlow .

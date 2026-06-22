@@ -1,0 +1,190 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/company_research#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# company-research (LangGraph) — hand-authored ground-truth.
+# LangGraph port of the AutoGen original: a StateGraph running three
+# agent nodes in sequence (search_agent -> analysis_agent ->
+# report_agent), with two @tool callables (google_search,
+# analyze_stock) bound to the search and analysis agents respectively.
+#
+# Documented extractor gaps (GT reflects correct semantics):
+#  - The tools are bound per-node inside the function bodies
+#    (`llm.bind_tools([...])`), which the extractor does not associate
+#    with the agent, so it emits the Tool individuals but omits
+#    agentToolUsage. The GT asserts the correct agentToolUsage links.
+#  - The agents carry no SystemMessage, so no Goal/promptContext is
+#    minted (prompts are HumanMessage task strings).
+# ============================================================
+
+ex:company_research a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "company_research"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_search_agent,
+        ex:Agent_analysis_agent,
+        ex:Agent_report_agent ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- tools (@tool callables) ----------
+ex:Tool_google_search a agento:Tool ;
+    agentoscin:hasDescription "Search Google for information, returns results with a snippet and body content"^^xsd:string ;
+    agentoscin:hasImplementationReference "main.google_search"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"query\": {\"type\": \"string\"}, \"num_results\": {\"type\": \"integer\"}, \"max_chars\": {\"type\": \"integer\"}}, \"required\": [\"query\", \"num_results\", \"max_chars\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "google_search"^^xsd:string .
+
+ex:Tool_analyze_stock a agento:Tool ;
+    agentoscin:hasDescription "Analyze stock data and generate a plot"^^xsd:string ;
+    agentoscin:hasImplementationReference "main.analyze_stock"^^xsd:string ;
+    agentoscin:hasInputSchema "{\"properties\": {\"ticker\": {\"type\": \"string\"}}, \"required\": [\"ticker\"], \"type\": \"object\"}"^^xsd:string ;
+    agentoscin:hasTitle "analyze_stock"^^xsd:string .
+
+# ---------- agents (LangGraph nodes) ----------
+ex:Agent_search_agent a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "search_agent"^^xsd:string ;
+    agento:agentRole "search_agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_search_agent ;
+    agento:agentToolUsage ex:Tool_google_search ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_search_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string .
+
+ex:Agent_analysis_agent a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "analysis_agent"^^xsd:string ;
+    agento:agentRole "analysis_agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_analysis_agent ;
+    agento:agentToolUsage ex:Tool_analyze_stock ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_analysis_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string .
+
+ex:Agent_report_agent a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "report_agent"^^xsd:string ;
+    agento:agentRole "report_agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_report_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_report_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string .
+
+# ---------- tasks (one per node; TopologyDetermined; sequential dependsOn) ----------
+ex:Task_task_search_agent a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "search_results"^^xsd:string ;
+    agento:performedByAgent ex:Agent_search_agent ;
+    agento:taskPrompt ex:TaskPrompt_task_search_agent .
+
+ex:TaskPrompt_task_search_agent a agento:Prompt ;
+    agento:promptInstruction "Perform search_agent responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "search_results"^^xsd:string .
+
+ex:Task_task_analysis_agent a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "analysis"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_search_agent ;
+    agento:performedByAgent ex:Agent_analysis_agent ;
+    agento:taskPrompt ex:TaskPrompt_task_analysis_agent .
+
+ex:TaskPrompt_task_analysis_agent a agento:Prompt ;
+    agento:promptInstruction "Perform analysis_agent responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "analysis"^^xsd:string .
+
+ex:Task_task_report_agent a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "report"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_analysis_agent ;
+    agento:performedByAgent ex:Agent_report_agent ;
+    agento:taskPrompt ex:TaskPrompt_task_report_agent .
+
+ex:TaskPrompt_task_report_agent a agento:Prompt ;
+    agento:promptInstruction "f\"Write a comprehensive financial report on {state['company']} using the web search findings and the stock analysis below.\\n\\nSEARCH FINDINGS:\\n{state['search_results']}\\n\\nSTOCK ANALYSIS:\\n{state['analysis']}\""^^xsd:string ;
+    agento:promptOutputIndicator "report"^^xsd:string .
+
+# ---------- task-level workflow (CrewStep view) ----------
+ex:CrewStep_langgraph_team_0_task_search_agent a agento:StartStep ;
+    agentoscin:hasTitle "task_search_agent"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_search_agent ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_analysis_agent .
+
+ex:CrewStep_langgraph_team_0_task_analysis_agent a agento:WorkflowStep ;
+    agentoscin:hasTitle "task_analysis_agent"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_analysis_agent ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_report_agent .
+
+ex:CrewStep_langgraph_team_0_task_report_agent a agento:EndStep ;
+    agentoscin:hasTitle "task_report_agent"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_report_agent ;
+    agento:stepOrder 3 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_search_agent,
+        ex:CrewStep_langgraph_team_0_task_analysis_agent,
+        ex:CrewStep_langgraph_team_0_task_report_agent .
+
+# ---------- node-level workflow (FlowStep view; linear search->analysis->report) ----------
+ex:FlowStep_search_agent a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_search_agent ;
+    agentoscin:hasTitle "search_agent"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_analysis_agent .
+
+ex:FlowStep_analysis_agent a agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_analysis_agent ;
+    agentoscin:hasTitle "analysis_agent"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_report_agent .
+
+ex:FlowStep_report_agent a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_report_agent ;
+    agentoscin:hasTitle "report_agent"^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_search_agent,
+        ex:FlowStep_analysis_agent,
+        ex:FlowStep_report_agent .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "CompanyResearchState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], operator.add]\", \"company\": \"str\", \"search_results\": \"str\", \"analysis\": \"str\", \"report\": \"str\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_search_agent,
+        ex:Agent_analysis_agent,
+        ex:Agent_report_agent ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .

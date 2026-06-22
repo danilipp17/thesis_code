@@ -41,7 +41,8 @@ from evaluation.pipelines._common import (  # noqa: E402
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 
 FAMILIES = ["joke", "code-review", "tech-blog",
-            "meeting-assistant-flow", "travel-planning", "react"]
+            "meeting-assistant-flow", "travel-planning", "maths",
+            "lead-scoring", "rag", "company-research"]
 FRAMEWORKS = ["crewai", "langgraph", "autogen"]
 
 OUT = ROOT / "output" / "eval_verify"

@@ -1,0 +1,9 @@
+answer_question:
+  description: >
+    Answer the following question about Stock Market Performance in 2024 using the
+    retriever tool to ground your answer, citing the specific document parts you
+    use: {question}
+  expected_output: >
+    A grounded, well-cited answer to the question based on the Stock Market
+    Performance 2024 document.
+  agent: rag_agent

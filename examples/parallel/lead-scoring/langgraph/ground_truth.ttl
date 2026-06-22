@@ -1,0 +1,151 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix ex: <http://example.org/lead_scoring#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# lead-scoring (LangGraph) — hand-authored ground-truth.
+# LangGraph port of the CrewAI two-crew flow: a StateGraph with two
+# agent nodes (hr_evaluation_agent scores leads, email_followup_agent
+# writes emails), plus non-agent nodes load_leads and human_in_the_loop.
+# The @router human-in-the-loop becomes a ConditionalStep on
+# human_in_the_loop: feedback -> loop back to scoring, else -> emails.
+#
+# Documented extractor gap (GT reflects correct semantics): the
+# extractor adds a spurious back-edge from hr_evaluation_agent to
+# load_leads; the GT keeps the correct forward edge to human_in_the_loop.
+# ============================================================
+
+ex:lead_scoring a agentoscin:AgenticSystem ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "lead_scoring"^^xsd:string ;
+    agentoscin:containsAgent ex:Agent_hr_evaluation_agent,
+        ex:Agent_email_followup_agent ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph .
+
+# ---------- language model ----------
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+# ---------- agents (LangGraph nodes with inline SystemMessage) ----------
+ex:Agent_hr_evaluation_agent a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "hr_evaluation_agent"^^xsd:string ;
+    agento:agentRole "hr_evaluation_agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_hr_evaluation_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_hr_evaluation_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptContext "You are a Senior HR Evaluation Expert. Analyze candidates' qualifications and compare them against the job description to provide a score (1-100) and reasoning."^^xsd:string .
+
+ex:Agent_email_followup_agent a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "email_followup_agent"^^xsd:string ;
+    agento:agentRole "email_followup_agent"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_email_followup_agent ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+ex:AgentPrompt_email_followup_agent a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptContext "You are an HR Coordinator named Sarah. Compose personalized follow-up emails to candidates based on their bio and whether they are being pursued. If proceeding, request availability for a Zoom call; otherwise send a polite rejection."^^xsd:string .
+
+# ---------- tasks (one per agent node; TopologyDetermined) ----------
+ex:Task_task_hr_evaluation_agent a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "candidate_scores"^^xsd:string ;
+    agento:performedByAgent ex:Agent_hr_evaluation_agent ;
+    agento:taskPrompt ex:TaskPrompt_task_hr_evaluation_agent .
+
+ex:TaskPrompt_task_hr_evaluation_agent a agento:Prompt ;
+    agento:promptInstruction "Perform hr_evaluation_agent responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "candidate_scores"^^xsd:string .
+
+ex:Task_task_email_followup_agent a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "emails"^^xsd:string ;
+    agentoscin:hasDependencyType "Sequential"^^xsd:string ;
+    agentoscin:dependsOn ex:Task_task_hr_evaluation_agent ;
+    agento:performedByAgent ex:Agent_email_followup_agent ;
+    agento:taskPrompt ex:TaskPrompt_task_email_followup_agent .
+
+ex:TaskPrompt_task_email_followup_agent a agento:Prompt ;
+    agento:promptInstruction "Perform email_followup_agent responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "emails"^^xsd:string .
+
+# ---------- task-level workflow (CrewStep view) ----------
+ex:CrewStep_langgraph_team_0_task_hr_evaluation_agent a agento:StartStep ;
+    agentoscin:hasTitle "task_hr_evaluation_agent"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_hr_evaluation_agent ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:CrewStep_langgraph_team_0_task_email_followup_agent .
+
+ex:CrewStep_langgraph_team_0_task_email_followup_agent a agento:EndStep ;
+    agentoscin:hasTitle "task_email_followup_agent"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_email_followup_agent ;
+    agento:stepOrder 2 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_hr_evaluation_agent,
+        ex:CrewStep_langgraph_team_0_task_email_followup_agent .
+
+# ---------- node-level workflow (FlowStep view) ----------
+ex:FlowStep_load_leads a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "load_leads"^^xsd:string ;
+    agento:stepOrder 1 ;
+    agento:nextStep ex:FlowStep_hr_evaluation_agent .
+
+ex:FlowStep_hr_evaluation_agent a agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_hr_evaluation_agent ;
+    agentoscin:hasTitle "hr_evaluation_agent"^^xsd:string ;
+    agento:stepOrder 2 ;
+    agento:nextStep ex:FlowStep_human_in_the_loop .
+
+ex:FlowStep_human_in_the_loop a agentoscin:ConditionalStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "human_in_the_loop"^^xsd:string ;
+    agentoscin:hasEdgeMapping "{\"email\": \"email_followup_agent\", \"score\": \"hr_evaluation_agent\"}"^^xsd:string ;
+    agentoscin:hasRoutingLogic """if state.get('scored_leads_feedback'):
+    return 'score'
+return 'email'"""^^xsd:string ;
+    agento:stepOrder 3 .
+
+ex:FlowStep_email_followup_agent a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_email_followup_agent ;
+    agentoscin:hasTitle "email_followup_agent"^^xsd:string ;
+    agento:stepOrder 4 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_load_leads,
+        ex:FlowStep_hr_evaluation_agent,
+        ex:FlowStep_human_in_the_loop,
+        ex:FlowStep_email_followup_agent .
+
+# ---------- state schema ----------
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasTitle "LeadScoreState"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[Sequence[BaseMessage], operator.add]\", \"candidates\": \"list\", \"candidate_scores\": \"list\", \"scored_leads_feedback\": \"str\", \"emails\": \"list\"}"^^xsd:string .
+
+# ---------- team + orchestration ----------
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agento:hasAgentMember ex:Agent_hr_evaluation_agent,
+        ex:Agent_email_followup_agent ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agentoscin:employsCoordinationPattern agentoscin:Hierarchical ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
