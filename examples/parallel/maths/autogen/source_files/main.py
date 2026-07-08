@@ -67,8 +67,7 @@ async def main():
     await Console(
         team.run_stream(
             task=(
-                "Add 40 + 12 and then multiply the result by 6. Also tell "
-                "me a joke please."
+                "Add 40 + 12 and then multiply the result by 6."
             )
         )
     )

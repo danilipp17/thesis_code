@@ -100,7 +100,7 @@ def print_stream(stream):
 if __name__ == "__main__":
     inputs = {
         "messages": [
-            ("user", "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please.")
+            ("user", "Add 40 + 12 and then multiply the result by 6.")
         ]
     }
     print_stream(app.stream(inputs, stream_mode="values"))

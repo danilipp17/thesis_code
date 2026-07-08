@@ -28,7 +28,7 @@ load_dotenv()
 
 class MathsState(BaseModel):
     query: str = (
-        "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please."
+        "Add 40 + 12 and then multiply the result by 6."
     )
     answer: str = ""
 

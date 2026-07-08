@@ -89,7 +89,7 @@ ex:Task_autogen_task_0 a agento:Task ;
 
 ex:TaskPrompt_autogen_task_0 a agento:Prompt ;
     agentoscin:hasSourceAttribute "task"^^xsd:string ;
-    agento:promptInstruction "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please."^^xsd:string .
+    agento:promptInstruction "Add 40 + 12 and then multiply the result by 6."^^xsd:string .
 
 ex:FlowStep_run_team a agento:StartStep,
         agento:WorkflowStep ;
