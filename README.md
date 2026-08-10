@@ -9,184 +9,178 @@
 
 ## Architecture
 
-OSCIN extends the OSCIN methodology with a three-layer pipeline:
+Two transformation directions over one shared ontology, each with a
+deterministic (AST/template) path and an LLM path used as a baseline:
 
 ```
-                    ┌─────────────────────┐
-                    │    Source Code       │
-                    │  (CrewAI / AutoGen / │
-                    │   LangGraph)        │
-                    └────────┬────────────┘
-                             │
-      ┌──────────────────────┼──────────────────────┐
-      │  Layer 1 — Parsers   │  (oscin/parsers/)    │
-      │  AST + YAML          ▼                      │
-      │  Framework-specific extraction              │
-      └──────────────────────┬──────────────────────┘
-                             │
-      ┌──────────────────────┼──────────────────────┐
-      │  Layer 2 — IR        │  (oscin/intermediate) │
-      │  Shared dataclasses  ▼                      │
-      │  Framework-agnostic contract                │
-      └──────────────────────┬──────────────────────┘
-                             │
-      ┌──────────────────────┼──────────────────────┐
-      │  Layer 3 — Populator │  (oscin/populator)   │
-      │  RDFLib / OWL        ▼                      │
-      │  Ontology population + validation           │
-      └──────────────────────┬──────────────────────┘
-                             │
-                    ┌────────▼────────────┐
-                    │   agentoscin.ttl    │
-                    │   (OWL Ontology)    │
-                    └────────┬────────────┘
-                             │
-      ┌──────────────────────┼──────────────────────┐
-      │  Reverse — Reader    │  (oscin/reader)      │
-      │  + Generators        ▼  (oscin/generators/) │
-      │  TTL → Framework source code                │
-      └─────────────────────────────────────────────┘
+                        ┌──────────────────────────────┐
+                        │         Source Code          │
+                        │ (CrewAI / AutoGen / LangGraph)│
+                        └───────┬──────────────┬───────┘
+             AST path           │              │        LLM baseline
+   ┌────────────────────────────▼──┐        ┌──▼───────────────────────┐
+   │ oscin/parsers/                │        │ oscin/llm_extractor.py   │
+   │ AST + YAML + notebook readers │        │ schema + code → Turtle   │
+   └────────────────┬──────────────┘        └──────────┬───────────────┘
+                    │                                  │
+   ┌────────────────▼──────────────┐                   │
+   │ oscin/intermediate.py         │                   │
+   │ framework-agnostic IR         │                   │
+   └────────────────┬──────────────┘                   │
+                    │                                  │
+   ┌────────────────▼──────────────┐                   │
+   │ oscin/populator.py  (RDFLib)  │                   │
+   └────────────────┬──────────────┘                   │
+                    │                                  │
+                ┌───▼──────────────────────────────────▼───┐
+                │   instance .ttl  ⊨  ontology/agentoscin.ttl │
+                └───┬──────────────────────────────────┬───┘
+                    │                                  │
+   ┌────────────────▼──────────────┐        ┌──────────▼───────────────┐
+   │ oscin/reader.py → generators/ │        │ oscin/llm_generator.py   │
+   │ Jinja2 templates → source     │        │ TTL → source             │
+   └────────────────┬──────────────┘        └──────────┬───────────────┘
+                    └───────────────┬──────────────────┘
+                                    │
+                     ┌──────────────▼───────────────┐
+                     │ oscin/llm_fixup.py (optional)│
+                     │ repair non-running output    │
+                     └──────────────────────────────┘
 ```
 
-### Thesis Chapter Mapping
+The `evaluation/` package scores all of this: extraction, generation, and
+round-trip (same-framework and cross-framework).
 
-| Module                     | Thesis Chapter                                      |
-|----------------------------|-----------------------------------------------------|
-| `ontology/agentoscin.ttl`  | Ch. 5 — Semantic Representation (Ontology Design)   |
-| `oscin/parsers/`           | Ch. 6 — OSCIN Phases 3 & 4 (Extraction)             |
-| `oscin/intermediate.py`    | Ch. 6 — Intermediate Representation                 |
-| `oscin/populator.py`       | Ch. 6 — OSCIN Phase 4 (Ontology Population)         |
-| `oscin/reader.py`          | Ch. 6 — OSCIN Phase 5 (Reverse Reading)             |
-| `oscin/generators/`        | Ch. 6 — OSCIN Phase 5 (Code Generation)             |
-| Validation reports         | Ch. 7 — Evaluation                                  |
+### Thesis chapter mapping
+
+| Module                          | Thesis chapter                                    |
+|---------------------------------|---------------------------------------------------|
+| `ontology/agentoscin.ttl`       | Ch. 5 — Semantic representation (ontology design) |
+| `ontology/competency_queries.rq`| Ch. 5 — Competency questions                      |
+| `oscin/parsers/`                | Ch. 6 — OSCIN Phases 3 & 4 (extraction)           |
+| `oscin/intermediate.py`         | Ch. 6 — Intermediate representation               |
+| `oscin/populator.py`            | Ch. 6 — OSCIN Phase 4 (ontology population)       |
+| `oscin/reader.py`, `oscin/generators/` | Ch. 6 — OSCIN Phase 5 (reverse reading + generation) |
+| `oscin/llm_*.py`                | Ch. 7 — LLM baselines and repair                  |
+| `evaluation/`, `scripts/`       | Ch. 7 — Evaluation                                |
 
 ---
 
-## Folder Structure
+## Folder structure
 
 ```
-Extractor/
-├── ontology/                # Ontology schema (OSCIN Phases 1 & 2)
-│   └── agentoscin.ttl
-├── oscin/                   # Python package (Phases 3–5)
-│   ├── parsers/             # Framework-specific extractors
-│   ├── generators/          # Framework-specific code generators
-│   ├── prompts/             # LLM prompt templates
-│   │   └── llm_extraction.md
-│   ├── intermediate.py      # Shared dataclasses
-│   ├── populator.py         # Ontology population
-│   ├── reader.py            # TTL → intermediate (reverse)
-│   ├── evaluator.py         # Extraction evaluation metrics
-│   ├── llm_extractor.py     # LLM-based extraction baseline
-│   ├── utils.py             # Shared utilities
-│   └── cli.py               # CLI entry point
-├── examples/                # Input test cases
-│   ├── crewai/
-│   ├── autogen/
-│   └── langgraph/
-├── output/                  # Extraction outputs (.ttl)
-│   └── llm_baseline/        # LLM-based extraction outputs
-├── generated/               # Generation outputs (source code)
-├── .env                     # API keys (not committed)
-└── docs/                    # Thesis & reference documents
+thesis_code/
+├── ontology/                    # Ontology schema and query assets
+│   ├── agentoscin.ttl           #   the OSCIN ontology (TBox)
+│   ├── agentO.ttl               #   AgentO, the related-work ontology
+│   ├── competency_queries.rq    #   competency questions (SPARQL)
+│   ├── combined_kg.ttl          #   merged KG over all extractions
+│   ├── feature_demo.ttl         #   small worked example
+│   └── catalog-v001.xml         #   Protégé catalog
+├── oscin/                       # Python package (installed as `oscin`)
+│   ├── parsers/                 #   crewai / autogen / langgraph + ast_utils
+│   ├── generators/              #   per-framework generators + templates/*.j2
+│   ├── prompts/                 #   llm_extraction.md, llm_generation.md, llm_fixup.md
+│   ├── intermediate.py          #   shared IR dataclasses
+│   ├── populator.py             #   IR → ontology individuals
+│   ├── reader.py                #   TTL → IR (reverse direction)
+│   ├── llm_extractor.py         #   LLM extraction baseline
+│   ├── llm_generator.py         #   LLM generation baseline
+│   ├── llm_fixup.py             #   LLM repair of generated code
+│   ├── evaluator.py             #   metrics behind `oscin evaluate`
+│   ├── namespaces.py, utils.py, base_parser.py
+│   └── cli.py                   #   `oscin` entry point
+├── evaluation/                  # Evaluation harness (not pip-installed)
+│   ├── pipelines/               #   extraction / generation / roundtrip / hybrid_roundtrip
+│   ├── metrics/                 #   ttl_*, ast_diff, syntax_validity, execution_trace, …
+│   ├── benchmark.py             #   aggregator, driven by --pipeline
+│   ├── reporting.py             #   shared report renderer
+│   └── README.md                #   pipeline/metric matrix — read this first
+├── gui/                         # Streamlit UI over the pipelines
+├── examples/                    # Input corpora
+│   ├── crewai/ autogen/ langgraph/   #   per-framework examples
+│   └── parallel/                #   parallel corpus: one scenario × 3 frameworks,
+│                                #   each with a hand-authored ground_truth.ttl
+├── scripts/                     # One-off thesis experiment drivers
+├── output/                      # Generated artifacts (TTL, source, reports)
+└── .env                         # API keys (not committed)
 ```
+
+`evaluation/` and `gui/` live at the project root but are **not** part of the
+installed package — run them from the project root.
 
 ---
 
-## Quick Start
+## Quick start
 
 ### Installation
 
 ```bash
-pip install -e .
+python -m venv .venv && source .venv/bin/activate
+pip install -e .           # add '.[gui]' for the Streamlit UI
 ```
 
-### Extract: Source Code → Ontology
+### Extract: source code → ontology
 
 ```bash
-# CrewAI example
 oscin extract examples/crewai/email-flow/source_files \
     --framework crewai \
     --system-name EmailFlowSystem \
     --namespace "http://example.org/email_flow#" \
-    --output output/crewai/email_flow_ontology.ttl
-
-# AutoGen example
-oscin extract examples/autogen/company-research/source_files \
-    --framework autogen \
-    --system-name CompanyResearchSystem \
-    --output output/autogen/company_research.ttl
+    --output output/crewai/email_flow.ttl
 ```
 
-### Generate: Ontology → Source Code
+`--framework` accepts `crewai`, `autogen`, `langgraph`. Add `--no-report` to
+suppress the validation summary.
+
+### Generate: ontology → source code
 
 ```bash
 # Same-framework round-trip
-oscin generate output/crewai/email_flow_ontology.ttl \
+oscin generate output/crewai/email_flow.ttl \
     --target-framework crewai \
-    --output-dir generated/crewai/email_flow/
+    --output-dir output/generated/crewai/email_flow/
 
 # Cross-framework translation
-oscin generate output/crewai/self_eval_ontology.ttl \
+oscin generate output/crewai/email_flow.ttl \
     --target-framework autogen \
-    --output-dir generated/autogen/self_eval/
+    --output-dir output/generated/autogen/email_flow/
 ```
 
-### LLM-Based Extraction (Baseline)
+### LLM baselines
 
-An alternative extraction method that sends the ontology schema and source code to an LLM, asking it to produce populated Turtle directly. This serves as a comparison baseline to the AST-based pipeline (inspired by the AgentO methodology).
-
-**Setup:** Create a `.env` file in the project root with your API key:
-
-```bash
-# For OpenAI
-OPENAI_API_KEY=sk-...
-
-# For Anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-**Usage:**
+Both directions have an LLM counterpart used as a comparison baseline
+(inspired by the AgentO methodology). Put your key in a `.env` at the project
+root (`OPENAI_API_KEY=…` and/or `ANTHROPIC_API_KEY=…`); it is loaded from the
+working directory and from `~/.env`.
 
 ```bash
-# Using OpenAI (default: gpt-4o)
+# Extraction baseline — default provider is anthropic
 oscin extract-llm examples/crewai/email-flow/source_files \
     --namespace "http://example.org/email_flow#" \
-    --output output/llm_baseline/crewai/email_flow_ontology.ttl \
-    --provider openai
+    --output output/llm_baseline/crewai/email_flow.ttl \
+    --provider openai --model gpt-4o-mini
 
-# Using Anthropic (default: claude-sonnet-4-20250514)
-oscin extract-llm examples/crewai/email-flow/source_files \
-    --namespace "http://example.org/email_flow#" \
-    --output output/llm_baseline/crewai/email_flow_ontology.ttl \
+# Generation baseline
+oscin generate-llm output/crewai/email_flow.ttl \
+    --target-framework crewai \
+    --output-dir output/generated_llm/crewai/email_flow/ \
     --provider anthropic
-
-# Custom model
-oscin extract-llm examples/crewai/email-flow/source_files \
-    --provider openai --model gpt-4o-mini \
-    --output output/llm_baseline/email_flow.ttl
 ```
 
-The prompt template is in `oscin/prompts/llm_extraction.md` and can be adapted for different ontologies.
+Prompt templates live in `oscin/prompts/` and can be adapted for other
+ontologies.
 
-### Evaluate: Compare Extractions
+### Evaluate a pair of TTLs
 
-Compute evaluation metrics for ontology extractions — either intrinsic metrics for a single file, or pairwise comparison (precision / recall / F1) between a reference and candidate.
+`oscin evaluate` is the quick, single-shot comparison — one file for intrinsic
+metrics, two for precision/recall/F1.
 
 ```bash
-# Intrinsic metrics only (single file)
-oscin evaluate output/crewai/email_flow_ontology.ttl
-
-# Pairwise comparison: AST-based (reference) vs LLM-based (candidate)
-oscin evaluate output/crewai/email_flow_ontology.ttl \
-    output/llm_baseline/crewai/email_flow_ontology.ttl
-
-# JSON output (for scripts / further processing)
-oscin evaluate output/crewai/email_flow_ontology.ttl \
-    output/llm_baseline/crewai/email_flow_ontology.ttl --json
+oscin evaluate output/crewai/email_flow.ttl                        # intrinsic only
+oscin evaluate reference.ttl candidate.ttl                         # pairwise
+oscin evaluate reference.ttl candidate.ttl --json                  # machine-readable
 ```
-
-**Metrics computed:**
 
 | Metric | Level | Description |
 |--------|-------|-------------|
@@ -196,33 +190,61 @@ oscin evaluate output/crewai/email_flow_ontology.ttl \
 | Literal overlap | Value-based | Jaccard similarity of literal string values |
 | Information density | Per-file | ABox triples per individual |
 
+### Evaluate a whole pipeline
+
+The full harness lives in `evaluation/` and is driven by `--pipeline`:
+
+```bash
+python -m evaluation.benchmark --pipeline extraction --frameworks crewai langgraph
+python -m evaluation.benchmark --pipeline generation --target-framework crewai --execute --reextract
+python -m evaluation.benchmark --pipeline roundtrip  --frameworks crewai --target-framework langgraph
+```
+
+Useful flags: `--only crewai/email-flow` to restrict to single examples,
+`--from-extraction` to feed generation from prior extractions instead of
+fixtures, `--out-root` to redirect artifacts.
+
+See [evaluation/README.md](evaluation/README.md) for the pipeline × metric
+matrix and the contract every metric module implements.
+
+### GUI
+
+```bash
+streamlit run gui/app.py     # requires the [gui] extra
+```
+
 ---
 
-## Supported Frameworks
+## Supported frameworks
 
 | Framework | Parser | Generator | Examples |
 |-----------|--------|-----------|----------|
-| CrewAI    | ✅      | ✅         | 2        |
-| AutoGen   | ✅      | ✅         | 3 (notebooks) |
-| LangGraph | ✅      | ✅         | 1        |
+| CrewAI    | ✅ | ✅ | 11 |
+| AutoGen   | ✅ | ✅ | 8 (incl. notebooks) |
+| LangGraph | ✅ | ✅ | 12 |
+
+Plus `examples/parallel/` — 6 scenario families implemented in all three
+frameworks, each variant shipping a hand-authored `ground_truth.ttl`. See
+[examples/parallel/README.md](examples/parallel/README.md).
 
 ---
 
 ## Dependencies
 
-- Python ≥ 3.10
-- `rdflib` ≥ 7.0
-- `pyyaml` ≥ 6.0
-- `nbformat` ≥ 5.0 (for notebook conversion)
-- `python-dotenv` ≥ 1.0 (for `.env` API key loading)
-- `anthropic` (optional, for LLM baseline with Anthropic)
-- `openai` (optional, for LLM baseline with OpenAI)
+Declared in `pyproject.toml`: Python ≥ 3.10, `rdflib` ≥ 7.0, `pyyaml` ≥ 6.0,
+`nbformat` ≥ 5.0; `streamlit` ≥ 1.32 under the `gui` extra.
+
+Also imported at runtime but **not currently declared**: `jinja2` (required by
+`oscin/generators/`), `python-dotenv` (LLM paths), and `openai` / `anthropic`
+(whichever provider you use for the LLM baselines). Install them alongside the
+package until they are added to `pyproject.toml`.
 
 ---
 
-## CrewAI Parser: How It Works
+## CrewAI parser: how it works
 
-The CrewAI parser (`oscin/parsers/crewai_parser.py`) uses Python's `ast` module for static analysis (no code execution). It handles two CrewAI patterns:
+The CrewAI parser (`oscin/parsers/crewai_parser.py`) uses Python's `ast` module
+for static analysis (no code execution). It handles two CrewAI patterns:
 
 1. **@CrewBase pattern** — YAML-configured crews:
    - Reads `agents.yaml` and `tasks.yaml` from the `config/` directory (resolved via `@CrewBase` class annotations)
@@ -243,6 +265,8 @@ The CrewAI parser (`oscin/parsers/crewai_parser.py`) uses Python's `ast` module 
 - YAML config files must match the agent/task keys referenced in Python decorators
 - Tools must be either defined locally (BaseTool subclass or @tool decorator) or imported (created as external stubs)
 - LLM assignments should use `ChatOpenAI(model="...")` or similar patterns with string literal model names
+
+---
 
 ## License
 
