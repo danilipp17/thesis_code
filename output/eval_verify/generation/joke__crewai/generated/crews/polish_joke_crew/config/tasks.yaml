@@ -1,0 +1,4 @@
+polish_joke_task:
+  description: 'Add a surprising twist to this joke: {improved_joke}'
+  expected_output: A polished joke with a surprising twist.
+  agent: joke_polisher

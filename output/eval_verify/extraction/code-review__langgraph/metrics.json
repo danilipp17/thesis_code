@@ -1,0 +1,7 @@
+{
+  "triple_f1": 0.996282527881041,
+  "aligned_triple_f1": 0.996282527881041,
+  "individual_f1": 1.0,
+  "property_f1": 0.9951219512195122,
+  "literal_overlap": 1.0
+}

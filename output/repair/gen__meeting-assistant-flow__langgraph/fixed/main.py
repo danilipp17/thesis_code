@@ -1,0 +1,180 @@
+"""
+Auto-generated LangGraph application: meeting_assistant_flow
+"""
+
+import dotenv
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+import json
+import csv
+import os
+
+class MeetingState(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+    tasks: list[dict]
+    transcript: str
+
+model = ChatOpenAI(model="gpt-4o")
+
+
+def load_meeting_notes(state: MeetingState) -> dict:
+    """Node: load_meeting_notes
+
+    Loads the transcript either from disk (meeting_notes.txt) or from the
+    incoming state. Returns a state dict with the transcript populated.
+    """
+    # Prefer an on-disk meeting_notes.txt if present (matches original example).
+    transcript = ""
+    if os.path.exists("meeting_notes.txt"):
+        try:
+            with open("meeting_notes.txt", "r", encoding="utf-8") as f:
+                transcript = f.read()
+        except Exception:
+            transcript = state.get("transcript", "")
+    else:
+        transcript = state.get("transcript", "")
+    # Initialize tasks and messages if absent.
+    return {"transcript": transcript, "tasks": state.get("tasks", []), "messages": state.get("messages", [])}
+
+
+def analyze_meeting(state: MeetingState) -> dict:
+    """Extract actionable tasks from a meeting transcript.
+
+    This is the only node that calls the LLM. It sends a system prompt
+    describing the expected behavior and a human message containing the
+    transcript, then parses the model output as JSON (falling back to
+    heuristics if necessary).
+    """
+    system_prompt = (
+        "You are an expert in analyzing meeting transcripts and summarizing "
+        "the discussions into actionable tasks. Analyze the provided meeting "
+        "transcript and generate a set of detailed, well-organized issues "
+        "based on the discussion. Return a JSON list of "
+        '{"name": str, "description": str} objects.'
+    )
+
+    transcript = state.get("transcript", "")
+    task_prompt = f"Analyze the provided meeting transcript and generate a JSON list of {{name, description}} objects.\n\nTranscript:\n{transcript}"
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=task_prompt),
+    ]
+
+    # Call the model via the LangChain-style ChatOpenAI wrapper.
+    response = model.invoke(messages)
+
+    # response is expected to have a .content attribute containing the text.
+    text = getattr(response, "content", str(response))
+
+    # Try to parse JSON from the response. Be resilient to extra text.
+    tasks = []
+    try:
+        tasks = json.loads(text)
+    except Exception:
+        # Attempt to find the first JSON substring (starting at first '[' or '{')
+        idx = None
+        for ch in ("[", "{"):
+            pos = text.find(ch)
+            if pos != -1:
+                if idx is None or pos < idx:
+                    idx = pos
+        if idx is not None:
+            try:
+                tasks = json.loads(text[idx:])
+            except Exception:
+                tasks = []
+        else:
+            tasks = []
+
+    # Normalize to list of dicts
+    if isinstance(tasks, dict):
+        tasks = [tasks]
+    if not isinstance(tasks, list):
+        tasks = []
+
+    # Return tasks and keep the assistant message so downstream printing can show it.
+    return {"tasks": tasks, "messages": [response], "transcript": transcript}
+
+
+def upload_trello(state: MeetingState) -> dict:
+    """Push tasks to Trello (stubbed as prints)."""
+    tasks = state.get("tasks", [])
+    for t in tasks:
+        name = t.get("name", "")
+        desc = t.get("description", "")
+        print(f"[Trello] {name}: {desc}")
+    # Propagate state forward.
+    return {"tasks": tasks, "messages": state.get("messages", []), "transcript": state.get("transcript", "")}
+
+
+def save_csv(state: MeetingState) -> dict:
+    """Save tasks to a CSV file."""
+    tasks = state.get("tasks", [])
+    try:
+        with open("new_tasks.csv", "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["Name", "Description"])
+            for t in tasks:
+                w.writerow([t.get("name", ""), t.get("description", "")])
+        print(f"[CSV] Wrote {len(tasks)} tasks to new_tasks.csv")
+    except Exception as e:
+        print(f"[CSV] Failed to write CSV: {e}")
+    return {"tasks": tasks, "messages": state.get("messages", []), "transcript": state.get("transcript", "")}
+
+
+def notify_slack(state: MeetingState) -> dict:
+    """Notify a Slack channel (stubbed as a print)."""
+    tasks = state.get("tasks", [])
+    msg = f"{len(tasks)} New tasks have been added to Trello!"
+    print(f"[Slack] {msg}")
+    return {"tasks": tasks, "messages": state.get("messages", []), "transcript": state.get("transcript", "")}
+
+
+# Build the graph
+graph = StateGraph(MeetingState)
+
+graph.add_node("load_meeting_notes", load_meeting_notes)
+graph.add_node("analyze_meeting", analyze_meeting)
+graph.add_node("upload_trello", upload_trello)
+graph.add_node("save_csv", save_csv)
+graph.add_node("notify_slack", notify_slack)
+
+graph.add_edge(START, "load_meeting_notes")
+graph.add_edge("load_meeting_notes", "analyze_meeting")
+graph.add_edge("analyze_meeting", "upload_trello")
+graph.add_edge("upload_trello", "save_csv")
+graph.add_edge("save_csv", "notify_slack")
+graph.add_edge("notify_slack", END)
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    # Provide a simple transcript input; the model will be invoked in analyze_meeting.
+    input_state = {"messages": [], "tasks": [], "transcript": "We discussed migrating the database and assigning owners for the API refactor. Action: Create migration plan and assign reviewers."}
+    result = app.invoke(input_state)
+    if isinstance(result, dict):
+        for _k, _v in result.items():
+            # If a list of messages is present, show the last assistant message content.
+            if isinstance(_v, list) and _v and hasattr(_v[-1], "content"):
+                _s = _v[-1].content
+            else:
+                _s = _v
+            print(f"=== {_k} ===")
+            # Print reasonable amount of content.
+            try:
+                print(str(_s)[:800])
+            except Exception:
+                print(repr(_s))
+    else:
+        print(result)

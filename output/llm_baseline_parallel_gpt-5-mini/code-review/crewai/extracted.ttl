@@ -1,0 +1,314 @@
+# Issues / Assumptions:
+# - The ontology lacks a native concept for "Flow" and "Process" enumeration (e.g., Process.sequential). I represented sequencing using WorkflowPattern + WorkflowStep + nextStep and the existing CoordinationPattern "Sequential".
+# - The ontology does not model runtime behaviors (kickoff, listen, synchronous orchestration), so these are captured in human-readable dcterms:description literals on the AgenticSystem and Orchestration individuals.
+# - Implementation details / source code (function bodies, Python AST, SDK calls) are intentionally NOT represented per instructions. Tool implementation is referenced via hasImplementationReference but code is not inlined.
+# - The agents' "backstory" and other narrative configuration fields are stored using dcterms:description (no dedicated property exists).
+# - The mapping from tasks' "context" arrays to execution ordering is represented using agentoscin:dependsOn on Task individuals and linking WorkflowStep sequencing with agento:nextStep. This is an approximation given the schema.
+# - No explicit representation for "verbose" flag or "Process.sequential" enumeration member exists; these are represented as Config individuals attached to the system/team/agent as literals.
+# - No dedicated property exists for "expected LLM parameters" (temperature, top_p, etc.) in this solution; if needed, those would require schema extensions.
+
+@prefix ex: <http://example.org/code_review#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# Agentic system and top-level orchestration / team
+#################################################################
+
+ex:CodeReviewSystem
+    a agentoscin:AgenticSystem ;
+    rdfs:label "CodeReview — Agentic System" ;
+    dcterms:description
+        "System that runs a three-agent crew for code review, security audit, and summarization. Kicked off by a Flow which provides the code to review. Kickoff/listen runtime behavior is an operational detail captured here only as description." ;
+    agentoscin:containsTeam ex:CodeReviewCrew ;
+    agentoscin:containsAgent ex:Agent_code_reviewer ,
+                             ex:Agent_security_auditor ,
+                             ex:Agent_review_summarizer ;
+    agentoscin:containsOrchestration ex:CodeReviewCrew .
+
+ex:CodeReviewCrew
+    a agentoscin:Orchestration , agento:Team ;
+    rdfs:label "CodeReviewCrew" ;
+    dcterms:description "Crew (team) composed of three agents (code_reviewer, security_auditor, review_summarizer). Implements a sequential process: reviewer -> auditor -> summarizer." ;
+    agento:hasAgentMember ex:Agent_code_reviewer ,
+                         ex:Agent_security_auditor ,
+                         ex:Agent_review_summarizer ;
+    agento:hasWorkflowPattern ex:CodeReviewWorkflowPattern ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasSystemConfig ex:Config_process_sequential ,
+                           ex:Config_llm_default ,
+                           ex:Config_agents_config_path ,
+                           ex:Config_tasks_config_path .
+
+#################################################################
+# System / Team configs
+#################################################################
+
+ex:Config_process_sequential
+    a agento:Config ;
+    agento:configKey "process" ;
+    agento:configValue "sequential" ;
+    dcterms:description "Process.sequential configuration represented as team-level config." .
+
+ex:Config_llm_default
+    a agento:Config ;
+    agento:configKey "llm" ;
+    agento:configValue "gpt-4o" ;
+    dcterms:description "Default LLM assigned at crew creation time (agents inherit this LLM in code)." .
+
+ex:Config_agents_config_path
+    a agento:Config ;
+    agento:configKey "agents_config_path" ;
+    agento:configValue "config/agents.yaml" ;
+    dcterms:description "Path to agents configuration file used to populate agent roles, goals, and backstories." .
+
+ex:Config_tasks_config_path
+    a agento:Config ;
+    agento:configKey "tasks_config_path" ;
+    agento:configValue "config/tasks.yaml" ;
+    dcterms:description "Path to tasks configuration file used to populate task descriptions and expected outputs." .
+
+#################################################################
+# Language model
+#################################################################
+
+ex:LM_gpt4o
+    a agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model referenced by the crew (llm = 'gpt-4o')." .
+
+#################################################################
+# Agents
+#################################################################
+
+ex:Agent_code_reviewer
+    a agento:LLMAgent ;
+    rdfs:label "code_reviewer" ;
+    agento:agentRole "Code Reviewer" ;
+    agento:hasAgentGoal ex:Goal_code_reviewer ;
+    dcterms:description
+        "A senior software engineer with 15 years of experience in code review who identifies bugs, code smells, naming issues, and suggests improvements, using the code analyzer tool to check for syntax and structural issues." ;
+    agento:hasAgentConfig ex:Config_agent_code_reviewer_role ,
+                          ex:Config_agent_code_reviewer_verbose ;
+    agento:agentToolUsage ex:Tool_code_analyzer ;
+    agento:useLanguageModel ex:LM_gpt4o .
+
+ex:Config_agent_code_reviewer_role
+    a agento:Config ;
+    agento:configKey "role" ;
+    agento:configValue "Code Reviewer" .
+
+ex:Config_agent_code_reviewer_verbose
+    a agento:Config ;
+    agento:configKey "verbose" ;
+    agento:configValue "true" .
+
+ex:Goal_code_reviewer
+    a agento:Goal ;
+    rdfs:label "Goal: code_reviewer" ;
+    dcterms:description "Review code for correctness, readability, and best practices." .
+
+ex:Agent_security_auditor
+    a agento:LLMAgent ;
+    rdfs:label "security_auditor" ;
+    agento:agentRole "Security Auditor" ;
+    agento:hasAgentGoal ex:Goal_security_auditor ;
+    dcterms:description
+        "A certified security professional specializing in application security who provides CWE classifications for each finding." ;
+    agento:hasAgentConfig ex:Config_agent_security_auditor_role ,
+                          ex:Config_agent_security_auditor_verbose ;
+    agento:agentToolUsage ex:Tool_code_analyzer ;
+    agento:useLanguageModel ex:LM_gpt4o .
+
+ex:Config_agent_security_auditor_role
+    a agento:Config ;
+    agento:configKey "role" ;
+    agento:configValue "Security Auditor" .
+
+ex:Config_agent_security_auditor_verbose
+    a agento:Config ;
+    agento:configKey "verbose" ;
+    agento:configValue "true" .
+
+ex:Goal_security_auditor
+    a agento:Goal ;
+    rdfs:label "Goal: security_auditor" ;
+    dcterms:description "Audit code for security vulnerabilities including injection attacks, hardcoded secrets, insecure data handling, missing input validation, and OWASP Top 10 issues." .
+
+ex:Agent_review_summarizer
+    a agento:LLMAgent ;
+    rdfs:label "review_summarizer" ;
+    agento:agentRole "Review Summarizer" ;
+    agento:hasAgentGoal ex:Goal_review_summarizer ;
+    dcterms:description
+        "A technical lead who synthesizes feedback from code reviewers and security auditors and gives a verdict of APPROVED if no critical or major issues exist, otherwise REQUEST CHANGES." ;
+    agento:hasAgentConfig ex:Config_agent_review_summarizer_role ,
+                          ex:Config_agent_review_summarizer_verbose ;
+    # summarizer intentionally has no tool usage (preserved from source)
+    agento:useLanguageModel ex:LM_gpt4o .
+
+ex:Config_agent_review_summarizer_role
+    a agento:Config ;
+    agento:configKey "role" ;
+    agento:configValue "Review Summarizer" .
+
+ex:Config_agent_review_summarizer_verbose
+    a agento:Config ;
+    agento:configKey "verbose" ;
+    agento:configValue "true" .
+
+ex:Goal_review_summarizer
+    a agento:Goal ;
+    rdfs:label "Goal: review_summarizer" ;
+    dcterms:description "Compile findings from reviewer and auditor into a structured review report with a clear verdict and action items." .
+
+#################################################################
+# Tool
+#################################################################
+
+ex:Tool_code_analyzer
+    a agento:Tool ;
+    rdfs:label "Code Analyzer" ;
+    dcterms:description
+        "Static analyzer that checks for syntax errors, bare except clauses, and other simple static issues. Invoked by reviewer and security auditor agents." ;
+    agentoscin:hasImplementationReference
+        "tools/code_analyzer.py — Python function performing AST-based checks: parses code, reports 'Syntax: OK' on successful parse, reports bare except clauses and syntax errors. (Implementation code omitted here.)" ;
+    agentoscin:hasInputSchema "code: str" .
+
+#################################################################
+# Tasks and prompts (from config/tasks.yaml)
+#################################################################
+
+ex:Task_code_review
+    a agento:Task ;
+    rdfs:label "code_review" ;
+    dcterms:description
+        "Review the following code for correctness, readability, and best practices. Use the code analyzer tool.\n\n{code}" ;
+    agentoscin:hasExpectedOutput
+        "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements." ;
+    agento:taskPrompt ex:Prompt_code_review ;
+    agento:performedByAgent ex:Agent_code_reviewer ;
+    agentoscin:taskToolUsage ex:Tool_code_analyzer .
+
+ex:Prompt_code_review
+    a agento:Prompt ;
+    rdfs:label "Prompt for code_review" ;
+    agento:promptInstruction
+        "Review the following code for correctness, readability, and best practices. Use the code analyzer tool.\n\n{code}" ;
+    agento:promptInputData "{code}" ;
+    agento:promptOutputIndicator
+        "A code-review report listing bugs, code smells, naming issues, and concrete suggested improvements." .
+
+ex:Task_security_audit
+    a agento:Task ;
+    rdfs:label "security_audit" ;
+    dcterms:description
+        "Audit the following code for security vulnerabilities (OWASP Top 10, hardcoded secrets, injection attacks, missing input validation). Provide CWE classifications.\n\n{code}" ;
+    agentoscin:hasExpectedOutput
+        "A security audit report listing CWE-classified findings." ;
+    agento:taskPrompt ex:Prompt_security_audit ;
+    agento:performedByAgent ex:Agent_security_auditor ;
+    agentoscin:taskToolUsage ex:Tool_code_analyzer ;
+    agentoscin:dependsOn ex:Task_code_review .
+
+ex:Prompt_security_audit
+    a agento:Prompt ;
+    rdfs:label "Prompt for security_audit" ;
+    agento:promptInstruction
+        "Audit the following code for security vulnerabilities (OWASP Top 10, hardcoded secrets, injection attacks, missing input validation). Provide CWE classifications.\n\n{code}" ;
+    agento:promptInputData "{code}" ;
+    agento:promptOutputIndicator "A security audit report listing CWE-classified findings." .
+
+ex:Task_summary
+    a agento:Task ;
+    rdfs:label "summary" ;
+    dcterms:description
+        "Synthesize the review and audit findings into a structured report. Provide a verdict (APPROVED if no critical or major issues, otherwise REQUEST CHANGES), a summary, a critical count, and action items." ;
+    agentoscin:hasExpectedOutput
+        "A structured review report with verdict, summary, critical count, and action items." ;
+    agento:taskPrompt ex:Prompt_summary ;
+    agento:performedByAgent ex:Agent_review_summarizer ;
+    agentoscin:dependsOn ex:Task_code_review , ex:Task_security_audit .
+
+ex:Prompt_summary
+    a agento:Prompt ;
+    rdfs:label "Prompt for summary" ;
+    agento:promptInstruction
+        "Synthesize the review and audit findings into a structured report. Provide a verdict (APPROVED if no critical or major issues, otherwise REQUEST CHANGES), a summary, a critical count, and action items." ;
+    agento:promptInputData "{code}, findings_from_review, findings_from_audit" ;
+    agento:promptOutputIndicator
+        "A structured review report with verdict, summary, critical count, and action items." .
+
+#################################################################
+# Workflow pattern and steps mapping to tasks and agents
+#################################################################
+
+ex:CodeReviewWorkflowPattern
+    a agento:WorkflowPattern ;
+    rdfs:label "CodeReview: sequential reviewer -> auditor -> summarizer" ;
+    agento:hasWorkflowStep ex:Step_code_review ,
+                          ex:Step_security_audit ,
+                          ex:Step_summary .
+
+ex:Step_code_review
+    a agento:StartStep ;
+    rdfs:label "Step: code_review (start)" ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agentoscin:hasAssociatedAgent ex:Agent_code_reviewer ;
+    agentoscin:hasAssociatedTask ex:Task_code_review ;
+    agento:nextStep ex:Step_security_audit .
+
+ex:Step_security_audit
+    a agento:WorkflowStep ;
+    rdfs:label "Step: security_audit" ;
+    agento:stepOrder "2"^^xsd:integer ;
+    agentoscin:hasAssociatedAgent ex:Agent_security_auditor ;
+    agentoscin:hasAssociatedTask ex:Task_security_audit ;
+    agento:nextStep ex:Step_summary .
+
+ex:Step_summary
+    a agento:EndStep ;
+    rdfs:label "Step: summary (end)" ;
+    agento:stepOrder "3"^^xsd:integer ;
+    agentoscin:hasAssociatedAgent ex:Agent_review_summarizer ;
+    agentoscin:hasAssociatedTask ex:Task_summary .
+
+#################################################################
+# Additional references and artifacts
+#################################################################
+
+# Source configuration files referenced (kept as Config instances)
+ex:Config_agents_yaml_reference
+    a agento:Config ;
+    agento:configKey "agents_yaml" ;
+    agento:configValue "config/agents.yaml" ;
+    dcterms:description "Original agents configuration file that contains role, goal, and backstory for each agent." .
+
+ex:Config_tasks_yaml_reference
+    a agento:Config ;
+    agento:configKey "tasks_yaml" ;
+    agento:configValue "config/tasks.yaml" ;
+    dcterms:description "Original tasks configuration file that contains task descriptions, expected outputs, assigned agent keys, and context arrays." .
+
+# Link the system to original config references
+ex:CodeReviewSystem agento:hasConfig ex:Config_agents_yaml_reference , ex:Config_tasks_yaml_reference .
+
+#################################################################
+# Task-specific tool sharing notes (narrative in descriptions)
+#################################################################
+
+# The reviewer and auditor share the Code Analyzer tool; summarizer does not use it.
+ex:ToolSharingNote_CodeAnalyzer
+    a beam:Instance ;
+    dcterms:description
+        "Tool 'Code Analyzer' is used by both code_reviewer and security_auditor. review_summarizer has no tool usage." ;
+    agento:containsResource ex:Tool_code_analyzer .
+
+#################################################################
+# End of instance data
+#################################################################

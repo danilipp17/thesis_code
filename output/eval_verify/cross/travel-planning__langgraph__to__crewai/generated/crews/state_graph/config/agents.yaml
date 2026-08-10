@@ -1,0 +1,12 @@
+planner_agent:
+  role: planner_agent
+  goal: Sketch the initial itinerary.
+local_agent:
+  role: local_agent
+  goal: Add local activities.
+language_agent:
+  role: language_agent
+  goal: Add language/communication tips.
+travel_summary_agent:
+  role: travel_summary_agent
+  goal: Integrate everything into the final plan.

@@ -1,0 +1,174 @@
+"""
+Auto-generated LangGraph application: travel_planning
+"""
+
+import dotenv
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+class State(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+
+model = ChatOpenAI(model="gpt-4o")
+
+
+def _call_model_with_fallback(messages):
+    """
+    Call the chat model with a few fallbacks to extract text content from
+    whatever return shape the installed LangChain/OpenAI client provides.
+    """
+    # Primary: call as a callable (preferred interface for chat models)
+    try:
+        response = model(messages)
+        # If the model returned an AI message-like object with `.content`
+        if hasattr(response, "content"):
+            return response.content
+        # If the model returned a string
+        if isinstance(response, str):
+            return response
+        # If the model returned an object with `generations`
+        if hasattr(response, "generations"):
+            gens = response.generations
+            if gens:
+                first_block = gens[0]
+                # gens[0] might be a list or a single generation
+                first = first_block[0] if isinstance(first_block, list) else first_block
+                # new-style chat generation where message has content
+                if hasattr(first, "message") and hasattr(first.message, "content"):
+                    return first.message.content
+                # fallback to text attr
+                if hasattr(first, "text"):
+                    return first.text
+    except Exception:
+        # fall through to the next approach
+        pass
+
+    # Secondary: try explicit generate(...) call
+    try:
+        response = model.generate(messages=messages)
+        if hasattr(response, "generations"):
+            gens = response.generations
+            if gens:
+                first_block = gens[0]
+                first = first_block[0] if isinstance(first_block, list) else first_block
+                if hasattr(first, "message") and hasattr(first.message, "content"):
+                    return first.message.content
+                if hasattr(first, "text"):
+                    return first.text
+    except Exception:
+        pass
+
+    # If all attempts fail, raise to make the error visible to the caller.
+    raise RuntimeError("Model call did not return a parsable response.")
+
+
+def run_group_chat(state: State) -> dict:
+    """Subgraph node: run_group_chat
+
+    This node orchestrates a short multi-agent exchange using a single chat model.
+    It uses distinct system prompts to emulate the planner, local, language, and
+    summary agents. The user's task is taken from the last HumanMessage in state.
+    """
+    # Extract the user task from the incoming state messages
+    user_task = None
+    incoming = state.get("messages", [])
+    # Find the last HumanMessage-like item and use its content
+    for msg in reversed(incoming):
+        if hasattr(msg, "content"):
+            user_task = msg.content
+            break
+    if not user_task:
+        user_task = "Plan a 10 day trip to Luxembourg."
+
+    # Define the agent system prompts (as in the original AutoGen specification)
+    planner_system = (
+        "You are a helpful assistant that can suggest a travel plan for a "
+        "user based on their request."
+    )
+    local_system = (
+        "You are a helpful assistant that can suggest authentic and "
+        "interesting local activities or places to visit for a user and "
+        "can utilize any context information provided."
+    )
+    language_system = (
+        "You are a helpful assistant that can review travel plans, "
+        "providing feedback on important/critical tips about how best to "
+        "address language or communication challenges for the given "
+        "destination. If the plan already includes language tips, you can "
+        "mention that the plan is satisfactory, with rationale."
+    )
+    summary_system = (
+        "You are a helpful assistant that can take in all of the "
+        "suggestions and advice from the other agents and provide a "
+        "detailed final travel plan. You must ensure that the final plan "
+        "is integrated and complete. YOUR FINAL RESPONSE MUST BE THE "
+        "COMPLETE PLAN. When the plan is complete and all perspectives "
+        "are integrated, you can respond with TERMINATE."
+    )
+
+    # Start the conversation context with the user's original task as a HumanMessage
+    conversation = [HumanMessage(content=user_task)]
+
+    # Helper to create a compact text context for the model from current conversation
+    def build_context_text():
+        parts = []
+        for m in conversation:
+            if hasattr(m, "content"):
+                parts.append(m.content)
+        return "\n\n".join(parts)
+
+    # Planner agent: propose an itinerary / plan sketch
+    planner_input = build_context_text()
+    planner_msgs = [SystemMessage(content=planner_system), HumanMessage(content=planner_input)]
+    planner_reply = _call_model_with_fallback(planner_msgs)
+    conversation.append(HumanMessage(content=f"Planner: {planner_reply}"))
+
+    # Local agent: suggest local activities, using planner output as context
+    local_input = build_context_text()
+    local_msgs = [SystemMessage(content=local_system), HumanMessage(content=local_input)]
+    local_reply = _call_model_with_fallback(local_msgs)
+    conversation.append(HumanMessage(content=f"Local: {local_reply}"))
+
+    # Language agent: provide language/communication tips for the destination
+    language_input = build_context_text()
+    language_msgs = [SystemMessage(content=language_system), HumanMessage(content=language_input)]
+    language_reply = _call_model_with_fallback(language_msgs)
+    conversation.append(HumanMessage(content=f"Language: {language_reply}"))
+
+    # Summary agent: integrate everything into the final plan; ask it to finish with TERMINATE when done
+    summary_input = build_context_text()
+    summary_msgs = [SystemMessage(content=summary_system), HumanMessage(content=summary_input)]
+    summary_reply = _call_model_with_fallback(summary_msgs)
+    conversation.append(HumanMessage(content=f"Summary: {summary_reply}"))
+
+    # Return the full conversation as the 'messages' state so the caller can inspect the final reply
+    return {"messages": conversation}
+
+
+# Build the graph
+graph = StateGraph(State)
+
+graph.add_node("run_group_chat", run_group_chat)
+
+graph.add_edge(START, "run_group_chat")
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    result = app.invoke({"messages": [HumanMessage(content="Plan a 10 day trip to Luxembourg.")]})
+    if isinstance(result, dict):
+        for _k, _v in result.items():
+            _s = _v[-1].content if isinstance(_v, list) and _v and hasattr(_v[-1], "content") else _v
+            print(f"=== {_k} ===")
+            print(str(_s)[:800])
+    else:
+        print(result)

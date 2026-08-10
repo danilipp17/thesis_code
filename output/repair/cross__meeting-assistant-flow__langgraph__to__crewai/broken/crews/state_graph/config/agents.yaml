@@ -1,0 +1,3 @@
+analyze_meeting:
+  role: analyze_meeting
+  goal: Extract actionable tasks from a meeting transcript.

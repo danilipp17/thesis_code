@@ -1,0 +1,15 @@
+{
+  "family": "joke",
+  "src": "autogen",
+  "tgt": "crewai",
+  "triple_f1": 0.3190661478599222,
+  "aligned_triple_f1": 0.4124513618677043,
+  "individual_f1": 0.5245901639344263,
+  "property_f1": 0.5670103092783505,
+  "literal_overlap": 0.21153846153846154,
+  "ast_precision": 0.512,
+  "ast_recall": 0.371,
+  "ast_f1": 0.415,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

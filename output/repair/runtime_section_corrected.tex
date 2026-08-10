@@ -1,0 +1,336 @@
+\subsection{Runtime Executability}
+\label{sec:eval-runtime}
+\paragraph{Experiment Setup}
+
+The preceding generation metrics establish structural correctness but not that a generated
+system runs and does what its task requires. We therefore execute every generated
+artefact and evaluate goal attainment. Each of the 18 generation cells (regenerate
+framework~$F$ from the ontology of a system originally written in~$F$) and 36
+cross-framework cells (translate from source~$S$ to target~$T$, the six ordered
+framework pairs over six task families) is run in an isolated subprocess via
+\texttt{runpy}, with the project environment loaded so the agents have model
+access, the target directory on the import path and a 90\,s wall-clock budget.
+Because LangGraph stores results in graph state rather than standard output, its
+entry point is instrumented to print the full final state, so every framework's
+product is observable.
+
+Each non-goal cell is then passed through a repair model (\texttt{gpt-5-mini}) once. The prompt provides the full original source of the reference system (code, agent/crew definitions, configuration, tools), the source ontology in Turtle as the semantic specification, the broken generated code with a manifest of its files and the observed runtime failure, under the constraint to keep the target framework, the file layout and the tool-import structure, editing only node/agent bodies, prompt wiring, state access and graph/flow edges. The returned files overwrite a copy of the broken tree and the system is run again and re-judged under the same criterion.
+The experiment is single shot (one repair attempt per cell).
+
+\paragraph{Metrics.}
+
+Goal attainment is assessed against each family's intended product: a joke; a code
+review naming a concrete finding; a blog article; one or more action items
+extracted from a transcript; a travel itinerary; or the arithmetic answer. The
+maths family is verified deterministically (the output must contain the
+correct result, $(40+12)\times 6 = 312$); the open-ended families are judged by
+manual inspection of the produced text against the goal. Importantly, the
+artefact must be produced \emph{for the specified task input}: a system that
+runs to completion but silently substitutes an input of its own invention (e.g.\
+an itinerary for a destination nobody requested) does not reach the goal. Each
+run is assigned one of three outcomes:
+
+\begin{itemize}
+  \item \textbf{\ding{51}\ Goal reached}: the system runs to completion and
+        produces the intended artefact for the specified task input.
+  \item \textbf{$\sim$ Partial}: the system runs but does not fully reach the
+        goal: it either produces \emph{part} of the goal (e.g.\ an audit without
+        the summary, an itinerary without the final-plan field, a transcript
+        pipeline that extracts zero tasks) or runs without producing it (empty
+        wrapper bodies, or un-wired input --- including runs where the model,
+        finding no input, fabricates its own and produces a plausible but
+        unrequested artefact).
+  \item \textbf{\ding{55}\ Error}: the system does not run to completion (a
+        runtime exception, or a timeout).
+\end{itemize}
+
+Every non-\ding{51}\ cell is additionally labelled with one \emph{issue category}
+naming the dominant cause, defined in Table~\ref{tab:runtime-categories}.
+
+\begin{table}[H]
+\centering
+\tiny
+\footnotesize
+\begin{tabular}{lp{4.7cm}p{5.0cm}}
+\toprule
+\textbf{Category} & \textbf{Meaning} & \textbf{Typical fix} \\
+\midrule
+Input wiring   & Runs and calls the model, but the task input is not interpolated
+                 into the prompt, so the agent asks for or echoes the missing input
+                 --- or silently invents one and produces an artefact for a task
+                 that was never specified. &
+                 Interpolate the real input into the prompt (replace the literal
+                 placeholder with the state field, e.g.\ \texttt{f"...\{state['question']\}"})
+                 and seed the entry point with a concrete value. \\
+\addlinespace
+Stub bodies    & The orchestration wrapper (CrewAI Flow / LangGraph subgraph)
+                 executes empty or placeholder node bodies; no agent work occurs. &
+                 Replace the empty/\texttt{TODO} body with a real model-invoking call
+                 (\texttt{model.invoke(...)} / \texttt{crew.kickoff(...)}) and return
+                 the produced value into state. \\
+\addlinespace
+Partial output & Runs and produces part of the goal but leaves one node or state
+                 field unrealized. &
+                 Implement the missing node, or map the model response to the correct
+                 state key so the final field is populated and printed. \\
+\addlinespace
+Control flow   & A graph/router defect --- an edge to a non-existent node, or a
+                 router returning a key absent from the edge mapping. &
+                 Align the router's return labels with the edge-mapping keys and point
+                 every edge at a declared node (add the missing node or correct the target). \\
+\addlinespace
+Idiom mismatch & Framework-specific API misuse --- e.g.\ accessing a CrewAI
+                 Pydantic state with the LangGraph dict idiom, calling a LangChain
+                 \texttt{StructuredTool} object directly, or assigning to
+                 \texttt{StateGraph.state}. &
+                 Use the framework-correct construct: Pydantic \texttt{state.field} vs
+                 dict \texttt{state["field"]}, invoke a tool via \texttt{tool.invoke(args)},
+                 and return state deltas instead of mutating \texttt{StateGraph.state}. \\
+\addlinespace
+Missing symbol & A referenced name or module is undefined or not importable
+                 (\texttt{NameError}, \texttt{ModuleNotFoundError}). &
+                 Add the missing import or definition (or install the package); for
+                 intra-package modules, fix the import path / package layout. \\
+\addlinespace
+Schema         & A framework data-model or validation constraint is violated
+                 (e.g.\ a CrewAI Flow state model requires an \texttt{id} field,
+                 an \texttt{Agent}/\texttt{Task} config fails Pydantic validation,
+                 or an AutoGen \texttt{FunctionTool} requires type-annotated
+                 tool parameters). &
+                 Add the required field(s) to the state model so it satisfies the
+                 framework's constraint (e.g.\ declare \texttt{id} on the Flow state). \\
+\addlinespace
+Timeout        & The system does not terminate within the 90\,s budget (unbounded
+                 agent loop). &
+                 Add a bound to the loop: a termination condition / \texttt{max\_turns},
+                 a recursion or step limit, or a router exit branch that is actually reachable. \\
+\addlinespace
+Runtime        & A failure raised while the agent/model call executes that is not a
+                 structural defect --- the LLM/agent invocation itself fails, the model
+                 output cannot be parsed, or a message-type mismatch occurs at execution
+                 (e.g.\ \texttt{No AIMessage in input}, \texttt{tuple has no .content}). &
+                 Harden the model interaction: pass the message type the framework expects,
+                 parse/validate the model output defensively, and surface or retry on
+                 transient invocation errors. \\
+\bottomrule
+\end{tabular}
+\caption{Issue categories assigned to every non-goal-reached runtime outcome.}
+\label{tab:runtime-categories}
+\end{table}
+
+\paragraph{Results}
+
+Before repair, only 3 of 54 generated systems fully reach their goal (3/18
+generation, 0/36 cross-framework; Table~\ref{tab:rt-gen-before} and
+Table~\ref{tab:rt-cross-before}). Manual inspection is essential here: nine
+further systems run to completion and produce a superficially plausible
+artefact --- but for an input the model invented itself, because the concrete
+task input is never wired in. A bare \texttt{kickoff()} leaves the literal
+\texttt{\{topic\}}/\texttt{\{request\}} placeholder in the prompt, or a dummy
+seed (\texttt{"sample topic"}) replaces the real value; the model then picks
+its own topic, code or destination (the regenerated CrewAI travel planner, for
+instance, produced a polished itinerary for Kyoto although the reference
+request asks for a 10-day trip to Luxembourg). We score these as input-wiring
+partials, not goal attainment. The three genuine successes are all AutoGen
+regenerations, which is diagnostic: AutoGen embeds the concrete input in the
+\texttt{task=} string of \texttt{run\_stream(...)}, which the ontology captures
+as the task description, whereas CrewAI (\texttt{kickoff(inputs=\{...\})}) and
+LangGraph (the initial-state seed) bind the input at run time, outside the
+ontology, so the deterministic generator cannot restore it. Overall the
+non-goal cells are dominated by stub bodies and input wiring: 44 cells run
+but produce no, or no usable, output --- together with seven errors (six
+crashes and one timeout). A single \texttt{gpt-5-mini} repair pass, given the
+original source, the ontology and the broken skeleton and constrained to
+produce genuine model-driven output (no hardcoded or framework-bypassing
+solutions, verified by re-running each system and requiring its output to vary
+across runs), raises goal attainment to 29 of 54 (54\,\%): 14/18 generation
+and 15/36 cross-framework (Table~\ref{tab:rt-gen-after} and
+Table~\ref{tab:rt-cross-after}). The ``runs-but-no-goal'' category collapses
+from 44 cells to one, confirming that the residual gap the deterministic
+generator leaves (i.e.\ un-synthesised node/crew bodies and un-interpolated or
+un-seeded inputs) is local and fillable once the structure and grounding are
+already correct. The cells the repair does not fix surface as genuine
+framework-specific errors rather than disguised successes: 24 in total,
+dominated by API/idiom mismatches (e.g.\ calling a LangChain
+\texttt{StructuredTool} or \texttt{ChatOpenAI} object directly, or assigning to
+\texttt{StateGraph.state}) and agent-schema validation failures (i.e.\ faults
+that require deeper, framework-specific synthesis than a single pass provides).
+
+\begin{table}[H]
+\centering
+\tiny
+\begin{tabular}{llcl p{3.0cm}}
+\toprule
+\textbf{Family} & \textbf{Framework} & \textbf{} & \textbf{Category} & \textbf{System Output} \\
+\midrule
+joke        & CrewAI    & \pmark & Input wiring   & \texttt{\{topic\}} unfilled; invents own topic \\
+joke        & LangGraph & \pmark & Input wiring   & Asks for a topic; joke fields placeholder \\
+joke        & AutoGen   & \cmark & ---            & Joke \\
+code-review & CrewAI    & \pmark & Input wiring   & \texttt{\{code\}} unfilled; reviews no real code \\
+code-review & LangGraph & \pmark & Input wiring   & Dummy ``sample code'' seed; summary node unwired \\
+code-review & AutoGen   & \pmark & Input wiring   & Prompt not interpolated; asks for code \\
+tech-blog   & CrewAI    & \pmark & Input wiring   & \texttt{\{topic\}} unfilled; invents own topic \\
+tech-blog   & LangGraph & \pmark & Input wiring   & Dummy ``sample topic'' seed; invents topic \\
+tech-blog   & AutoGen   & \cmark & ---            & Article \\
+meeting     & CrewAI    & \xmark & Missing symbol & \texttt{NameError}: MeetingTask undefined \\
+meeting     & LangGraph & \pmark & Input wiring   & Reads seed message, asks for transcript \\
+meeting     & AutoGen   & \pmark & Input wiring   & Literal transcript placeholder \\
+travel      & CrewAI    & \pmark & Input wiring   & \texttt{\{request\}} unfilled; invents Kyoto trip \\
+travel      & LangGraph & \pmark & Input wiring   & Dummy ``sample request'' seed; final-plan node unwired \\
+travel      & AutoGen   & \xmark & Timeout        & Unbounded agent loop (>90 s) \\
+maths       & CrewAI    & \pmark & Input wiring   & Asks for the query \\
+maths       & LangGraph & \xmark & Control flow   & \texttt{KeyError}: None (router stub) \\
+maths       & AutoGen   & \cmark & ---            & Computes 312 \\
+\midrule
+\multicolumn{5}{l}{\cmark\ 3 \quad \pmark\ 12 \quad \xmark\ 3} \\
+\bottomrule
+\end{tabular}
+\caption{Generation runtime outcomes, before fixup. \cmark\ goal reached,
+\pmark\ partial / runs but goal not reached, \xmark\ error. Cells that run and
+produce an artefact for a self-invented input (the real input is never wired
+in) count as input-wiring partials, not goal attainment.}
+\label{tab:rt-gen-before}
+\end{table}
+
+\begin{table}[H]
+\centering
+\tiny
+\begin{tabular}{llcl p{3.0cm}}
+\toprule
+\textbf{Family} & \textbf{Framework} & \textbf{} & \textbf{Category} & \textbf{System Output} \\
+\midrule
+joke        & CrewAI    & \cmark & ---            & Joke (about the seeded topic) \\
+joke        & LangGraph & \cmark & ---            & Joke \\
+joke        & AutoGen   & \cmark & ---            & Joke \\
+code-review & CrewAI    & \cmark & ---            & Review with CWE findings \\
+code-review & LangGraph & \cmark & ---            & Review with findings \\
+code-review & AutoGen   & \cmark & ---            & Review (flags \texttt{eval}) \\
+tech-blog   & CrewAI    & \cmark & ---            & Article \\
+tech-blog   & LangGraph & \cmark & ---            & Article \\
+tech-blog   & AutoGen   & \cmark & ---            & Article \\
+meeting     & CrewAI    & \xmark & Schema         & \texttt{ValidationError}: Flow state needs 'id' \\
+meeting     & LangGraph & \pmark & Partial output & Tasks in reply, but not mapped into state; CSV empty \\
+meeting     & AutoGen   & \xmark & Schema         & \texttt{KeyError}: 'tasks' (un-annotated tool param) \\
+travel      & CrewAI    & \cmark & ---            & Itinerary (Luxembourg) \\
+travel      & LangGraph & \cmark & ---            & Itinerary (Luxembourg) \\
+travel      & AutoGen   & \cmark & ---            & Itinerary \\
+maths       & CrewAI    & \xmark & Schema         & \texttt{Task/Agent} config validation fails \\
+maths       & LangGraph & \cmark & ---            & Answer 312 \\
+maths       & AutoGen   & \cmark & ---            & Answer 312 \\
+\midrule
+\multicolumn{5}{l}{\cmark\ 14 \quad \pmark\ 1 \quad \xmark\ 3} \\
+\bottomrule
+\end{tabular}
+\caption{Generation runtime outcomes, after one \texttt{gpt-5-mini} repair pass.
+\cmark\ counts only systems that produce the goal for the specified input
+\emph{and} vary across runs (genuine model-driven output, not hardcoded).}
+\label{tab:rt-gen-after}
+\end{table}
+
+\begin{table}[H]
+\centering
+\tiny
+\begin{tabular}{llcl p{3.0cm}}
+\toprule
+\textbf{Family} & \textbf{Dir.} & \textbf{} & \textbf{Category} & \textbf{System Output} \\
+\midrule
+joke        & C$\to$L & \xmark & Control flow   & Edge to unknown node Fail \\
+joke        & C$\to$A & \pmark & Input wiring   & Literal \texttt{\{topic\}} in task; invents topic \\
+joke        & L$\to$C & \xmark & Idiom mismatch & \texttt{StateWithId} not subscriptable \\
+joke        & L$\to$A & \pmark & Input wiring   & Vague task string; invents own joke \\
+joke        & A$\to$C & \pmark & Stub bodies    & Flow runs, crew empty \\
+joke        & A$\to$L & \pmark & Stub bodies    & Subgraph node stub \\
+code-review & C$\to$L & \pmark & Stub bodies    & Placeholder pass-through \\
+code-review & C$\to$A & \pmark & Input wiring   & Review template; asks for code \\
+code-review & L$\to$C & \pmark & Stub bodies    & Flow methods empty \\
+code-review & L$\to$A & \pmark & Input wiring   & Prompt not interpolated \\
+code-review & A$\to$C & \pmark & Stub bodies    & Flow runs, crew empty \\
+code-review & A$\to$L & \pmark & Stub bodies    & Subgraph node stub \\
+tech-blog   & C$\to$L & \pmark & Stub bodies    & Placeholder pass-through \\
+tech-blog   & C$\to$A & \pmark & Input wiring   & Literal \texttt{\{topic\}} in task; invents topic \\
+tech-blog   & L$\to$C & \pmark & Stub bodies    & Flow methods empty \\
+tech-blog   & L$\to$A & \pmark & Input wiring   & Asks for the topic \\
+tech-blog   & A$\to$C & \pmark & Stub bodies    & Flow runs, crew empty \\
+tech-blog   & A$\to$L & \pmark & Stub bodies    & Subgraph node stub \\
+meeting     & C$\to$L & \xmark & Missing symbol & \texttt{NameError}: MeetingTask \\
+meeting     & C$\to$A & \pmark & Input wiring   & No transcript content \\
+meeting     & L$\to$C & \pmark & Stub bodies    & Flow methods empty \\
+meeting     & L$\to$A & \pmark & Input wiring   & Literal transcript placeholder \\
+meeting     & A$\to$C & \pmark & Stub bodies    & Flow runs, crew empty \\
+meeting     & A$\to$L & \pmark & Stub bodies    & Subgraph node stub \\
+travel      & C$\to$L & \pmark & Stub bodies    & Placeholder pass-through \\
+travel      & C$\to$A & \pmark & Input wiring   & Literal \texttt{\{request\}}; invents Rome trip \\
+travel      & L$\to$C & \pmark & Stub bodies    & Flow methods empty \\
+travel      & L$\to$A & \pmark & Input wiring   & Asks for trip details \\
+travel      & A$\to$C & \pmark & Stub bodies    & Flow runs, crew empty \\
+travel      & A$\to$L & \pmark & Stub bodies    & Subgraph node stub \\
+maths       & C$\to$L & \pmark & Stub bodies    & Placeholder pass-through \\
+maths       & C$\to$A & \pmark & Input wiring   & Asks for the query \\
+maths       & L$\to$C & \xmark & Idiom mismatch & \texttt{StateWithId} not subscriptable \\
+maths       & L$\to$A & \pmark & Input wiring   & Asks for clarification \\
+maths       & A$\to$C & \pmark & Stub bodies    & Flow runs, crew empty \\
+maths       & A$\to$L & \pmark & Stub bodies    & Subgraph node stub \\
+\midrule
+\multicolumn{5}{l}{\cmark\ 0 \quad \pmark\ 32 \quad \xmark\ 4} \\
+\bottomrule
+\end{tabular}
+\caption{Cross-framework runtime outcomes, before fixup.
+Directions: C=CrewAI, L=LangGraph, A=AutoGen (source$\to$target). Cells that
+run and produce an artefact for a self-invented input count as input-wiring
+partials, not goal attainment.}
+\label{tab:rt-cross-before}
+\end{table}
+
+\begin{table}[H]
+\centering
+\tiny
+\begin{tabular}{llcl p{3.0cm}}
+\toprule
+\textbf{Family} & \textbf{Dir.} & \textbf{} & \textbf{Category} & \textbf{System Output} \\
+\midrule
+joke        & C$\to$L & \xmark & Control flow   & \texttt{KeyError}: 'Pass' \\
+joke        & C$\to$A & \cmark & ---            & Joke (seeded topic) \\
+joke        & L$\to$C & \xmark & Schema         & \texttt{ValidationError} (Agent) \\
+joke        & L$\to$A & \cmark & ---            & Joke (seeded topic) \\
+joke        & A$\to$C & \xmark & Idiom mismatch & \texttt{Crew} has no \texttt{.run} \\
+joke        & A$\to$L & \cmark & ---            & Joke \\
+code-review & C$\to$L & \xmark & Idiom mismatch & \texttt{StructuredTool} not callable \\
+code-review & C$\to$A & \cmark & ---            & Review \\
+code-review & L$\to$C & \xmark & Missing symbol & \texttt{ModuleNotFound}: tools \\
+code-review & L$\to$A & \cmark & ---            & Review \\
+code-review & A$\to$C & \xmark & Idiom mismatch & inputs must be a dict \\
+code-review & A$\to$L & \xmark & Idiom mismatch & \texttt{ChatOpenAI} not callable \\
+tech-blog   & C$\to$L & \cmark & ---            & Article \\
+tech-blog   & C$\to$A & \cmark & ---            & Article (seeded topic) \\
+tech-blog   & L$\to$C & \cmark & ---            & Article \\
+tech-blog   & L$\to$A & \cmark & ---            & Article \\
+tech-blog   & A$\to$C & \xmark & Schema         & \texttt{ValidationError} (Agent) \\
+tech-blog   & A$\to$L & \xmark & Idiom mismatch & \texttt{ChatOpenAI} not callable \\
+meeting     & C$\to$L & \xmark & Control flow   & \texttt{InvalidUpdateError} (tasks) \\
+meeting     & C$\to$A & \xmark & Timeout        & timeout (>90 s) \\
+meeting     & L$\to$C & \xmark & Runtime        & LLM call failed \\
+meeting     & L$\to$A & \cmark & ---            & Tasks \\
+meeting     & A$\to$C & \xmark & Runtime        & agent invocation failed \\
+meeting     & A$\to$L & \xmark & Runtime        & No AIMessage in input \\
+travel      & C$\to$L & \cmark & ---            & Itinerary \\
+travel      & C$\to$A & \cmark & ---            & Itinerary (Luxembourg) \\
+travel      & L$\to$C & \xmark & Idiom mismatch & \texttt{StateGraph.state} has no setter \\
+travel      & L$\to$A & \xmark & Idiom mismatch & \texttt{SelectorGroupChat} init \\
+travel      & A$\to$C & \xmark & Schema         & \texttt{ValidationError} (Agent) \\
+travel      & A$\to$L & \xmark & Runtime        & model output unparsable \\
+maths       & C$\to$L & \cmark & ---            & Answer 312 \\
+maths       & C$\to$A & \cmark & ---            & Answer 312 \\
+maths       & L$\to$C & \xmark & Idiom mismatch & \texttt{APIRemovedInV1} (deprecated call) \\
+maths       & L$\to$A & \cmark & ---            & Answer 312 \\
+maths       & A$\to$C & \xmark & Schema         & \texttt{ValidationError} (Agent) \\
+maths       & A$\to$L & \xmark & Runtime        & tuple has no \texttt{.content} \\
+\midrule
+\multicolumn{5}{l}{\cmark\ 15 \quad \pmark\ 0 \quad \xmark\ 21} \\
+\bottomrule
+\end{tabular}
+\caption{Cross-framework runtime outcomes, after one \texttt{gpt-5-mini} repair
+pass. Directions: C=CrewAI, L=LangGraph, A=AutoGen (source$\to$target).
+\cmark\ counts only verified-genuine systems (goal reached for the specified
+input \emph{and} non-deterministic output); no cell passes by hardcoding.}
+\label{tab:rt-cross-after}
+\end{table}

@@ -1,0 +1,323 @@
+# Issues / Assumptions:
+# - The ontology does not include explicit properties for "Flow", "start/listen" event handlers, or "kickoff" runtime methods; I represent the flow as an AgenticSystem that contains an Orchestration (the crew). Execution control (start/listen) is noted in literals, not modeled as executable constructs.
+# - The ontology lacks a direct property for associating a "Process" enum (e.g., Process.sequential). I mapped the crew's process=sequential to the existing CoordinationPattern instance agentoscin:Sequential via employsCoordinationPattern.
+# - The ontology has limited modeling for configuration maps (YAML); I modeled each config key/value as a separate Config individual (one per key) and linked them via hasAgentConfig / hasSystemConfig to preserve fidelity.
+# - The ontology cannot represent code-level constructs (decorators, method names, file paths, Python classes). These are preserved as literal values (labels / descriptions) where relevant.
+# - The ontology does not have an explicit property for "task context binding" as in the source framework; I used agentoscin:dependsOn to model task context dependencies (context referencing a predecessor task).
+# - The runtime binding of input values (e.g., the Flow state's default topic) and call semantics (kickoff inputs) are modeled as a beam:Resource (DefaultTopic) and as promptInputData literals on prompts; the exact runtime parameter binding is not modeled since no property exists.
+# - No new classes or properties were added. Where necessary information could not be modeled structurally, I've preserved it as literals on existing individuals (promptInstruction, descriptions, labels).
+
+@prefix : <http://example.org/techblog/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# Agentic system (Flow) and Orchestration (Crew)
+#################################################################
+
+:TechBlogSystem
+    rdf:type agentoscin:AgenticSystem ;
+    rdfs:label "TechBlogFlow System" ;
+    dcterms:description "Represents the TechBlogFlow (Flow) that orchestrates the TechBlogCrew. The original runtime defines a start() that calls TechBlogCrew().crew().kickoff(inputs={'topic': self.state.topic}) and a listen() that prints the final post. These execution semantics are recorded in descriptions." ;
+    agentoscin:containsOrchestration :TechBlogCrew_Orchestration ;
+    agentoscin:hasSourceFramework "CrewAI Flow (Python) — flow.start / flow.listen semantics preserved as description" .
+
+:TechBlogCrew_Orchestration
+    rdf:type agentoscin:Orchestration , agento:Team ;
+    rdfs:label "TechBlogCrew (researcher → writer → editor)" ;
+    dcterms:description "A linear, three-step team (orchestration) that runs the tasks sequentially (research_topic → write_draft → edit_post). Agents and tasks are configured via YAML; llm selection is gpt-4o." ;
+    agentoscin:containsAgent :Agent_researcher , :Agent_writer , :Agent_editor ;
+    agentoscin:containsTeam _:placeholder_no_subteams ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasSystemConfig :Config_crew_llm ;
+    agento:hasWorkflowPattern :TechBlogWorkflowPattern ;
+    agento:hasAgentMember :Agent_researcher , :Agent_writer , :Agent_editor .
+
+#################################################################
+# Global language model used by agents
+#################################################################
+
+:gpt4o_model
+    rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model selected in the crew implementation (llm = 'gpt-4o')." .
+
+#################################################################
+# Agents (LLMAgent) and their configs and prompts
+#################################################################
+
+:Agent_researcher
+    rdf:type agento:LLMAgent ;
+    rdfs:label "researcher (LLM Agent)" ;
+    agento:agentID "researcher" ;
+    agento:agentRole "Senior Tech Researcher" ;
+    agento:useLanguageModel :gpt4o_model ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean ;
+    agentoscin:hasAgentMemoryBinding _:no_memory_binding_researcher ;
+    agento:hasAgentConfig :Config_researcher_role , :Config_researcher_goal , :Config_researcher_backstory ;
+    agento:agentPrompt :Prompt_researcher_prompt .
+
+:Config_researcher_role
+    rdf:type agento:Config ;
+    agento:configKey "role" ;
+    agento:configValue "Senior Tech Researcher" ;
+    rdfs:label "config: researcher.role" .
+
+:Config_researcher_goal
+    rdf:type agento:Config ;
+    agento:configKey "goal" ;
+    agento:configValue "Gather comprehensive, up-to-date information on '{topic}'." ;
+    rdfs:label "config: researcher.goal" .
+
+:Config_researcher_backstory
+    rdf:type agento:Config ;
+    agento:configKey "backstory" ;
+    agento:configValue "An expert researcher skilled at finding the latest technological trends and summarizing them clearly." ;
+    rdfs:label "config: researcher.backstory" .
+
+:Prompt_researcher_prompt
+    rdf:type agento:Prompt ;
+    rdfs:label "researcher agent prompt" ;
+    agento:promptInstruction "You are a Senior Tech Researcher. Goal: Gather comprehensive, up-to-date information on '{topic}'. Backstory: An expert researcher skilled at finding the latest technological trends and summarizing them clearly." ;
+    agento:promptContext "Agent-level prompt for independent research activities. Placeholder '{topic}' will be replaced by the workflow input." ;
+    agento:promptInputData "{topic}" ;
+    agento:promptOutputIndicator "A detailed summary of research findings." .
+
+# Writer agent
+:Agent_writer
+    rdf:type agento:LLMAgent ;
+    rdfs:label "writer (LLM Agent)" ;
+    agento:agentID "writer" ;
+    agento:agentRole "Tech Blog Writer" ;
+    agento:useLanguageModel :gpt4o_model ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean ;
+    agento:hasAgentConfig :Config_writer_role , :Config_writer_goal , :Config_writer_backstory ;
+    agento:agentPrompt :Prompt_writer_prompt .
+
+:Config_writer_role
+    rdf:type agento:Config ;
+    agento:configKey "role" ;
+    agento:configValue "Tech Blog Writer" ;
+    rdfs:label "config: writer.role" .
+
+:Config_writer_goal
+    rdf:type agento:Config ;
+    agento:configKey "goal" ;
+    agento:configValue "Write an engaging, easy-to-read blog post based on research." ;
+    rdfs:label "config: writer.goal" .
+
+:Config_writer_backstory
+    rdf:type agento:Config ;
+    agento:configKey "backstory" ;
+    agento:configValue "A seasoned technical writer who can make complex topics accessible to a broad audience." ;
+    rdfs:label "config: writer.backstory" .
+
+:Prompt_writer_prompt
+    rdf:type agento:Prompt ;
+    rdfs:label "writer agent prompt" ;
+    agento:promptInstruction "You are a Tech Blog Writer. Using the research provided, write a comprehensive 500-word blog post about '{topic}'." ;
+    agento:promptContext "Agent-level prompt for composing the blog post. The agent expects research input from the researcher task (context)." ;
+    agento:promptInputData "{topic}; research_summary" ;
+    agento:promptOutputIndicator "A complete blog post draft (approx. 500 words)." .
+
+# Editor agent
+:Agent_editor
+    rdf:type agento:LLMAgent ;
+    rdfs:label "editor (LLM Agent)" ;
+    agento:agentID "editor" ;
+    agento:agentRole "Content Editor" ;
+    agento:useLanguageModel :gpt4o_model ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean ;
+    agento:hasAgentConfig :Config_editor_role , :Config_editor_goal , :Config_editor_backstory ;
+    agento:agentPrompt :Prompt_editor_prompt .
+
+:Config_editor_role
+    rdf:type agento:Config ;
+    agento:configKey "role" ;
+    agento:configValue "Content Editor" ;
+    rdfs:label "config: editor.role" .
+
+:Config_editor_goal
+    rdf:type agento:Config ;
+    agento:configKey "goal" ;
+    agento:configValue "Review and refine the blog post for clarity, grammar, and flow." ;
+    rdfs:label "config: editor.goal" .
+
+:Config_editor_backstory
+    rdf:type agento:Config ;
+    agento:configKey "backstory" ;
+    agento:configValue "A meticulous editor with a keen eye for detail, ensuring every published piece is top-notch." ;
+    rdfs:label "config: editor.backstory" .
+
+:Prompt_editor_prompt
+    rdf:type agento:Prompt ;
+    rdfs:label "editor agent prompt" ;
+    agento:promptInstruction "You are a Content Editor. Review the drafted blog post. Check for clarity, tone, spelling, and grammar. Ensure it is engaging." ;
+    agento:promptContext "Agent-level prompt for editing the draft produced by the writer." ;
+    agento:promptInputData "draft_post" ;
+    agento:promptOutputIndicator "A polished, final version of the blog post, ready for publication." .
+
+#################################################################
+# Crew / Team configuration (system-level)
+#################################################################
+
+:Config_crew_llm
+    rdf:type agento:Config ;
+    agento:configKey "llm" ;
+    agento:configValue "gpt-4o" ;
+    rdfs:label "config: crew.llm" ;
+    dcterms:description "System-level configuration indicating the LLM used by default by agents in this crew." .
+
+#################################################################
+# Tasks, Prompts, and Task configuration
+#################################################################
+
+:Task_research_topic
+    rdf:type agento:Task ;
+    rdfs:label "research_topic" ;
+    dcterms:description "Conduct thorough research on the topic: '{topic}'. Identify key trends, benefits, challenges, and future outlook." ;
+    agentoscin:hasExpectedOutput "A detailed summary of research findings." ;
+    agento:performedByAgent :Agent_researcher ;
+    agento:taskPrompt :Prompt_task_research ;
+    agento:requiresResource :DefaultTopic ;
+    dcterms:title "Research Topic Task" .
+
+:Prompt_task_research
+    rdf:type agento:Prompt ;
+    rdfs:label "research_topic task prompt" ;
+    agento:promptInstruction "Conduct thorough research on the topic: '{topic}'. Identify key trends, benefits, challenges, and future outlook. Provide a structured summary suitable for passing to a writer." ;
+    agento:promptContext "Task-level prompt derived from tasks.yaml: description field with '{topic}' placeholder." ;
+    agento:promptInputData "{topic}" ;
+    agento:promptOutputIndicator "Detailed structured research summary." .
+
+:Task_write_draft
+    rdf:type agento:Task ;
+    rdfs:label "write_draft" ;
+    dcterms:description "Using the research provided, write a comprehensive 500-word blog post about '{topic}'." ;
+    agentoscin:hasExpectedOutput "A complete blog post draft." ;
+    agento:performedByAgent :Agent_writer ;
+    agento:taskPrompt :Prompt_task_write ;
+    agentoscin:dependsOn :Task_research_topic ;
+    dcterms:title "Write Draft Task" .
+
+:Prompt_task_write
+    rdf:type agento:Prompt ;
+    rdfs:label "write_draft task prompt" ;
+    agento:promptInstruction "Using the research summary for '{topic}', write a comprehensive ~500-word blog post that is engaging and accessible." ;
+    agento:promptContext "Task-level prompt; expects structured research summary as input." ;
+    agento:promptInputData "{topic}; research_summary" ;
+    agento:promptOutputIndicator "Complete blog post draft." .
+
+:Task_edit_post
+    rdf:type agento:Task ;
+    rdfs:label "edit_post" ;
+    dcterms:description "Review the drafted blog post. Check for clarity, tone, spelling, and grammar. Ensure it is engaging." ;
+    agentoscin:hasExpectedOutput "A polished, final version of the blog post, ready for publication." ;
+    agento:performedByAgent :Agent_editor ;
+    agento:taskPrompt :Prompt_task_edit ;
+    agentoscin:dependsOn :Task_write_draft ;
+    dcterms:title "Edit Post Task" .
+
+:Prompt_task_edit
+    rdf:type agento:Prompt ;
+    rdfs:label "edit_post task prompt" ;
+    agento:promptInstruction "Review the draft blog post for clarity, grammar, tone, and overall flow. Return an edited, publication-ready version." ;
+    agento:promptContext "Task-level prompt for editing post." ;
+    agento:promptInputData "draft_post" ;
+    agento:promptOutputIndicator "Polished final blog post" .
+
+#################################################################
+# Workflow pattern and steps mapping tasks → steps → agents
+#################################################################
+
+:TechBlogWorkflowPattern
+    rdf:type agento:WorkflowPattern ;
+    rdfs:label "Tech Blog Writing Workflow Pattern" ;
+    dcterms:description "Workflow pattern representing the sequential three-step pipeline: research_topic → write_draft → edit_post." ;
+    agento:hasWorkflowStep :Step_research_topic , :Step_write_draft , :Step_edit_post .
+
+:Step_research_topic
+    rdf:type agento:StartStep ;
+    rdfs:label "Step: research_topic" ;
+    agento:hasAssociatedTask :Task_research_topic ;
+    agentoscin:hasAssociatedAgent :Agent_researcher ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agento:hasPrompt :Prompt_task_research ;
+    agento:producedResource :ResearchSummaryResource ;
+    agento:nextStep :Step_write_draft .
+
+:Step_write_draft
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "Step: write_draft" ;
+    agento:hasAssociatedTask :Task_write_draft ;
+    agentoscin:hasAssociatedAgent :Agent_writer ;
+    agento:stepOrder "2"^^xsd:integer ;
+    agento:hasPrompt :Prompt_task_write ;
+    agento:requiresResource :ResearchSummaryResource ;
+    agento:producedResource :DraftPostResource ;
+    agento:nextStep :Step_edit_post .
+
+:Step_edit_post
+    rdf:type agento:EndStep ;
+    rdfs:label "Step: edit_post" ;
+    agento:hasAssociatedTask :Task_edit_post ;
+    agentoscin:hasAssociatedAgent :Agent_editor ;
+    agento:stepOrder "3"^^xsd:integer ;
+    agento:hasPrompt :Prompt_task_edit ;
+    agento:requiresResource :DraftPostResource ;
+    agento:producedResource :FinalPostResource .
+
+#################################################################
+# Resources (inputs / artifacts)
+#################################################################
+
+:DefaultTopic
+    rdf:type beam:Resource ;
+    rdfs:label "default topic input" ;
+    dcterms:title "Agentic AI Frameworks" ;
+    dcterms:description "Default initial Flow state value for 'topic' in TechBlogFlow. In the original code this is TechBlogState.topic default." .
+
+:ResearchSummaryResource
+    rdf:type beam:Resource ;
+    rdfs:label "research summary (intermediate)" ;
+    dcterms:description "Output of research_topic; input to write_draft. Modeled as a Resource produced by Step_research_topic." .
+
+:DraftPostResource
+    rdf:type beam:Resource ;
+    rdfs:label "draft blog post" ;
+    dcterms:description "Draft post produced by write_draft; input to edit_post." .
+
+:FinalPostResource
+    rdf:type beam:Resource ;
+    rdfs:label "final blog post" ;
+    dcterms:description "Final polished post produced by edit_post; would be printed by the TechBlogFlow.listen() in the original implementation." .
+
+#################################################################
+# Linking tasks to resources and modeling expected outputs / dependencies
+#################################################################
+
+# The research task requires the DefaultTopic input (binding of Flow state to task)
+:Task_research_topic agento:requiresResource :DefaultTopic .
+# write_draft depends on research and requires the research summary resource
+:Task_write_draft agento:requiresResource :ResearchSummaryResource ;
+                  agentoscin:dependsOn :Task_research_topic .
+# edit_post depends on write_draft and requires the draft resource
+:Task_edit_post agento:requiresResource :DraftPostResource ;
+                agentoscin:dependsOn :Task_write_draft .
+
+#################################################################
+# Additional notes as literals for reconstruction fidelity
+#################################################################
+
+:TechBlogFlow_ImplementationNotes
+    rdf:type agento:Instance ;
+    rdfs:label "Implementation notes (literal)" ;
+    dcterms:description "Original code: TechBlogFlow (Flow) defines TechBlogState(topic: 'Agentic AI Frameworks'), write_blog start() method that calls TechBlogCrew().crew().kickoff(inputs={'topic': self.state.topic}), then listen(write_blog) prints final_post. Crew implementation uses agents_config (config/agents.yaml) and tasks_config (config/tasks.yaml). Agents: researcher, writer, editor. Tasks: research_topic, write_draft, edit_post. The crew runs sequentially (Process.sequential)." .
+
+# End of individuals file.

@@ -1,0 +1,280 @@
+### FILE: crews/maths_crew/maths_crew.py
+```python
+"""
+Auto-generated CrewAI crew: MathsCrew
+"""
+
+import dotenv
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
+
+dotenv.load_dotenv()
+from tools.add import add
+from tools.multiply import multiply
+from tools.subtract import subtract
+
+import yaml
+from pathlib import Path
+
+
+@CrewBase
+class MathsCrew:
+    """MathsCrew"""
+
+    agents_config = "config/agents.yaml"
+    tasks_config = "config/tasks.yaml"
+
+    @agent
+    def our_agent(self) -> Agent:
+        # Load agent config from the YAML file in the config directory
+        cfg_path = Path(__file__).parent / "config" / "agents.yaml"
+        with open(cfg_path, "r", encoding="utf-8") as fh:
+            agents_cfg = yaml.safe_load(fh)
+        agent_cfg = agents_cfg.get("our_agent", {})
+
+        return Agent(
+            config=agent_cfg,
+            tools=[add(), subtract(), multiply()],
+            llm="gpt-4o",
+            verbose=True,
+        )
+
+    @task
+    def answer_query(self) -> Task:
+        # Load task config from the YAML file in the config directory
+        cfg_path = Path(__file__).parent / "config" / "tasks.yaml"
+        with open(cfg_path, "r", encoding="utf-8") as fh:
+            tasks_cfg = yaml.safe_load(fh)
+        task_cfg = tasks_cfg.get("answer_query", {})
+
+        return Task(
+            config=task_cfg,
+        )
+
+    @crew
+    def crew(self) -> Crew:
+        """Creates the MathsCrew"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=True,
+        )
+```
+
+### FILE: main.py
+```python
+"""
+Auto-generated CrewAI Flow: MathsFlow
+"""
+
+import dotenv
+from typing import Any, Dict, List, Optional
+
+from crewai.flow.flow import Flow, listen, start
+from pydantic import BaseModel
+
+dotenv.load_dotenv()
+
+from crews.maths_crew.maths_crew import MathsCrew
+
+
+class MathsState(BaseModel):
+    """Flow state — customize fields as needed."""
+    # Provide a representative concrete default query so the run is end-to-end.
+    query: str = "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please."
+    answer: str = ""
+
+
+class MathsFlow(Flow[MathsState]):
+
+    @start()
+    def reason_and_act(self):
+        print("Kicking off MathsCrew...")
+        # Pass the state's query into the crew so the agent has the input it expects.
+        result = MathsCrew().crew().kickoff(inputs={"query": self.state.query})
+        # Store a sensible string representation of the crew result in state.
+        # The crew result shape may vary; try common attributes.
+        self.state.answer = str(getattr(result, "raw", getattr(result, "output", result)))
+
+    @listen(reason_and_act)
+    def publish(self):
+        print("Answer:")
+        print(self.state.answer)
+
+
+def kickoff():
+    flow = MathsFlow()
+    flow.kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()
+```
+
+### FILE: tools/add.py
+```python
+"""
+Auto-generated tool: add
+This is an addition function that adds 2 numbers together.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type, Optional
+
+
+class addSchema(BaseModel):
+    a: float = Field(..., description="First addend")
+    b: float = Field(..., description="Second addend")
+
+
+class add(BaseTool):
+    name: str = "add"
+    description: str = """This is an addition function that adds 2 numbers together."""
+    args_schema: Type[BaseModel] = addSchema
+
+    def _coerce_num(self, v):
+        if v is None:
+            raise ValueError("Missing numeric argument")
+        if isinstance(v, (int, float)):
+            return v
+        if isinstance(v, str):
+            try:
+                if "." in v:
+                    return float(v)
+                return int(v)
+            except Exception:
+                try:
+                    return float(v)
+                except Exception:
+                    raise ValueError(f"Unable to coerce value to number: {v}")
+        raise ValueError(f"Unsupported numeric type: {type(v)}")
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: tools.arithmetic.add
+        """
+        # Accept common key names; prefer 'a' and 'b'
+        a = kwargs.get("a", kwargs.get("x", kwargs.get("0")))
+        b = kwargs.get("b", kwargs.get("y", kwargs.get("1")))
+
+        a_num = self._coerce_num(a)
+        b_num = self._coerce_num(b)
+
+        result = a_num + b_num
+        # Return an int when appropriate to keep output tidy
+        if isinstance(result, float) and result.is_integer():
+            return int(result)
+        return result
+```
+
+### FILE: tools/subtract.py
+```python
+"""
+Auto-generated tool: subtract
+Subtraction function.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type, Optional
+
+
+class subtractSchema(BaseModel):
+    a: float = Field(..., description="Minuend")
+    b: float = Field(..., description="Subtrahend")
+
+
+class subtract(BaseTool):
+    name: str = "subtract"
+    description: str = """Subtraction function."""
+    args_schema: Type[BaseModel] = subtractSchema
+
+    def _coerce_num(self, v):
+        if v is None:
+            raise ValueError("Missing numeric argument")
+        if isinstance(v, (int, float)):
+            return v
+        if isinstance(v, str):
+            try:
+                if "." in v:
+                    return float(v)
+                return int(v)
+            except Exception:
+                try:
+                    return float(v)
+                except Exception:
+                    raise ValueError(f"Unable to coerce value to number: {v}")
+        raise ValueError(f"Unsupported numeric type: {type(v)}")
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: tools.arithmetic.subtract
+        """
+        a = kwargs.get("a", kwargs.get("x", kwargs.get("0")))
+        b = kwargs.get("b", kwargs.get("y", kwargs.get("1")))
+
+        a_num = self._coerce_num(a)
+        b_num = self._coerce_num(b)
+
+        result = a_num - b_num
+        if isinstance(result, float) and result.is_integer():
+            return int(result)
+        return result
+```
+
+### FILE: tools/multiply.py
+```python
+"""
+Auto-generated tool: multiply
+Multiplication function.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type, Optional
+
+
+class multiplySchema(BaseModel):
+    a: float = Field(..., description="First factor")
+    b: float = Field(..., description="Second factor")
+
+
+class multiply(BaseTool):
+    name: str = "multiply"
+    description: str = """Multiplication function."""
+    args_schema: Type[BaseModel] = multiplySchema
+
+    def _coerce_num(self, v):
+        if v is None:
+            raise ValueError("Missing numeric argument")
+        if isinstance(v, (int, float)):
+            return v
+        if isinstance(v, str):
+            try:
+                if "." in v:
+                    return float(v)
+                return int(v)
+            except Exception:
+                try:
+                    return float(v)
+                except Exception:
+                    raise ValueError(f"Unable to coerce value to number: {v}")
+        raise ValueError(f"Unsupported numeric type: {type(v)}")
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: tools.arithmetic.multiply
+        """
+        a = kwargs.get("a", kwargs.get("x", kwargs.get("0")))
+        b = kwargs.get("b", kwargs.get("y", kwargs.get("1")))
+
+        a_num = self._coerce_num(a)
+        b_num = self._coerce_num(b)
+
+        result = a_num * b_num
+        if isinstance(result, float) and result.is_integer():
+            return int(result)
+        return result
+```

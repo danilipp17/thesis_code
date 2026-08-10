@@ -1,0 +1,7 @@
+{
+  "ast_precision": 0.905,
+  "ast_recall": 0.685,
+  "ast_f1": 0.768,
+  "parse_rate": 1.0,
+  "import_rate": 0.75
+}

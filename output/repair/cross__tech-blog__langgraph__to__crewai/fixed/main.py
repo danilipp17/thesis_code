@@ -1,0 +1,118 @@
+"""
+Auto-generated CrewAI Flow: StateGraph
+"""
+
+import dotenv
+from typing import Any, Dict, List, Optional
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+# Real LLM imports — the flow's nodes will call the model at runtime.
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage
+
+dotenv.load_dotenv()
+
+
+class TechBlogState(BaseModel):
+    """Flow state — customize fields as needed."""
+    draft: str = ""
+    final_post: str = ""
+    messages: list = []
+    research: str = ""
+    topic: str = ""
+
+
+class StateGraph(Flow[TechBlogState]):
+
+    @start()
+    def researcher(self):
+        """Researcher node: research the topic and save 'research' in state."""
+        print("[researcher] Starting research step...")
+        if not getattr(self, "state", None):
+            # Ensure state exists
+            self.state = TechBlogState()
+
+        topic = self.state.topic or "Agentic AI Frameworks"
+        llm = ChatOpenAI(model="gpt-4o")
+        prompt = f"Research the following topic and provide a comprehensive summary: {topic}"
+        response = llm.invoke([HumanMessage(content=prompt)])
+        # store results in state
+        self.state.research = response.content
+        # append messages history (keeps a transcript)
+        self.state.messages = list(self.state.messages) + [
+            HumanMessage(content=prompt),
+            AIMessage(content=response.content),
+        ]
+        print("[researcher] Research complete.")
+
+    @listen(researcher)
+    def writer(self):
+        """Writer node: use research to produce a draft and save 'draft' in state."""
+        print("[writer] Starting writing step...")
+        if not getattr(self, "state", None):
+            self.state = TechBlogState()
+
+        research = self.state.research
+        if not research:
+            # Nothing to do
+            print("[writer] No research found; skipping.")
+            return
+
+        llm = ChatOpenAI(model="gpt-4o")
+        prompt = f"Using the following research, write a 500-word engaging tech blog post:\n\n{research}"
+        response = llm.invoke([HumanMessage(content=prompt)])
+        self.state.draft = response.content
+        self.state.messages = list(self.state.messages) + [
+            HumanMessage(content=prompt),
+            AIMessage(content=response.content),
+        ]
+        print("[writer] Drafting complete.")
+
+    @listen(writer)
+    def editor(self):
+        """Editor node: polish the draft and save 'final_post' in state."""
+        print("[editor] Starting editing step...")
+        if not getattr(self, "state", None):
+            self.state = TechBlogState()
+
+        draft = self.state.draft
+        if not draft:
+            print("[editor] No draft found; skipping.")
+            return
+
+        llm = ChatOpenAI(model="gpt-4o")
+        prompt = (
+            f"Review the following drafted blog post. Fix any grammatical errors, "
+            f"improve the flow, and return the final polished version ready for publishing:\n\n{draft}"
+        )
+        response = llm.invoke([HumanMessage(content=prompt)])
+        self.state.final_post = response.content
+        self.state.messages = list(self.state.messages) + [
+            HumanMessage(content=prompt),
+            AIMessage(content=response.content),
+        ]
+        print("[editor] Editing complete.")
+        # Print the final result for visibility
+        print("\n=== Final Post ===\n")
+        print(self.state.final_post)
+        print("\n=== End Final Post ===\n")
+
+
+def kickoff():
+    flow = StateGraph()
+    # Set the initial topic on the flow state before kickoff
+    flow.state.topic = "Agentic AI Frameworks"
+    print("Starting CrewAI StateGraph Flow (tech blog generation)...")
+    flow.kickoff()
+    print("Flow completed.")
+    # Ensure final post is printed if editor didn't print it for some reason
+    if getattr(flow.state, "final_post", ""):
+        print("\n==== Final Post (from kickoff) ====\n")
+        print(flow.state.final_post)
+        print("\n==== End Final Post ====\n")
+
+
+if __name__ == "__main__":
+    kickoff()

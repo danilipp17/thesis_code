@@ -1,0 +1,15 @@
+{
+  "family": "code-review",
+  "src": "langgraph",
+  "tgt": "crewai",
+  "triple_f1": 0.2876712328767123,
+  "aligned_triple_f1": 0.5684931506849314,
+  "individual_f1": 0.90625,
+  "property_f1": 0.8849557522123893,
+  "literal_overlap": 0.3958333333333333,
+  "ast_precision": 0.563,
+  "ast_recall": 0.565,
+  "ast_f1": 0.538,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

@@ -1,0 +1,246 @@
+# Issues / Assumptions:
+# - The ontology cannot represent the internal runtime predicate "last_message.tool_calls" or structured message objects (no property to express that a model response includes tool call requests). I captured the conditional logic as human-readable literals on the workflow step and task.
+# - The ontology has no built-in representation of StateGraph/ToolNode runtime semantics (looping, streaming, node types). I modeled nodes as WorkflowStep individuals and documented routing/loop logic in descriptions and step literals.
+# - The ontology cannot express the exact programmatic control function (the Python function should_continue) as an executable element. Its logic is preserved only as literal text on the workflow step and task.
+# - The ontology lacks an explicit message/message-sequence class and properties to store individual chat messages (SystemMessage / user / assistant / tool-calls). I represent prompts and the initial user input as Prompt individuals and include the important literal contents.
+# - Tool "bindings" (language-level function binding to LLM) and SDK/framework-specific structs (ToolNode, StateGraph.compile, streaming) cannot be modeled; I preserved the configuration and intent via Config and descriptive literals.
+# - No new classes or properties were added. Where semantics are not directly expressible, I used descriptive literals on existing individuals (Config, Task, WorkflowStep, Prompt).
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+
+###############################################################################
+# Agentic system (top-level)
+###############################################################################
+
+:ReActExampleSystem
+    rdf:type :AgenticSystem ;
+    dcterms:title "LangGraph ReAct Agent Example (single-agent StateGraph)" ;
+    dcterms:description "A single LLM-driven agent that interleaves reasoning steps with tool calls (add, subtract, multiply) following a StateGraph loop: agent -> tools -> agent until the agent issues no further tool calls, then the workflow ends." ;
+    :containsAgent :OurAgent ;
+    :containsOrchestration :ReActOrchestration .
+
+###############################################################################
+# Orchestration / Workflow pattern
+###############################################################################
+
+:ReActOrchestration
+    rdf:type :Orchestration ;
+    dcterms:description "Orchestration representing the StateGraph controller: two active nodes (agent invocation node and tool execution node) with a conditional routing from the agent node to either the tool node (if tool call requested) or END (if no tool calls). Entry point is the agent node." ;
+    :hasOutputSchema :FinalOutputSchema ;
+    :hasWorkflowStep :WS1, :WS2, :WS3 ;
+    rdfs:label "StateGraph ReAct Orchestration" .
+
+:ReActWorkflow
+    rdf:type agento:WorkflowPattern ;
+    dcterms:description "Workflow pattern capturing the ReAct StateGraph structure used by the example. Steps: our_agent (StartStep) -> tools (WorkflowStep, ToolNode conceptual) -> our_agent (loop) -> END (EndStep). The routing decision is made by examining whether the model response includes tool call requests." ;
+    :hasRelatedPattern :ReActPattern ;
+    :hasWorkflowStep :WS1, :WS2, :WS3 ;
+    rdfs:label "ReAct StateGraph Pattern (example)" .
+
+###############################################################################
+# Workflow steps (nodes)
+###############################################################################
+
+:WS1
+    rdf:type :StartStep ;
+    rdfs:label "our_agent (model_call)" ;
+    dcterms:description "Model invocation step. Implementation note (preserved as literal): when invoked, the agent sends a SystemMessage followed by accumulated messages to the bound language model. After receiving the model response, the system checks whether the message requests tool calls (the runtime predicate in the source was last_message.tool_calls). If tool calls are present, the step routes to the tools node; otherwise it routes to END." ;
+    :hasAssociatedTask :TaskModelInvocation ;
+    :stepOrder "1"^^xsd:integer ;
+    :hasDecoratorArgument "entry_point" ;
+    :nextStep :WS2, :WS3 ;
+    :hasAssociatedAgent :OurAgent ;
+    :callsCrew "our_agent_entry" .
+
+:WS2
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "tools (ToolNode)" ;
+    dcterms:description "Tool execution step. Conceptually corresponds to a ToolNode that executes one of the registered tool functions requested by the model, returns the tool result as a message, and then control returns to the agent invocation node." ;
+    :hasAssociatedTask :TaskToolExecution ;
+    :stepOrder "2"^^xsd:integer ;
+    :nextStep :WS1 ;
+    :hasDecoratorArgument "tool_node" ;
+    :callsCrew "tools_node" .
+
+:WS3
+    rdf:type :EndStep ;
+    rdfs:label "END" ;
+    dcterms:description "Terminal step reached when the agent indicates no further tool calls are requested." ;
+    :stepOrder "3"^^xsd:integer .
+
+###############################################################################
+# Tasks
+###############################################################################
+
+:TaskModelInvocation
+    rdf:type agento:Task ;
+    dcterms:description "Task representing a single model invocation performed by the agent. Inputs: System prompt plus accumulated conversation messages (user messages and previous tool results). Outputs: model response message. Routing: examines whether the model response includes tool call requests; if yes, contributes to TaskToolExecution; if no, contributes to completion." ;
+    agento:taskPrompt :SystemPrompt ;
+    :hasExpectedOutput "A model response message (may contain plain text and/or tool-call requests). The runtime predicate checked in source: last_message.tool_calls." ;
+    :performedByAgent :OurAgent ;
+    :contributesToObjective :ObjectiveAnswerUser ;
+    agento:requiresResource "language-model" .
+
+:TaskToolExecution
+    rdf:type agento:Task ;
+    dcterms:description "Executes a tool function requested by the model. The tool receives integer arguments and returns a numeric result. After execution the tool result is wrapped as a message and appended to the conversation state for the subsequent model invocation." ;
+    :hasExpectedOutput "Numeric result from the invoked tool; e.g., add(40,12) -> 52, used in later model messages." ;
+    :performedBy :AddTool, :SubtractTool, :MultiplyTool ;
+    :requiresCapability :CapabilityAdd, :CapabilitySubtract, :CapabilityMultiply ;
+    :contributesToObjective :ObjectiveCompute .
+
+###############################################################################
+# Agent (LLM agent) and config
+###############################################################################
+
+:OurAgent
+    rdf:type agento:LLMAgent ;
+    dcterms:title "ReAct Agent (LangGraph example)" ;
+    agento:agentID "reac_agent_001" ;
+    agento:agentRole "ReAct-style single LLM agent" ;
+    :employsReasoningPattern :ReActPattern ;
+    :useLanguageModel :GPT4oModel ;
+    :hasAgentConfig :AgentConfig1 ;
+    :agentPrompt :SystemPrompt ;
+    :hasReasoningEnabled "true"^^xsd:boolean ;
+    :agentToolUsage :AddTool, :SubtractTool, :MultiplyTool ;
+    rdfs:label "our_agent" .
+
+:AgentConfig1
+    rdf:type agento:Config ;
+    dcterms:description "Configuration extracted from code: ChatOpenAI(model='gpt-4o') bound to tools [add, subtract, multiply]; graph entry point: our_agent; streaming mode: values (streamed messages) ; model.invoke called with [SystemMessage] + state.messages." ;
+    :configKey "langchain_backend" ;
+    :configValue "ChatOpenAI; model=gpt-4o; bound tools: add, subtract, multiply" .
+
+###############################################################################
+# Reasoning pattern and language model
+###############################################################################
+
+:ReActPattern
+    rdf:type :ReAct ;
+    rdfs:label "ReAct reasoning pattern" ;
+    dcterms:description "Interleaves reasoning steps (language model) with actions (tool calls). The example implements a loop between model invocation and tool execution nodes until no further tool calls are requested." .
+
+:GPT4oModel
+    rdf:type agento:LanguageModel ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "ChatOpenAI model instance used by the agent (model parameter in source: 'gpt-4o')." .
+
+###############################################################################
+# Prompts and example user input
+###############################################################################
+
+:SystemPrompt
+    rdf:type agento:Prompt ;
+    agento:promptInstruction "You are my AI assistant, please answer my query to the best of your ability." ;
+    agento:promptContext "SystemMessage provided upstream of user messages for each invocation." ;
+    dcterms:description "System prompt used in every model invocation in the model_call function." ;
+    :hasSourceAttribute "SystemMessage" .
+
+:UserInputPrompt
+    rdf:type agento:Prompt ;
+    agento:promptInputData "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please." ;
+    agento:promptInstruction "User message that requests two-step arithmetic followed by a request for a joke." ;
+    agento:promptOutputIndicator "Expected: arithmetic final result and a joke." ;
+    dcterms:description "Example initial input used in the example application's __main__ run." .
+
+###############################################################################
+# Tools and capabilities
+###############################################################################
+
+:AddTool
+    rdf:type agento:Tool ;
+    rdfs:label "add" ;
+    dcterms:description "Addition function. Docstring: 'This is an addition function that adds 2 numbers together.'" ;
+    :hasImplementationReference "add(a:int,b:int)" ;
+    :hasInputSchema "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\"},\"b\":{\"type\":\"integer\"}},\"required\":[\"a\",\"b\"]}" ;
+    :hasCapability :CapabilityAdd .
+
+:SubtractTool
+    rdf:type agento:Tool ;
+    rdfs:label "subtract" ;
+    dcterms:description "Subtraction function. Docstring: 'Subtraction function.'" ;
+    :hasImplementationReference "subtract(a:int,b:int)" ;
+    :hasInputSchema "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\"},\"b\":{\"type\":\"integer\"}},\"required\":[\"a\",\"b\"]}" ;
+    :hasCapability :CapabilitySubtract .
+
+:MultiplyTool
+    rdf:type agento:Tool ;
+    rdfs:label "multiply" ;
+    dcterms:description "Multiplication function. Docstring: 'Multiplication function.'" ;
+    :hasImplementationReference "multiply(a:int,b:int)" ;
+    :hasInputSchema "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"integer\"},\"b\":{\"type\":\"integer\"}},\"required\":[\"a\",\"b\"]}" ;
+    :hasCapability :CapabilityMultiply .
+
+:CapabilityAdd
+    rdf:type agento:Capability ;
+    rdfs:label "Addition" ;
+    dcterms:description "Capability to add two integers." .
+
+:CapabilitySubtract
+    rdf:type agento:Capability ;
+    rdfs:label "Subtraction" ;
+    dcterms:description "Capability to subtract two integers." .
+
+:CapabilityMultiply
+    rdf:type agento:Capability ;
+    rdfs:label "Multiplication" ;
+    dcterms:description "Capability to multiply two integers." .
+
+###############################################################################
+# Objective / Goal
+###############################################################################
+
+:ObjectiveCompute
+    rdf:type agento:Objective ;
+    dcterms:description "Objective to compute requested arithmetic expressions correctly." ;
+    :contributesToGoal :GoalUserSatisfaction .
+
+:ObjectiveAnswerUser
+    rdf:type agento:Objective ;
+    dcterms:description "Objective to provide the final answer and the additional conversational content (joke) as requested in the user input." ;
+    :contributesToGoal :GoalUserSatisfaction .
+
+:GoalUserSatisfaction
+    rdf:type agento:Goal ;
+    dcterms:description "Fulfill the user's request accurately and engagingly (correct arithmetic, plus the requested joke)." ;
+    rdfs:label "User satisfaction" .
+
+###############################################################################
+# Output schema for the orchestration (structured output representation)
+###############################################################################
+
+:FinalOutputSchema
+    rdf:type :Schema ;
+    :hasSchemaDefinition "{\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"number\",\"description\":\"Final numeric result of the arithmetic operations\"},\"joke\":{\"type\":\"string\",\"description\":\"A short joke requested by the user\"},\"steps\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Optional human-readable log of tool calls and intermediate results\"}},\"required\":[\"result\",\"joke\"]}" ;
+    dcterms:description "Structured output schema describing the final expected result and the requested joke." .
+
+###############################################################################
+# Example run artifact (preserved intent)
+###############################################################################
+
+:ExampleRunInputs
+    rdf:type agento:Instance ;
+    dcterms:description "Represents the example initial inputs used in __main__ of the source: a single user message prompting arithmetic and an additional conversational request." ;
+    agento:containsResource :UserInputPrompt ;
+    dcterms:title "Example initial message" .
+
+###############################################################################
+# Notes recording conditional/loop logic (human-readable preservation)
+###############################################################################
+
+:Condition_should_continue
+    rdf:type agento:Instance ;
+    dcterms:description "Preserves the conditional routing logic from the source: function should_continue(state) inspects the last model response; if the response contains tool call requests (the runtime property last_message.tool_calls in source), return 'continue' to route to the tools node; otherwise return 'end' to route to END. This predicate cannot be represented as an executable ontology construct in the current schema and is stored here as documentation." ;
+    rdfs:label "should_continue (preserved logic)" .
+
+###############################################################################
+# End of individuals
+###############################################################################

@@ -1,0 +1,15 @@
+{
+  "family": "maths",
+  "src": "autogen",
+  "tgt": "crewai",
+  "triple_f1": 0.3421052631578947,
+  "aligned_triple_f1": 0.513157894736842,
+  "individual_f1": 0.7027027027027025,
+  "property_f1": 0.7256637168141594,
+  "literal_overlap": 0.3157894736842105,
+  "ast_precision": 0.45,
+  "ast_recall": 0.358,
+  "ast_f1": 0.376,
+  "parse_rate": 1.0,
+  "import_rate": 0.857
+}

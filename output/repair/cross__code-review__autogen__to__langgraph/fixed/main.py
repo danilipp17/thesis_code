@@ -1,0 +1,140 @@
+"""
+Auto-generated LangGraph application: code_review
+"""
+
+import dotenv
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+from tools import code_analyzer
+from langgraph.prebuilt import ToolNode
+
+
+class State(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+
+model = ChatOpenAI(model="gpt-4o")
+
+tools = [code_analyzer]
+tool_node = ToolNode(tools)
+
+code_reviewer_model = model.bind_tools([code_analyzer])
+security_auditor_model = model.bind_tools([code_analyzer])
+
+
+def run_team(state: State) -> dict:
+    """Subgraph node: run_team
+
+    Implements a minimal RoundRobin of three agents:
+      - Code_Reviewer
+      - Security_Auditor
+      - Review_Summarizer
+
+    Each agent is represented by a system prompt. We call the shared LLM
+    for each agent in sequence, provide the code under review, and supply
+    the real tool output (code_analyzer) as context to the subsequent agents.
+    The function returns a dict with the final model messages for printing.
+    """
+    # The actual code to review (concrete input used at runtime)
+    code_to_review = """
+def process_user_input(data):
+    result = eval(data)
+    return result
+"""
+
+    # System messages for each agent (from the reference behavior)
+    sys_reviewer = (
+        "You are a senior software engineer with 15 years of experience "
+        "in code review. Review the code for correctness, readability, "
+        "and best practices. Identify bugs, code smells, naming issues, "
+        "and suggest improvements. Use the code analyzer tool to check "
+        "for syntax and structural issues."
+    )
+
+    sys_auditor = (
+        "You are a certified security professional specializing in "
+        "application security. Audit the code for security vulnerabilities "
+        "including injection attacks, hardcoded secrets, insecure data "
+        "handling, missing input validation, and OWASP Top 10 issues. "
+        "Provide CWE classifications for each finding."
+    )
+
+    sys_summarizer = (
+        "You are a technical lead who synthesizes feedback from code "
+        "reviewers and security auditors. Compile all findings into a "
+        "structured review report. Provide a verdict: APPROVED if no "
+        "critical or major issues, otherwise REQUEST CHANGES. Include "
+        "a summary, critical count, and action items. When done, reply "
+        "with TERMINATE."
+    )
+
+    # Start with an explicit user task message
+    task_msg = HumanMessage(content=f"Review the following code for quality and security:\n{code_to_review}")
+
+    # 1) Code Reviewer turn
+    reviewer_prompt = [
+        SystemMessage(content=sys_reviewer),
+        task_msg
+    ]
+    reviewer_ai = model(reviewer_prompt)
+    # Call the real tool to provide structured static analysis
+    analysis = code_analyzer(code=code_to_review, language="python")
+    # Represent the tool output as a message for context
+    tool_msg = HumanMessage(content=f"[tool: code_analyzer]\n{analysis}")
+
+    # 2) Security Auditor turn (receive reviewer output + tool output)
+    auditor_prompt = [
+        SystemMessage(content=sys_auditor),
+        task_msg,
+        reviewer_ai,
+        tool_msg
+    ]
+    auditor_ai = model(auditor_prompt)
+
+    # 3) Review Summarizer turn (synthesize findings)
+    summarizer_prompt = [
+        SystemMessage(content=sys_summarizer),
+        task_msg,
+        reviewer_ai,
+        tool_msg,
+        auditor_ai,
+        HumanMessage(content="Compile the above into a structured review report. When done, reply with TERMINATE.")
+    ]
+    summarizer_ai = model(summarizer_prompt)
+
+    # Return the messages so the outer app will print the final contents
+    return {
+        "reviewer": [reviewer_ai, tool_msg],
+        "auditor": [auditor_ai],
+        "summarizer": [summarizer_ai],
+    }
+
+
+# Build the graph
+graph = StateGraph(State)
+
+graph.add_node("run_team", run_team)
+graph.add_node("tools", tool_node)
+
+graph.add_edge(START, "run_team")
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    result = app.invoke({"messages": [HumanMessage(content="Start the task.")]})
+    if isinstance(result, dict):
+        for _k, _v in result.items():
+            _s = _v[-1].content if isinstance(_v, list) and _v and hasattr(_v[-1], "content") else _v
+            print(f"=== {_k} ===")
+            print(str(_s)[:800])
+    else:
+        print(result)

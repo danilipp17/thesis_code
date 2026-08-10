@@ -243,3 +243,7 @@ The CrewAI parser (`oscin/parsers/crewai_parser.py`) uses Python's `ast` module 
 - YAML config files must match the agent/task keys referenced in Python decorators
 - Tools must be either defined locally (BaseTool subclass or @tool decorator) or imported (created as external stubs)
 - LLM assignments should use `ChatOpenAI(model="...")` or similar patterns with string literal model names
+
+## License
+
+MIT — see [LICENSE](LICENSE).

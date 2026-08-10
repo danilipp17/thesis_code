@@ -1,0 +1,316 @@
+# Issues / Assumptions:
+# - The ontology lacks an explicit "entry point" property for WorkflowPattern or WorkflowStep; I represented the start by typing the first step as a StartStep and using stepOrder.
+# - The ontology does not provide explicit properties for "transitions produced by a compiled state graph" or an END sentinel; I modeled step sequencing with nextStep and an EndStep individual but cannot express runtime semantics like StateGraph.compile(), invocation, or the END sentinel behavior.
+# - The runtime TypedDict (TechBlogState) structure and typed "messages" sequence (BaseMessage, AIMessage, HumanMessage) are programming constructs and not fully expressible; I captured the state schema as a Schema individual with a textual schema definition rather than modeling Python types or runtime message objects.
+# - Specific SDK and implementation details (ChatOpenAI class, langchain_openai, langgraph.StateGraph, function definitions, app.invoke()) are intentionally omitted from the ontology (per instructions). Only the semantic meanings (agents, tasks, prompts, models, produced artifacts, workflow steps, termination conditions, configs) are modeled.
+# - Execution traces (actual LLM outputs) are runtime artifacts and not provided by the source; I created producedResource individuals describing the outputs (research, draft, final_post) but they do not contain response text.
+# - The ontology lacks specialized properties for "step transition conditions" based on return values of nodes (e.g., should_end returning "end"); I encoded the simple linear flow via nextStep and a TaskCompletionTermination on the Team as the termination mechanism.
+# - If further fidelity is required (e.g., explicit representation of message histories, exact runtime returned content, or code-level control flow), additional classes/properties (StateMachine, TransitionCondition, RuntimeInvocation, MessageSequence) would be necessary.
+
+@prefix ex: <http://example.org/techblog#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://example.org/techblog#> .
+
+###############################################################################
+# Agentic System
+###############################################################################
+
+ex:TechBlogSystem a agentoscin:AgenticSystem ;
+    rdfs:label "LangGraph Tech Blog Generation System" ;
+    rdfs:comment "Agentic system that coordinates three LLM agents (researcher, writer, editor) to produce a tech blog post." ;
+    agentoscin:containsAgent ex:ResearcherAgent ,
+                             ex:WriterAgent ,
+                             ex:EditorAgent ;
+    agentoscin:containsOrchestration ex:TechBlogOrchestration ;
+    agentoscin:containsTeam ex:TechBlogTeam .
+
+###############################################################################
+# Team + Orchestration
+###############################################################################
+
+ex:TechBlogTeam a agento:Team ;
+    rdfs:label "TechBlogTeam" ;
+    rdfs:comment "Team containing agents that collaborate to produce a tech blog post." ;
+    agento:hasAgentMember ex:ResearcherAgent ,
+                         ex:WriterAgent ,
+                         ex:EditorAgent ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasSystemConfig ex:TechBlogSystemConfig ;
+    agentoscin:hasTerminationCondition ex:FinishOnEditorComplete .
+
+ex:TechBlogOrchestration a agentoscin:Orchestration ;
+    rdfs:label "TechBlogOrchestration" ;
+    rdfs:comment "Orchestration entity that controls workflow execution for tech blog generation." ;
+    agentoscin:orchestratesTeam ex:TechBlogTeam ;
+    agento:hasWorkflowPattern ex:TechBlogWorkflowPattern ;
+    agento:hasConfig ex:TechBlogOrchestrationConfig .
+
+ex:TechBlogSystemConfig a agento:Config ;
+    rdfs:label "SystemConfig" ;
+    dcterms:description "System-level configuration for the TechBlogTeam." ;
+    agento:configKey "system_mode" ;
+    agento:configValue "batch" .
+
+ex:TechBlogOrchestrationConfig a agento:Config ;
+    rdfs:label "OrchestrationConfig" ;
+    agento:configKey "entry" ;
+    agento:configValue "researcher" .
+
+###############################################################################
+# Language Model (shared)
+###############################################################################
+
+ex:Gpt4oModel a agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "The language model referenced by all agents (model parameter: 'gpt-4o')." .
+
+###############################################################################
+# Agents
+###############################################################################
+
+ex:ResearcherAgent a agento:LLMAgent ;
+    rdfs:label "researcher" ;
+    agentoscin:agentType "researcher" ;
+    agento:agentID "researcher" ;
+    agento:hasAgentConfig ex:ResearcherConfig ;
+    agento:useLanguageModel ex:Gpt4oModel ;
+    agento:hasGoal ex:GenerateTechBlogGoal ;
+    rdfs:comment "Agent that researches the given topic and produces a research summary." .
+
+ex:WriterAgent a agento:LLMAgent ;
+    rdfs:label "writer" ;
+    agentoscin:agentType "writer" ;
+    agento:agentID "writer" ;
+    agento:hasAgentConfig ex:WriterConfig ;
+    agento:useLanguageModel ex:Gpt4oModel ;
+    agento:hasGoal ex:GenerateTechBlogGoal ;
+    rdfs:comment "Agent that writes a 500-word draft based on research output." .
+
+ex:EditorAgent a agento:LLMAgent ;
+    rdfs:label "editor" ;
+    agentoscin:agentType "editor" ;
+    agento:agentID "editor" ;
+    agento:hasAgentConfig ex:EditorConfig ;
+    agento:useLanguageModel ex:Gpt4oModel ;
+    agento:hasGoal ex:GenerateTechBlogGoal ;
+    rdfs:comment "Agent that polishes the draft into a final post ready for publishing." .
+
+ex:ResearcherConfig a agento:Config ;
+    rdfs:label "ResearcherConfig" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+ex:WriterConfig a agento:Config ;
+    rdfs:label "WriterConfig" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+ex:EditorConfig a agento:Config ;
+    rdfs:label "EditorConfig" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+###############################################################################
+# Goal
+###############################################################################
+
+ex:GenerateTechBlogGoal a agento:Goal ;
+    rdfs:label "Generate final tech blog post" ;
+    dcterms:description "Produce a polished, publishable tech blog post about the provided topic." ;
+    agento:contributesToObjective ex:ProduceTechBlogObjective .
+
+ex:ProduceTechBlogObjective a agento:Objective ;
+    rdfs:label "Produce Tech Blog Objective" ;
+    dcterms:description "End-to-end objective for the system to create a tech blog post." .
+
+###############################################################################
+# Workflow pattern and steps
+###############################################################################
+
+ex:TechBlogWorkflowPattern a agento:WorkflowPattern ;
+    rdfs:label "TechBlogGenerationPattern" ;
+    rdfs:comment "Linear state graph workflow: researcher -> writer -> editor -> end." ;
+    agento:hasWorkflowStep ex:ResearcherStep ,
+                          ex:WriterStep ,
+                          ex:EditorStep .
+
+# Researcher step (Start)
+ex:ResearcherStep a agento:StartStep , agento:WorkflowStep ;
+    rdfs:label "researcher step" ;
+    agento:stepOrder 1 ;
+    agentoscin:hasAssociatedAgent ex:ResearcherAgent ;
+    agentoscin:hasAssociatedAgent ex:ResearcherAgent ;       # explicit association
+    agento:hasAssociatedTask ex:ResearchTask ;
+    agento:nextStep ex:WriterStep .
+
+# Writer step
+ex:WriterStep a agento:WorkflowStep ;
+    rdfs:label "writer step" ;
+    agento:stepOrder 2 ;
+    agentoscin:hasAssociatedAgent ex:WriterAgent ;
+    agento:hasAssociatedTask ex:WriteDraftTask ;
+    agento:nextStep ex:EditorStep .
+
+# Editor step (End)
+ex:EditorStep a agento:WorkflowStep ;
+    rdfs:label "editor step" ;
+    agento:stepOrder 3 ;
+    agentoscin:hasAssociatedAgent ex:EditorAgent ;
+    agento:hasAssociatedTask ex:EditDraftTask ;
+    agento:nextStep ex:EndOfWorkflow .
+
+ex:EndOfWorkflow a agento:EndStep ;
+    rdfs:label "end step" ;
+    rdfs:comment "Terminal workflow step; workflow completes after editor." .
+
+###############################################################################
+# Tasks and prompts
+###############################################################################
+
+# Research task + prompt
+ex:ResearchTask a agento:Task ;
+    rdfs:label "research task" ;
+    agentoscin:hasExpectedOutput "comprehensive research summary" ;
+    agento:taskPrompt ex:ResearcherPrompt ;
+    agento:performedByAgent ex:ResearcherAgent ;
+    agento:producedResource ex:ResearchOutput ;
+    dcterms:description "Task performed by the ResearcherAgent to produce research content about the given topic." .
+
+ex:ResearcherPrompt a agento:Prompt ;
+    rdfs:label "researcher prompt" ;
+    agento:promptInstruction "Research the following topic and provide a comprehensive summary: {topic}" ;
+    agento:promptContext "Used by ResearcherAgent to produce a research summary for a topic." ;
+    agento:promptInputData "{topic}" ;
+    agento:promptOutputIndicator "research" ;
+    rdfs:comment "Template: the placeholder {topic} is replaced with the topic value from the initial state (e.g., 'Agentic AI Frameworks')." .
+
+ex:ResearchOutput a beam:Resource ;
+    rdfs:label "research" ;
+    dcterms:title "research" ;
+    dcterms:description "Resource representing the research summary generated by the ResearcherAgent (empty before execution)." .
+
+# Writer task + prompt
+ex:WriteDraftTask a agento:Task ;
+    rdfs:label "write draft task" ;
+    agentoscin:hasExpectedOutput "500-word engaging tech blog post draft" ;
+    agento:taskPrompt ex:WriterPrompt ;
+    agento:performedByAgent ex:WriterAgent ;
+    agento:requiresResource ex:ResearchOutput ;
+    agento:producedResource ex:DraftOutput ;
+    dcterms:description "Task performed by WriterAgent that consumes the research summary and produces a draft post." .
+
+ex:WriterPrompt a agento:Prompt ;
+    rdfs:label "writer prompt" ;
+    agento:promptInstruction "Using the following research, write a 500-word engaging tech blog post:\n\n{research}" ;
+    agento:promptContext "Used by WriterAgent to craft a 500-word draft from research input." ;
+    agento:promptInputData "{research}" ;
+    agento:promptOutputIndicator "draft" .
+
+ex:DraftOutput a beam:Resource ;
+    rdfs:label "draft" ;
+    dcterms:title "draft" ;
+    dcterms:description "Resource representing the draft blog post generated by WriterAgent (empty before execution)." .
+
+# Editor task + prompt
+ex:EditDraftTask a agento:Task ;
+    rdfs:label "edit draft task" ;
+    agentoscin:hasExpectedOutput "final polished blog post ready for publishing" ;
+    agento:taskPrompt ex:EditorPrompt ;
+    agento:performedByAgent ex:EditorAgent ;
+    agento:requiresResource ex:DraftOutput ;
+    agento:producedResource ex:FinalPostOutput ;
+    dcterms:description "Task performed by EditorAgent that polishes the draft into a final post." .
+
+ex:EditorPrompt a agento:Prompt ;
+    rdfs:label "editor prompt" ;
+    agento:promptInstruction "Review the following drafted blog post. Fix any grammatical errors, improve the flow, and return the final polished version ready for publishing:\n\n{draft}" ;
+    agento:promptContext "Used by EditorAgent to create the final_post from draft input." ;
+    agento:promptInputData "{draft}" ;
+    agento:promptOutputIndicator "final_post" .
+
+ex:FinalPostOutput a beam:Resource ;
+    rdfs:label "final_post" ;
+    dcterms:title "final_post" ;
+    dcterms:description "Resource representing the final polished blog post created by EditorAgent (empty before execution)." .
+
+###############################################################################
+# Input / State Schema & initial values
+###############################################################################
+
+ex:TechBlogStateSchema a agentoscin:Schema ;
+    rdfs:label "TechBlogState Schema" ;
+    agentoscin:hasSchemaDefinition """
+{
+  \"messages\": \"Sequence[BaseMessage] (initially empty list)\",
+  \"research\": \"string (initially empty)\",
+  \"draft\": \"string (initially empty)\",
+  \"final_post\": \"string (initially empty)\",
+  \"topic\": \"string (initial: 'Agentic AI Frameworks')\"
+}
+""" ;
+    rdfs:comment "Textual schema representing the typed state used by the workflow. This represents the TechBlogState TypedDict from the source code." .
+
+ex:InitialTopicResource a beam:Resource ;
+    rdfs:label "initial topic" ;
+    dcterms:title "topic" ;
+    dcterms:description "Agentic AI Frameworks" ;
+    rdfs:comment "Initial value for the topic field in the state: 'Agentic AI Frameworks'." .
+
+# Link the topic as input to the researcher prompt
+ex:ResearcherPrompt agento:promptInputData "Agentic AI Frameworks" .
+
+###############################################################################
+# Termination condition
+###############################################################################
+
+ex:FinishOnEditorComplete a agentoscin:TaskCompletionTermination ;
+    rdfs:label "finish when editor completes" ;
+    rdfs:comment "Team terminates when the EditorTask completes (linear workflow end)." .
+
+###############################################################################
+# Output schema for final_post (structured-output hint)
+###############################################################################
+
+ex:FinalPostSchema a agentoscin:Schema ;
+    rdfs:label "FinalPostSchema" ;
+    agentoscin:hasSchemaDefinition """
+{
+  \"title\": \"string\",
+  \"body\": \"string (full markdown/plain text blog post)\",
+  \"length_words\": \"integer\",
+  \"topic\": \"string\"
+}
+""" .
+
+# Connect output schema to the editor task
+ex:EditDraftTask agentoscin:hasOutputSchema ex:FinalPostSchema .
+
+###############################################################################
+# Miscellaneous documentation triples to preserve fidelity of prompts and model param
+###############################################################################
+
+ex:SourceModelParameter a agento:Config ;
+    rdfs:label "LLM Model Parameter" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" ;
+    rdfs:comment "Original source code used ChatOpenAI(model='gpt-4o') for all agent invocations." .
+
+# Link the model param config to each agent as an additional config reference (preserve provenance)
+ex:ResearcherAgent agento:hasAgentConfig ex:SourceModelParameter .
+ex:WriterAgent agento:hasAgentConfig ex:SourceModelParameter .
+ex:EditorAgent agento:hasAgentConfig ex:SourceModelParameter .
+
+###############################################################################
+# Notes / provenance
+###############################################################################
+
+ex:ImplementationNotes a prov:Entity ;
+    rdfs:label "Implementation notes (semantic mapping)" ;
+    dcterms:description "This ontology fragment models the semantic structure of the LangGraph-based Tech Blog generation example: three LLM agents (researcher, writer, editor), linear workflow, prompts (with placeholders for dynamic inputs), model parameter (gpt-4o), resources (research, draft, final_post), and a termination condition when the editor completes. Implementation-level constructs (code, function definitions, LangGraph SDK parts, and actual LLM responses) are intentionally not modeled as instances." .

@@ -1,0 +1,15 @@
+{
+  "family": "joke",
+  "src": "autogen",
+  "tgt": "langgraph",
+  "triple_f1": 0.2589928057553957,
+  "aligned_triple_f1": 0.31654676258992803,
+  "individual_f1": 0.4444444444444445,
+  "property_f1": 0.33663366336633666,
+  "literal_overlap": 0.2222222222222222,
+  "ast_precision": 0.371,
+  "ast_recall": 0.371,
+  "ast_f1": 0.371,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

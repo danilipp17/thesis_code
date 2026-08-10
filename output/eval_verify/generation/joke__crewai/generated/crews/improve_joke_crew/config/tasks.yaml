@@ -1,0 +1,4 @@
+improve_joke_task:
+  description: 'Make this joke funnier by adding wordplay: {joke}'
+  expected_output: A funnier version of the joke.
+  agent: joke_improver

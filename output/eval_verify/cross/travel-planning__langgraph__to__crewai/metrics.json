@@ -1,0 +1,15 @@
+{
+  "family": "travel-planning",
+  "src": "langgraph",
+  "tgt": "crewai",
+  "triple_f1": 0.29834254143646405,
+  "aligned_triple_f1": 0.5580110497237569,
+  "individual_f1": 0.9090909090909091,
+  "property_f1": 0.8975265017667844,
+  "literal_overlap": 0.32727272727272727,
+  "ast_precision": 0.532,
+  "ast_recall": 0.721,
+  "ast_f1": 0.586,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

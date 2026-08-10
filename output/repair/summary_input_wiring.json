@@ -1,0 +1,267 @@
+[
+  {
+    "cell": "gen__joke__crewai",
+    "section": "gen",
+    "family": "joke",
+    "src": "crewai",
+    "tgt": "crewai",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: the flow calls GenerateJokeCrew().crew().kickoff() with NO inputs, so the task prompt keeps the literal '{topic}' placeholder and the model invents its own topic. The original seeds topic='cats' via kickoff(inputs={'topic': self.state.topic}).",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 3.67,
+      "error": null,
+      "produced": "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Crew Completion \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Crew Execution Completed \u2502 \u2502 Name: GenerateJokeCrew \u2502 \u2502 ID: b2ee32eb-9dc2-4c51-a593-9c4f87675dd1 \u2502 \u2502 Final Output: Why don't cats use the internet? They can't handle the \u2502 \u2502 mouse! \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Tracing Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Info: Tracing is disabled. \u2502 \u2502 \u2502 \u2502 To enable tracing, do any one of these: \u2502 \u2502 \u2022 Set tracing=True in your Crew/Flow code \u2502 \u2502 \u2022 Set CREWAI_TRACING_ENABLED=true"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 2.46,
+      "error": null,
+      "produced": "\u2500\u2500\u2500\u2500\u2500 Crew Completion \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Crew Execution Completed \u2502 \u2502 Name: GenerateJokeCrew \u2502 \u2502 ID: 8f4b7a33-fd89-40d1-b01f-db8563283d37 \u2502 \u2502 Final Output: Why did the cat sit on the computer? Because it wanted to \u2502 \u2502 keep an eye on the mouse! \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Tracing Status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Info: Tracing is disabled. \u2502 \u2502 \u2502 \u2502 To enable tracing, do any one of these: \u2502 \u2502 \u2022 Set tracing=True in your Crew/Flow code \u2502 \u2502 \u2022 Set CREWAI_TRACING_ENABLED=true"
+    }
+  },
+  {
+    "cell": "gen__code-review__crewai",
+    "section": "gen",
+    "family": "code-review",
+    "src": "crewai",
+    "tgt": "crewai",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: the flow calls CodeReviewCrew().crew().kickoff() with NO inputs, so the '{code}' placeholder in the task descriptions is never filled and no real code is reviewed. The original passes the concrete code snippet via kickoff(inputs={'code': ...}).",
+    "files_returned": [
+      "main.py",
+      "tools/code_analyzer.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 26.365,
+      "error": null,
+      "produced": "rabilities. - **Impact**: This flaw allows execution of arbitrary code, potentially leading to unauthorized access or system compromise. - **CWE Classifications**: - CWE-94: Improper Control of Code Generation - CWE-95: Improper Neutralization of Directives in Dynamic Evaluated Code ### 2. Code Smell: Performance and Debugging Concerns - **Issue**: The use of `eval()` not only creates a security concern but affects performance negatively and complicates debugging. - **CWE Classifications**: - CWE-570: Expression is Always True - CWE-571: Expression is Always False ### 3. Misleading Naming - **"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 14.959,
+      "error": null,
+      "produced": "\u2502 \u2502 Method: review \u2502 \u2502 Status: Completed \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Method: publish \u2502 \u2502 Status: Running \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f Code review complete: ### Structured Review Report #### Verdict **REQUEST CHANGES** #### Summary The code review identified significant security vulnerabilities within the current implementation, specifically related to the use of `eval()` for processing "
+    }
+  },
+  {
+    "cell": "gen__tech-blog__crewai",
+    "section": "gen",
+    "family": "tech-blog",
+    "src": "crewai",
+    "tgt": "crewai",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: the flow calls TechBlogCrew().crew().kickoff() with NO inputs, so the '{topic}' placeholder is never filled and the model invents its own topic (it wrote about quantum computing). The original seeds topic='Agentic AI Frameworks'.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 24.108,
+      "error": null,
+      "produced": "hly autonomous systems persists. Ensuring security is also vital; autonomous systems need robust defenses against cyber threats and adversarial attacks to prevent misuse or unintended consequences. ### The Future Path of Agentic AI The potential for agentic AI frameworks is vast, with the promise of substantial advancements in technology and understanding. As these systems become more prevalent, developing regulatory standards will be crucial to ensure the safe and ethical deployment of agentic AI. Additionally, a shift towards more human-centric AI systems is anticipated, focusing on cooperat"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 28.269,
+      "error": null,
+      "produced": "Privacy Concerns**: With greater autonomy comes heightened scrutiny over privacy, accountability, and ethical AI behavior, especially in sensitive areas like surveillance. 2. **Technical Complexity**: Creating, training, and deploying these systems involves a high level of complexity, requiring expertise in diverse AI and system design domains. 3. **Security Risks**: Autonomous systems are vulnerable to attacks, such as adversarial attacks that could compromise learning processes or decision-making accuracy. 4. **Regulatory Uncertainty**: Rapid AI development often eclipses regulatory advancem"
+    }
+  },
+  {
+    "cell": "gen__tech-blog__langgraph",
+    "section": "gen",
+    "family": "tech-blog",
+    "src": "langgraph",
+    "tgt": "langgraph",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: the entry point seeds the state with the dummy value topic='sample topic' (and dummy 'sample draft'/'sample research'), so the model invents its own topic. Also the graph wires START->researcher->writer but never adds writer->editor or an edge to END, so the editor node is unreachable and 'final_post' is never produced. The original seeds topic='Agentic AI Frameworks' and wires researcher->writer->editor->END.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 26.105,
+      "error": null,
+      "produced": "matures, the goal extends beyond creating systems that perform isolated tasks to developing ones that adapt, learn, and grow with intelligent agency akin to human agents. Let\u2019s delve into the essential elements, challenges, and exciting implications of agentic AI frameworks, and explore how these systems are revolutionizing technology and various industries. ### Unpacking Agentic AI: Core Concepts At the heart of agentic AI is **agency**\u2014a foundational quality that enables AI systems to make independent choices. Like skilled navigators, AI with agency perceives their environment, weighs possib"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 25.593,
+      "error": null,
+      "produced": "Starting LangGraph Tech Blog Generation... Completed! ## Unleashing the Potential of Agentic AI Frameworks: Navigating Autonomy with Care Welcome to the future, where artificial intelligence takes a bold leap into autonomy. Agentic AI frameworks represent a cutting-edge domain of AI development designed to imbue systems with agency, enabling them to act independently, make complex decisions, and interact intelligently within their environments. This technological evolution is both thrilling and fraught with challenges, as developers navigate the nuanced terrain of sophisticated designs alongsi"
+    }
+  },
+  {
+    "cell": "gen__travel-planning__crewai",
+    "section": "gen",
+    "family": "travel-planning",
+    "src": "crewai",
+    "tgt": "crewai",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: the flow calls TravelPlanningCrew().crew().kickoff() with NO inputs, so the '{request}' placeholder is never filled and the model invents its own trip (it produced a Kyoto itinerary). The original passes the concrete request ('Plan a 10 day trip to Luxembourg.') via kickoff(inputs={'request': self.state.request}).",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 33.124,
+      "error": null,
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2705 Flow Method Completed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Method: plan_trip \u2502 \u2502 Status: Completed \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Method: publish \u2502 \u2502 Status: Running \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f Final travel plan: Travel Plan for Luxembourg --- **Travel Basics and Language Tips:** - **Languages Spoken:** Luxembourgish, French, German, with English widely understo"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 29.874,
+      "error": null,
+      "produced": ". A translation app or phrasebook will be useful for navigating unfamiliar terms. **6. Local Etiquette** - In caf\u00e9s and restaurants, a friendly \"Bonjour\" upon entering and \"Merci\" upon exiting is customary. - Luxembourgish dining culture values a leisurely pace, allowing you to savor every moment and meal. **7. Interactive Experiences** - Many guided tours and activities like museum visits or wine tastings offer multilingual options. Don\u2019t hesitate to ask for tours in your desired language, as smaller operators are often accommodating. ### Travel Tips to Maximize Your Experience - **language A"
+    }
+  },
+  {
+    "cell": "cross__joke__crewai__to__autogen",
+    "section": "cross",
+    "family": "joke",
+    "src": "crewai",
+    "tgt": "autogen",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: team.run_stream is called with the literal string task=\"Write a short joke about {topic}.\" \u2014 the placeholder is never substituted, and the model invents its own topic. The original CrewAI system seeds topic='cats'.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 9.46,
+      "error": null,
+      "produced": "er fight with a cat? Because they\u2019ll always purr-suade you with their claws-trophes! \ud83d\udc3eWhy don't cats play poker? Because they can't handle too many paws! \ud83d\udc3eWhy don't cats use social media? They can't handle the 'purr' pressure! \ud83d\udc31Why don't cats use social media? Too much \"purr-essure\" to follow! \ud83d\udc3eWhy don\u2019t you ever fight with a cat? Because they\u2019ll always purr-suade you with their claws-trophes! \ud83d\udc3eWhy don't cats use smartphones? They can't stand clawing through the touchscreens! \ud83d\udc31messages=[TextMessage(id='da6e8943-c4a8-4362-90c1-e325b4999866', source='user', models_usage=None, metadata={}, create"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 7.761,
+      "error": null,
+      "produced": "anted to keep an eye on the mouse!Why don't cats ever play poker? Because they can't resist showing their paws!Why didn't the cat get a smartphone? It couldn't handle all the paws notifications!Why are cats terrible storytellers? Because they only have one-tail!Why did the cat get disqualified from the road race? It kept stopping to take paws!Why did the cat bring a ladder to the party? It heard the fish were up for grabs!Why was the cat sitting on the computer? It needed to keep an eye on the mouse!messages=[TextMessage(id='cc8c2550-c8fb-437b-aa73-286397e2a59c', source='user', models_usage=No"
+    }
+  },
+  {
+    "cell": "cross__joke__langgraph__to__autogen",
+    "section": "cross",
+    "family": "joke",
+    "src": "langgraph",
+    "tgt": "autogen",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: team.run_stream is called with the vague task=\"Perform generate_joke responsibilities\" instead of the concrete joke request, so the model invents its own topic. The original LangGraph system seeds a concrete topic for the joke.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 8.089,
+      "error": null,
+      "produced": "---------- TextMessage (user) ---------- Write a short joke about cats ---------- TextMessage (generate_joke) ---------- Why was the cat sitting on the computer? Because it wanted to keep an eye on the mouse! ---------- TextMessage (improve_joke) ---------- Why did the cat bring a ladder to the bar? Because it heard the drinks were on the house! ---------- TextMessage (polish_joke) ---------- Why did the cat sit on the computer? Because it wanted to keep an eye on the mouse! ---------- TextMessage (generate_joke) ---------- Why did the cat sit on the computer? Because it wanted to keep an eye "
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 9.331,
+      "error": null,
+      "produced": "---------- TextMessage (user) ---------- Write a short joke about cats ---------- TextMessage (generate_joke) ---------- Why was the cat sitting on the computer? Because it wanted to keep an eye on the mouse! ---------- TextMessage (improve_joke) ---------- Why did the cat bring a ladder to the bar? Because it heard the drinks were on the house! ---------- TextMessage (polish_joke) ---------- Why was the cat sitting on top of the keyboard? Because it wanted to keep its paws on the \"purr-sonal\" data! ---------- TextMessage (generate_joke) ---------- Why was the cat perched on the keyboard? It w"
+    }
+  },
+  {
+    "cell": "cross__tech-blog__crewai__to__autogen",
+    "section": "cross",
+    "family": "tech-blog",
+    "src": "crewai",
+    "tgt": "autogen",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: team.run_stream is called with the literal task string containing the unfilled '{topic}' placeholder, so the model invents its own topic (it wrote about blockchain). The original seeds topic='Agentic AI Frameworks'.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 85.893,
+      "error": null,
+      "produced": "Agentic AI\\n\\n1. **March Toward Greater Autonomy**: \\n - The contemporary evolution of AI centers on systems that function with minimal human guidance. By adopting techniques like reinforcement learning, these systems learn and adapt moment-to-moment, enhancing their utility and independent operation.\\n\\n2. **Integration with IoT and Edge Computing**:\\n - AI agents are embedding themselves within the fabric of Internet of Things (IoT) devices, from smart homes to autonomous vehicles. Edge computing supports this by enabling data processing at the source, refining decision speed, and minimizing"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 75.852,
+      "error": null,
+      "produced": "agentic AI is the proliferation of autonomous systems across various sectors. From self-driving cars and drones to industrial robots, these technologies are crafted to handle complex tasks with minimal human involvement. This automation wave is further fueled by the integration of AI with the Internet of Things (IoT), creating intelligent environments where autonomous agents manage tasks like urban infrastructure and home automation seamlessly.\\n\\n**Adaptive Learning** is another burgeoning area. AI agents are now designed to refine their decision-making processes by learning from past experie"
+    }
+  },
+  {
+    "cell": "cross__travel-planning__crewai__to__autogen",
+    "section": "cross",
+    "family": "travel-planning",
+    "src": "crewai",
+    "tgt": "autogen",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs to completion, but the task input is not wired: team.run_stream is called with the literal task=\"Suggest a travel plan for the following request: {request}\" \u2014 the placeholder is never substituted, and the model invents its own trip (it produced a Rome itinerary). The original request is 'Plan a 10 day trip to Luxembourg.'.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 70.32,
+      "error": null,
+      "produced": "ng a translation app can help with more complex interactions. - Adopt an attitude of politeness and patience, which is highly valued in Luxembourg. - Use Luxembourg\u2019s complimentary public transport network for seamless and economical travel. This carefully curated itinerary ensures a varied and memorable journey through Luxembourg, offering a perfect blend of historical depth, cultural richness, and natural charm. Enjoy your Luxembourgish adventure! ---------- TextMessage (Travel_Planner) ---------- Here's a comprehensive and enriching 10-day itinerary for exploring Luxembourg, designed to sho"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": false,
+      "duration_s": null,
+      "error": "timeout after 90s",
+      "produced": ""
+    }
+  },
+  {
+    "cell": "gen__code-review__langgraph",
+    "section": "gen",
+    "family": "code-review",
+    "src": "langgraph",
+    "tgt": "langgraph",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs, but two defects: (1) the task input is not wired \u2014 the entry point seeds the dummy value code='sample code' instead of the concrete code snippet the original reviews, so no real code is analysed; (2) the graph wires START->code_reviewer->security_auditor but never adds an edge into review_summarizer or to END, so the summary node is unreachable and the final report is never produced.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 22.5,
+      "error": null,
+      "produced": "=== messages === Start the task. === audit === Analyzing the provided code, we can identify several security issues based on the OWASP Top 10, hardcoded secrets, injection attacks, and missing input validation. Here are the key issues, along with their CWE (Common Weakness Enumeration) classifications: 1. **Injection Attack (Code Injection)** - **Description**: The code directly uses the `eval()` function to execute user input without any sanitization or validation. This constitutes a code injection vulnerability, allowing attackers to execute arbitrary code within the application. - **OWASP T"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 21.498,
+      "error": null,
+      "produced": "=== messages === Start the task. === audit === The given Python code appears to be vulnerable to several security issues, particularly those highlighted in the OWASP Top 10 list. Below is a detailed analysis of these issues, including relevant CWE (Common Weakness Enumeration) classifications. ### Potential Security Issues 1. **Injection Attacks (CWE-94: Improper Control of Generation of Code ('Code Injection'))** - **Issue**: The use of `eval()` directly on user input is highly vulnerable to code injection attacks. This function will execute arbitrary code, which could lead to compromise of t"
+    }
+  },
+  {
+    "cell": "gen__travel-planning__langgraph",
+    "section": "gen",
+    "family": "travel-planning",
+    "src": "langgraph",
+    "tgt": "langgraph",
+    "before": "outcome=RUNS_BUT_INPUT_NOT_WIRED; Runs, but two defects: (1) the task input is not wired \u2014 the entry point seeds the dummy value request='sample request' instead of the original concrete request ('Plan a 10 day trip to Luxembourg.'), so the model invents its own trip; (2) the graph wires START->planner_agent->local_agent->language_agent but never adds an edge into travel_summary_agent or to END, so the final-plan field is never produced.",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 37.836,
+      "error": null,
+      "produced": "=== messages === Start the task. === final_plan === Your itinerary for a 10-day trip to Luxembourg is comprehensive, covering a wide range of activities that showcase the best of the country\u2019s culture, history, and natural beauty. Here are a few additional insights and logistical considerations to enhance your journey: ### General Travel Tips: - **Connectivity:** Make sure your mobile plan supports international roaming, or consider purchasing a local SIM card upon arrival for convenient internet access and navigation tools. - **Public Transportation:** Public transportation in Luxembourg is f"
+    },
+    "status": "ran_ok",
+    "after_run2": {
+      "ok": true,
+      "duration_s": 42.647,
+      "error": null,
+      "produced": "=== messages === Start the task. === final_plan === Your itinerary for a 10-day trip to Luxembourg is thoughtfully detailed and covers a fantastic mix of city exploration, countryside relaxation, cultural immersion, and local gastronomy. Here are a few additional insights and tweaks to further refine your plan: ### Day 1: Arrival in Luxembourg City - **Local Start:** Consider joining a walking tour of the Old Town for an informative start. Guides often share lesser-known stories and insights. - **Dinner Enhancement:** Book a table at \"Caf\u00e9 des Artistes\" in the Grund for a cozy dining experienc"
+    }
+  }
+]

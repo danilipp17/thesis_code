@@ -1,0 +1,78 @@
+"""
+Auto-generated AutoGen application: travel_planning
+"""
+
+import asyncio
+import dotenv
+import os
+from typing import Any, Dict, List, Optional
+
+dotenv.load_dotenv()
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+
+# -- Agents --
+planner_agent = AssistantAgent(
+    name="Travel_Planner",
+    model_client=model_client,
+    system_message=(
+        "Suggest a travel plan for a user based on their request. You are a helpful assistant that can plan trips."
+    ),
+)
+
+local_agent = AssistantAgent(
+    name="Local_Guide",
+    model_client=model_client,
+    system_message=(
+        "Suggest authentic and interesting local activities or places to visit. You are a local assistant that can suggest local activities or places to visit and can utilize any context information provided."
+    ),
+)
+
+language_agent = AssistantAgent(
+    name="Language_Adviser",
+    model_client=model_client,
+    system_message=(
+        "Review travel plans and contribute language or communication tips. You provide feedback on important tips about how best to address language or communication challenges for the given destination."
+    ),
+)
+
+travel_summary_agent = AssistantAgent(
+    name="Travel_Summary_Writer",
+    model_client=model_client,
+    system_message=(
+        "Compile every contribution into a detailed, integrated final plan. You take all of the suggestions and advice from the other agents and provide a detailed final travel plan. Your final response must be the complete plan."
+    ),
+)
+
+# -- Team --
+max_msg_termination = MaxMessageTermination(10)
+termination = max_msg_termination
+
+team = RoundRobinGroupChat(
+    participants=[planner_agent, local_agent, language_agent, travel_summary_agent],
+    termination_condition=termination,
+)
+
+
+async def main():
+    # Allow overriding the request via environment variable, otherwise use a representative default.
+    request = os.getenv("REQUEST", "Plan a 10 day trip to Luxembourg.")
+    task_prompt = f"Suggest a travel plan for the following request: {request}"
+
+    stream = team.run_stream(
+        task=task_prompt
+    )
+    await Console(stream)
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -1,0 +1,183 @@
+# Issues / Assumptions:
+# - MaxMessageTermination (framework-specific) is represented as agentoscin:TurnLimitTermination (hasMaxTurns) because the ontology does not define MaxMessageTermination.
+# - RoundRobinGroupChat is modeled as a Team with a coordination pattern of agentoscin:RoundRobin and an associated WorkflowPattern + WorkflowSteps to capture participant order. The ontology cannot represent framework scheduling semantics (e.g., true round-robin runtime execution), so order is represented via stepOrder and nextStep links.
+# - The framework-specific client class OpenAIChatCompletionClient is modeled as a Tool (:OpenAI_Client) with implementation reference; secrets (API key) are referenced by environment variable name only (OPENAI_API_KEY). The ontology does not provide a safe secret handling primitive; the API key itself is not included.
+# - The original code contains a conditional skip-or-improve gate in the LangGraph original; the AutoGen mapping comment notes that conditional gating is not representable by the RoundRobin model. This limitation is recorded here as an assumption and a note in the Task's expected output literal.
+# - Runtime behavior (async execution, message sequencing, implicit internal state/stategraph) and implementation details (Python functions, SDK calls) are not modeled. Only semantic artifacts (agents, prompts, team, workflow, termination, model config, and prompts) are represented.
+# - All information from the source (agent names, full prompt system messages, model identifier, termination parameter, and the task text) is preserved as literals or config entries.
+#
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/instances#> .
+@prefix asc: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# Agentic system
+#################################################################
+
+:AutoGen_Joke_System rdf:type asc:AgenticSystem ;
+    dcterms:title "AutoGen Joke System (RoundRobinGroupChat mapping)" ;
+    asc:containsTeam :AutoGen_Joke_Team ;
+    asc:containsAgent :Joke_Generator , :Joke_Improver , :Joke_Polisher ;
+    asc:hasSourceFramework "autogen_agentchat (RoundRobinGroupChat mapping); original example: LangGraph three-step joke refinement mapped to round-robin group chat" .
+
+#################################################################
+# Team / Coordination pattern / Termination
+#################################################################
+
+:AutoGen_Joke_Team rdf:type agento:Team ;
+    dcterms:title "Joke RoundRobin Group Chat (AutoGen)" ;
+    asc:employsCoordinationPattern asc:RoundRobin ;
+    agento:hasAgentMember :Joke_Generator , :Joke_Improver , :Joke_Polisher ;
+    asc:hasTerminationCondition :Termination_TurnLimit ;
+
+:Termination_TurnLimit rdf:type asc:TurnLimitTermination ;
+    asc:hasMaxTurns "4"^^xsd:integer ;
+    dcterms:description "Mapped from framework MaxMessageTermination(max_messages=4). Interpreted as maximum conversation turns/messages." .
+
+#################################################################
+# Language model and client tool + Configs
+#################################################################
+
+:LM_gpt4o rdf:type agento:LanguageModel ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "Statistical language model used by AssistantAgent instances (model parameter from OpenAIChatCompletionClient model=\"gpt-4o\")." .
+
+:OpenAI_Client rdf:type agento:Tool ;
+    dcterms:title "OpenAIChatCompletionClient (wrapper)" ;
+    asc:hasImplementationReference "OpenAIChatCompletionClient (autogen_ext.models.openai)" ;
+    agento:hasToolConfig :Config_OpenAI_Client .
+
+:Config_OpenAI_Client rdf:type agento:Config ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" ;
+    dcterms:description "Model and API key binding for the OpenAIChatCompletionClient. The API key is obtained from environment variable OPENAI_API_KEY at runtime." ;
+    agento:configKey "api_key_env" ;
+    agento:configValue "OPENAI_API_KEY" .
+
+#################################################################
+# Agents (LLMAgents) and their prompts / configs
+#################################################################
+
+:Joke_Generator rdf:type agento:LLMAgent ;
+    agento:agentID "Joke_Generator" ;
+    agento:agentRole "assistant / generator" ;
+    asc:agentType "AssistantAgent" ;
+    agento:agentPrompt :Prompt_Joke_Generator ;
+    agento:hasAgentConfig :Config_Joke_Generator ;
+    agento:agentToolUsage :OpenAI_Client ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "AssistantAgent initialized as a witty comedian; first participant in AutoGen RoundRobin workflow." .
+
+:Prompt_Joke_Generator rdf:type agento:Prompt ;
+    agento:promptInstruction "You are a witty comedian. Write a short joke about the requested topic." ;
+    agento:promptContext "System message for Joke_Generator; instructs role and output objective." .
+
+:Config_Joke_Generator rdf:type agento:Config ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are a witty comedian. Write a short joke about the requested topic." ;
+    agento:configKey "model_client" ;
+    agento:configValue "OpenAIChatCompletionClient (shared client; uses model=gpt-4o; API key from env OPENAI_API_KEY)" .
+
+:Joke_Improver rdf:type agento:LLMAgent ;
+    agento:agentID "Joke_Improver" ;
+    agento:agentRole "assistant / improver" ;
+    asc:agentType "AssistantAgent" ;
+    agento:agentPrompt :Prompt_Joke_Improver ;
+    agento:hasAgentConfig :Config_Joke_Improver ;
+    agento:agentToolUsage :OpenAI_Client ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "AssistantAgent that takes previous joke and makes it funnier; outputs 'IMPROVED' when done." .
+
+:Prompt_Joke_Improver rdf:type agento:Prompt ;
+    agento:promptInstruction "You are a comedy writer. Take the previous joke and make it funnier by adding clever wordplay. Output 'IMPROVED' when done." ;
+    agento:promptContext "System message for Joke_Improver; expects transformation of prior agent output and the literal token 'IMPROVED' to mark completion of its step." .
+
+:Config_Joke_Improver rdf:type agento:Config ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are a comedy writer. Take the previous joke and make it funnier by adding clever wordplay. Output 'IMPROVED' when done." ;
+    agento:configKey "model_client" ;
+    agento:configValue "OpenAIChatCompletionClient (shared client; uses model=gpt-4o; API key from env OPENAI_API_KEY)" .
+
+:Joke_Polisher rdf:type agento:LLMAgent ;
+    agento:agentID "Joke_Polisher" ;
+    agento:agentRole "assistant / polisher" ;
+    asc:agentType "AssistantAgent" ;
+    agento:agentPrompt :Prompt_Joke_Polisher ;
+    agento:hasAgentConfig :Config_Joke_Polisher ;
+    agento:agentToolUsage :OpenAI_Client ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "AssistantAgent that polishes and adds a twist; final output should conclude with 'TERMINATE'." .
+
+:Prompt_Joke_Polisher rdf:type agento:Prompt ;
+    agento:promptInstruction "You are a storyteller. Add a surprising twist to the previous joke for the final polished version. Conclude with 'TERMINATE'." ;
+    agento:promptContext "System message for Joke_Polisher; expects polished final version and the literal token 'TERMINATE' to indicate termination." .
+
+:Config_Joke_Polisher rdf:type agento:Config ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are a storyteller. Add a surprising twist to the previous joke for the final polished version. Conclude with 'TERMINATE'." ;
+    agento:configKey "model_client" ;
+    agento:configValue "OpenAIChatCompletionClient (shared client; uses model=gpt-4o; API key from env OPENAI_API_KEY)" .
+
+#################################################################
+# Workflow pattern and steps (representing round-robin sequence)
+#################################################################
+
+:RoundRobinJokeWorkflow rdf:type agento:WorkflowPattern ;
+    dcterms:title "RoundRobin Joke Refinement Workflow" ;
+    agento:hasWorkflowStep :Step_Generate , :Step_Improve , :Step_Polish ;
+    dcterms:description "Workflow pattern representing the three participant steps (generate -> improve -> polish). In the original LangGraph example there is a conditional gate; mapping to RoundRobin loses that conditional behavior (see Issues / Assumptions)." .
+
+:Step_Generate rdf:type agento:WorkflowStep ;
+    dcterms:title "Generate" ;
+    asc:hasAssociatedAgent :Joke_Generator ;
+    agento:hasAssociatedTask :Task_Generate_Improve_Polish ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agento:nextStep :Step_Improve ;
+    dcterms:description "First participant in the round-robin: generates initial joke content." .
+
+:Step_Improve rdf:type agento:WorkflowStep ;
+    dcterms:title "Improve" ;
+    asc:hasAssociatedAgent :Joke_Improver ;
+    agento:hasAssociatedTask :Task_Generate_Improve_Polish ;
+    agento:stepOrder "2"^^xsd:integer ;
+    agento:nextStep :Step_Polish ;
+    dcterms:description "Second participant: improves prior joke. In original example a conditional gate could skip or request improvement; here all steps run." .
+
+:Step_Polish rdf:type agento:WorkflowStep ;
+    dcterms:title "Polish" ;
+    asc:hasAssociatedAgent :Joke_Polisher ;
+    agento:hasAssociatedTask :Task_Generate_Improve_Polish ;
+    agento:stepOrder "3"^^xsd:integer ;
+    agento:nextStep :Step_Generate ; # round-robin cycles; termination condition limits turns
+    dcterms:description "Third participant: final polishing and twist; indicates finalization with 'TERMINATE' token." .
+
+#################################################################
+# Task and prompts (user-level task input)
+#################################################################
+
+:Task_Generate_Improve_Polish rdf:type agento:Task ;
+    dcterms:title "Generate, Improve, Polish Joke (cats)" ;
+    agento:taskPrompt :Prompt_Task_Input ;
+    asc:hasExpectedOutput "Final polished joke (polisher should end with 'TERMINATE'); intermediate improver should output 'IMPROVED' when it finishes its turn. Note: original LangGraph example included a conditional skip-or-improve; this mapping runs all three agents in a round-robin pattern and therefore may differ in control flow." ;
+    agento:performedByAgent :Joke_Generator , :Joke_Improver , :Joke_Polisher ;
+    dcterms:description "High-level task string that is passed to the team's run() call in the source code." .
+
+:Prompt_Task_Input rdf:type agento:Prompt ;
+    agento:promptInstruction "Write a joke about cats, then improve and polish it." ;
+    agento:promptContext "Task-level input passed into the team.run(...) call in the source code. Acts as the user/invocation instruction." .
+
+#################################################################
+# Notes about produced resources (messages)
+#################################################################
+
+:Messages_Resource rdf:type <http://w3id.org/beam/core#Resource> ;
+    dcterms:title "Conversation Messages" ;
+    dcterms:description "Represents the sequence of messages produced by the team.run() call. Each message at runtime is an instance of a message resource; not fully materialized here because sequencing and content are produced at runtime." ;
+    agento:containsResource :LM_gpt4o .
+
+#################################################################
+# End of instances
+#################################################################

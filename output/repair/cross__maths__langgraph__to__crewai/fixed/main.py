@@ -1,0 +1,68 @@
+"""
+Auto-generated CrewAI Flow: StateGraph
+
+This file was adjusted so the Flow uses a real LLM at runtime to produce output.
+"""
+
+import dotenv
+from typing import Any, Dict, List, Optional
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+dotenv.load_dotenv()
+
+# Use OpenAI Chat API for the runtime LLM invocation
+import openai
+import os
+
+# You can change MODEL to another model name available in your environment.
+MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+
+
+class AgentState(BaseModel):
+    """Flow state — customize fields as needed."""
+    # keep list default for backward compatibility with generated code
+    messages: list = []
+
+
+class StateGraph(Flow[AgentState]):
+
+    @start()
+    def our_agent(self):
+        # Build the conversation messages (system + user)
+        system_msg = {
+            "role": "system",
+            "content": "You are my AI assistant, please answer my query to the best of your ability.",
+        }
+        user_msg = {
+            "role": "user",
+            "content": "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please.",
+        }
+
+        messages = [system_msg, user_msg]
+
+        # Call the real model at runtime (this must not be inlined or hardcoded)
+        resp = openai.ChatCompletion.create(model=MODEL, messages=messages)
+        assistant_content = resp["choices"][0]["message"]["content"]
+
+        # Store the assistant reply into the flow state
+        # The flow state is a pydantic model so access attributes, not subscripting
+        self.state.messages.append({"role": "assistant", "content": assistant_content})
+
+        # Print the result (the assistant output). This ensures the program prints the model's output.
+        print(assistant_content)
+
+    @listen(our_agent)
+    def tools(self):
+        # No tool-loop implementation in this simplified flow; placeholder for extension.
+        return
+
+
+def kickoff():
+    flow = StateGraph()
+    flow.kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()

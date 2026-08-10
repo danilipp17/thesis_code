@@ -1,0 +1,247 @@
+# Issues / Assumptions:
+# - The ontology lacks a dedicated class/property to represent executable tool implementations (e.g., Python callables / FunctionTool). I model the tool as an instance of Tool and store an implementation reference string in hasImplementationReference, but the actual callable/source code is NOT included (per instructions).
+# - The ontology cannot express runtime behavior details such as streaming, async execution, or SDK-level client objects. I represent the language model client as a LanguageModel individual and reference model name only.
+# - The ontology cannot represent scheduling semantics or exact ordering of messages in a RoundRobinGroupChat beyond assigning a CoordinationPattern (RoundRobin). Specific scheduling parameters or participant order are not represented.
+# - The UI (Console) and framework-specific constructs (autogen_agentchat, autogen_core) are not represented beyond a hasSourceFramework string on the AgenticSystem.
+# - The internal structure of team.run_stream and message passing is modeled as a Task with associated Prompt(s) and Team membership; individual message-turns and internal agent interactions are not explicitly modeled step-by-step.
+# - No new classes/properties were added. Where exact semantics were missing, I used the nearest applicable existing properties (e.g., hasSystemConfig for team numeric config, TurnLimitTermination for max_turns).
+#
+# - If more fidelity is required (e.g., representing function signatures, tool call parameters, streaming channels, or per-turn orchestration steps), the ontology would need extensions (new classes/properties) to capture:
+#   * ExecutableTool / FunctionTool with argument signatures and return schema
+#   * Stream / ConversationTurn / Message classes and properties
+#   * Scheduling/coordination parameters for coordination patterns (e.g., ordering, tokens-per-turn)
+#   * Model client configuration object with authentication & runtime settings
+#
+# No issues detected regarding use of existing classes/properties for representing agents, prompts, team, tasks, tools, and resources — those were used as intended.
+
+@prefix : <http://example.org/code_review_pipeline#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix p-plan: <http://purl.org/net/p-plan#> .
+@prefix dcterms: <http://purl.org/dc/elements/1.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://example.org/code_review_pipeline> .
+
+#################################################################
+# Agentic system
+#################################################################
+
+:Code_Review_System
+    rdf:type agentoscin:AgenticSystem ;
+    dcterms:description "Code Review Pipeline — AutoGen v0.4 implementation. Three agents collaborate: a code reviewer, a security auditor, and a summarizer who compiles findings into a verdict."@en ;
+    rdfs:label "Code Review Pipeline System" ;
+    agentoscin:containsTeam :Code_Review_Team ;
+    agentoscin:containsAgent :Code_Reviewer , :Security_Auditor , :Review_Summarizer ;
+    agentoscin:hasSourceFramework "autogen_agentchat" .
+
+#################################################################
+# Team (RoundRobin group chat)
+#################################################################
+
+:Code_Review_Team
+    rdf:type agento:Team ;
+    rdfs:label "RoundRobinGroupChat Team" ;
+    dcterms:description "Team composed of three assistant agents participating in a round-robin group chat with a maximum of 3 turns."@en ;
+    agento:hasAgentMember :Code_Reviewer , :Security_Auditor , :Review_Summarizer ;
+    agentoscin:employsCoordinationPattern agentoscin:RoundRobin ;
+    agentoscin:hasTerminationCondition :Team_TurnLimit ;
+    agento:hasSystemConfig :Team_System_Config ;
+    agento:hasWorkflowPattern :RoundRobin_WorkflowPattern .
+
+:Team_TurnLimit
+    rdf:type agentoscin:TurnLimitTermination ;
+    rdfs:label "Team Turn Limit (3)" ;
+    agentoscin:hasMaxTurns "3"^^xsd:integer .
+
+:Team_System_Config
+    rdf:type agento:Config ;
+    rdfs:label "Team system configuration" ;
+    agento:configKey "max_turns" ;
+    agento:configValue "3" .
+
+:RoundRobin_WorkflowPattern
+    rdf:type agento:WorkflowPattern ;
+    rdfs:label "RoundRobinGroupChat Workflow Pattern" ;
+    dcterms:description "Represents the group chat workflow pattern used by the team (RoundRobin scheduling among participants)."@en .
+
+#################################################################
+# Language model
+#################################################################
+
+:LM_gpt4o
+    rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "OpenAIChatCompletionClient using model 'gpt-4o' (shared by agents in this system)."@en .
+
+#################################################################
+# Tools and capabilities
+#################################################################
+
+:CodeAnalyzerTool
+    rdf:type agento:Tool ;
+    rdfs:label "Code Analyzer Tool" ;
+    dcterms:description """Performs static analysis on source code. Checks for syntax errors, undefined variables, unused imports, and common anti-patterns.
+Implementation provided as a Python function `code_analyzer(code: str, language: str = \"python\") -> str` (not included here).""" ;
+    agentoscin:hasImplementationReference "code_analyzer (python function)" ;
+    agento:hasCapability :Static_Analysis_Capability .
+
+:Static_Analysis_Capability
+    rdf:type agento:Capability ;
+    rdfs:label "Static Analysis" ;
+    dcterms:description "Capability: perform static code analysis for syntax and common anti-patterns."@en .
+
+#################################################################
+# Prompts
+#################################################################
+
+:Prompt_Code_Reviewer_System
+    rdf:type agento:Prompt ;
+    rdfs:label "System prompt - Code Reviewer" ;
+    agento:promptInstruction """You are a senior software engineer with 15 years of experience in code review. Review the code for correctness, readability, and best practices. Identify bugs, code smells, naming issues, and suggest improvements. Use the code analyzer tool to check for syntax and structural issues.""" .
+
+:Prompt_Security_Auditor_System
+    rdf:type agento:Prompt ;
+    rdfs:label "System prompt - Security Auditor" ;
+    agento:promptInstruction """You are a certified security professional specializing in application security. Audit the code for security vulnerabilities including injection attacks, hardcoded secrets, insecure data handling, missing input validation, and OWASP Top 10 issues. Provide CWE classifications for each finding.""" .
+
+:Prompt_Review_Summarizer_System
+    rdf:type agento:Prompt ;
+    rdfs:label "System prompt - Review Summarizer" ;
+    agento:promptInstruction """You are a technical lead who synthesizes feedback from code reviewers and security auditors. Compile all findings into a structured review report. Provide a verdict: APPROVED if no critical or major issues, otherwise REQUEST CHANGES. Include a summary, critical count, and action items. When done, reply with TERMINATE.""" .
+
+:Prompt_Team_Review_Task
+    rdf:type agento:Prompt ;
+    rdfs:label "Task prompt - review code snippet" ;
+    agento:promptInstruction "Review the following code for quality and security:" ;
+    agento:promptInputData """
+def process_user_input(data):
+    result = eval(data)
+    return result
+""" ;
+    agento:promptOutputIndicator "Structured review report, including verdict: APPROVED or REQUEST CHANGES; include critical count and action items; finalizer should reply with TERMINATE." .
+
+#################################################################
+# Resources (input and output)
+#################################################################
+
+:Source_Code_Snippet
+    rdf:type beam:Resource ;
+    rdfs:label "Source code snippet (input)" ;
+    dcterms:description """Python code to be reviewed (input to the pipeline):
+def process_user_input(data):
+    result = eval(data)
+    return result
+(contains use of eval which is a high-risk pattern for injection vulnerabilities.)""" .
+
+:Review_Report
+    rdf:type beam:Resource ;
+    rdfs:label "Review report (output)" ;
+    dcterms:description "Structured review report containing synthesized findings from code reviewer and security auditor, with verdict (APPROVED or REQUEST CHANGES), critical count, summary, and actionable items." .
+
+#################################################################
+# Tasks
+#################################################################
+
+:Code_Review_Task
+    rdf:type agento:Task ;
+    rdfs:label "Code Review Task" ;
+    dcterms:description "Top-level task invoked by the team to review a provided code snippet for quality and security; results in a structured review report."@en ;
+    agento:taskPrompt :Prompt_Team_Review_Task ;
+    agentoscin:taskToolUsage :CodeAnalyzerTool ;
+    agento:requiresResource :Source_Code_Snippet ;
+    agento:producedResource :Review_Report ;
+    agentoscin:hasExpectedOutput "Structured review report with verdict: APPROVED if no critical/major issues; otherwise REQUEST CHANGES. Include summary, critical count, and action items. Finalizer should reply 'TERMINATE' when complete." ;
+    agento:performedByAgent :Review_Summarizer .
+
+#################################################################
+# Agents (LLMAgents)
+#################################################################
+
+:Code_Reviewer
+    rdf:type agento:LLMAgent ;
+    rdfs:label "Code_Reviewer" ;
+    agento:agentID "Code_Reviewer" ;
+    agento:agentRole "senior software engineer with 15 years of experience in code review" ;
+    agentoscin:agentType "AssistantAgent" ;
+    agento:agentPrompt :Prompt_Code_Reviewer_System ;
+    agento:agentToolUsage :CodeAnalyzerTool ;
+    agento:hasAgentConfig :Code_Reviewer_Config ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "Agent responsible for checking code correctness, readability and best practices; uses static analysis tool for syntax and structural checks."@en .
+
+:Code_Reviewer_Config
+    rdf:type agento:Config ;
+    rdfs:label "Code Reviewer config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" ;
+    agento:configKey "tools" ;
+    agento:configValue "code_analyzer" .
+
+:Security_Auditor
+    rdf:type agento:LLMAgent ;
+    rdfs:label "Security_Auditor" ;
+    agento:agentID "Security_Auditor" ;
+    agento:agentRole "certified security professional specializing in application security" ;
+    agentoscin:agentType "AssistantAgent" ;
+    agento:agentPrompt :Prompt_Security_Auditor_System ;
+    agento:agentToolUsage :CodeAnalyzerTool ;
+    agento:hasAgentConfig :Security_Auditor_Config ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "Agent focused on finding security vulnerabilities and mapping to CWE."@en .
+
+:Security_Auditor_Config
+    rdf:type agento:Config ;
+    rdfs:label "Security Auditor config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" ;
+    agento:configKey "tools" ;
+    agento:configValue "code_analyzer" .
+
+:Review_Summarizer
+    rdf:type agento:LLMAgent ;
+    rdfs:label "Review_Summarizer" ;
+    agento:agentID "Review_Summarizer" ;
+    agento:agentRole "technical lead who synthesizes feedback from code reviewers and security auditors" ;
+    agentoscin:agentType "AssistantAgent" ;
+    agento:agentPrompt :Prompt_Review_Summarizer_System ;
+    agento:hasAgentConfig :Review_Summarizer_Config ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "Agent that compiles findings into a structured review report and emits final verdict. Expected to produce the Review_Report resource and terminate with 'TERMINATE' string."@en .
+
+:Review_Summarizer_Config
+    rdf:type agento:Config ;
+    rdfs:label "Review Summarizer config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+#################################################################
+# Links between system, tasks, agents, and resources
+#################################################################
+
+# System contains the team and agents (already linked above).
+# The top-level task is executed by the team; modeled by linking the task to the team via prov:Agent participation (team participates in task).
+:Code_Review_Team prov:wasAssociatedWith :Code_Review_Task .
+
+# The task consumes the source code and produces a review report (already linked via requiresResource & producedResource).
+# The summarizer agent is marked as the performer of the task's finalization.
+:Code_Review_Task agento:performedByAgent :Review_Summarizer .
+
+# Each agent is contained by the system
+:Code_Review_System agentoscin:containsAgent :Code_Reviewer , :Security_Auditor , :Review_Summarizer .
+
+#################################################################
+# Miscellaneous metadata
+#################################################################
+
+# An explicit link from Team to the coordination pattern instance (RoundRobin provided by the extension ontology).
+:Code_Review_Team agentoscin:employsCoordinationPattern agentoscin:RoundRobin .
+
+# Task references the group prompt and input snippet (already modeled via taskPrompt and requiresResource).
+# Tool capability is declared above.
+
+# End of instance data.

@@ -1,0 +1,12 @@
+task_researcher:
+  description: 'f''Research the following topic and provide a comprehensive summary: {topic}'''
+  expected_output: research
+  agent: researcher
+task_writer:
+  description: f'Using the following research, write a 500-word engaging tech blog post:\n\n{research}'
+  expected_output: draft
+  agent: writer
+task_editor:
+  description: f'Review the following drafted blog post. Fix any grammatical errors, improve the flow, and return the final polished version ready for publishing:\n\n{draft}'
+  expected_output: final_post
+  agent: editor

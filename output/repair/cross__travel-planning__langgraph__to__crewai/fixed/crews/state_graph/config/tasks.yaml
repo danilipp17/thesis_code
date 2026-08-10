@@ -1,0 +1,16 @@
+task_planner_agent:
+  description: 'f"Suggest a travel plan for the request: {state[''request'']}"'
+  expected_output: plan
+  agent: planner_agent
+task_local_agent:
+  description: f"Given the initial plan, contribute concrete local suggestions.\n\nPlan so far:\n{state['plan']}"
+  expected_output: local_notes
+  agent: local_agent
+task_language_agent:
+  description: f"Plan so far:\n{state['plan']}\n\nLocal suggestions:\n{state['local_notes']}"
+  expected_output: language_notes
+  agent: language_agent
+task_travel_summary_agent:
+  description: f"Initial plan:\n{state['plan']}\n\nLocal notes:\n{state['local_notes']}\n\nLanguage notes:\n{state['language_notes']}"
+  expected_output: final_plan
+  agent: travel_summary_agent

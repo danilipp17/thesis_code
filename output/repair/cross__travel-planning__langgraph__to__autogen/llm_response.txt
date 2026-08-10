@@ -1,0 +1,92 @@
+### FILE: main.py
+```python
+"""
+Auto-generated AutoGen application: travel_planning
+"""
+
+import asyncio
+import dotenv
+from typing import Any, Dict, List, Optional
+
+dotenv.load_dotenv()
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+
+# -- Agents --
+planner_agent = AssistantAgent(
+    name="planner_agent",
+    model_client=model_client,
+    system_message=(
+        "You are a helpful assistant that can suggest a travel plan for a user "
+        "based on their request. The user's request will be provided in the "
+        "user message. Produce an initial itinerary sketch."
+    ),
+)
+
+local_agent = AssistantAgent(
+    name="local_agent",
+    model_client=model_client,
+    system_message=(
+        "You are a helpful assistant that can suggest authentic and interesting "
+        "local activities or places to visit. Given the initial plan provided "
+        "in the conversation, contribute concrete local suggestions."
+    ),
+)
+
+language_agent = AssistantAgent(
+    name="language_agent",
+    model_client=model_client,
+    system_message=(
+        "You review travel plans and provide feedback on important tips about "
+        "how best to address language or communication challenges for the "
+        "destination. Use the plan and local suggestions present in the "
+        "conversation to produce language/communication advice."
+    ),
+)
+
+travel_summary_agent = AssistantAgent(
+    name="travel_summary_agent",
+    model_client=model_client,
+    system_message=(
+        "You compile all suggestions and advice from the other agents and "
+        "provide a detailed final travel plan. Your final response must be the "
+        "complete plan. When the plan is complete, conclude with TERMINATE."
+    ),
+)
+
+# -- Team --
+# Use a selector-style sequential flow so that each agent can build on the
+# previous agents' messages. Terminate when the summary agent emits "TERMINATE".
+termination = TextMentionTermination("TERMINATE")
+
+team = SelectorGroupChat(
+    participants=[planner_agent, local_agent, language_agent, travel_summary_agent],
+    termination_condition=termination,
+)
+
+
+async def main():
+    # Representative concrete input (the agents must generate the plan at run time)
+    request_text = "Plan a 10 day trip to Luxembourg."
+
+    # Provide the user's request as the task prompt so agents see it in the conversation.
+    task_prompt = f"Suggest a travel plan for the request: {request_text}"
+
+    stream = team.run_stream(task=task_prompt)
+    # Console will stream the agent conversation to stdout (the final plan will be
+    # produced by the travel_summary_agent and printed as part of the stream).
+    await Console(stream)
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```

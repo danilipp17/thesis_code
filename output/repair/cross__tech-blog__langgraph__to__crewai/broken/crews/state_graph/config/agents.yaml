@@ -1,0 +1,9 @@
+researcher:
+  role: researcher
+  goal: ''
+writer:
+  role: writer
+  goal: ''
+editor:
+  role: editor
+  goal: ''

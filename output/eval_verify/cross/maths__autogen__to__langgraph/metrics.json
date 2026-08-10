@@ -1,0 +1,15 @@
+{
+  "family": "maths",
+  "src": "autogen",
+  "tgt": "langgraph",
+  "triple_f1": 0.5,
+  "aligned_triple_f1": 0.5645161290322581,
+  "individual_f1": 0.7499999999999999,
+  "property_f1": 0.7111111111111111,
+  "literal_overlap": 0.36666666666666664,
+  "ast_precision": 0.615,
+  "ast_recall": 0.588,
+  "ast_f1": 0.595,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

@@ -1,0 +1,208 @@
+# Issues / Assumptions:
+# - The current ontology can represent agents, tasks, prompts, workflow steps and conditional routing via existing classes/properties. However, it does not model framework-specific code constructs (e.g., Python functions, langgraph StateGraph objects, SDK invocation semantics). These are represented as descriptive literals (hasRoutingLogic, hasSourceFramework, hasImplementationReference).
+# - There is no dedicated class/property for typed in-memory state variables; beam:Resource (w3id.org/beam/core#Resource) and dcterms:title/description are used to represent input/output state slots (topic, joke, improved_joke, final_joke).
+# - Conditional routing logic (the check_punchline gate) is modeled as a literal on the ConditionalStep via hasRoutingLogic. The exact boolean expression and branch keys ("Pass"/"Fail") are preserved as literals, but the ontology has no built-in representation for executable predicates or edge labels; nextStep links are provided for both routing targets.
+# - Execution/runtime parameters (e.g., model invocation method, environment variables, LLM call semantics, or actual dynamic outputs) are recorded as literals (hasImplementationReference, hasSourceFramework, configKey/configValue). No code or SDK-specific semantics are stored (per instructions).
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix p-plan: <http://purl.org/net/p-plan#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+
+#################################################################
+#    Individuals describing the "joke" agentic solution
+#################################################################
+
+### Agentic system (top-level)
+:JokeAgenticSystem rdf:type :AgenticSystem ;
+    rdfs:label "Joke Generation Agentic System" ;
+    dcterms:description "An agentic system that generates an initial joke, conditionally improves it, and polishes it for a surprising twist. Implemented using a langgraph StateGraph that invokes an LLM (ChatOpenAI / gpt-4o)." ;
+    :hasSourceFramework "langgraph.StateGraph (Python) with langchain_openai.ChatOpenAI" ;
+    :containsOrchestration :JokeOrchestration ;
+    :containsAgent :JokeAgent .
+
+### Orchestration / Team controlling the workflow
+:JokeOrchestration rdf:type :Orchestration ;
+    rdfs:label "Joke Orchestration" ;
+    dcterms:description "Orchestration that coordinates the workflow steps for joke generation." ;
+    :hasWorkflowPattern :JokeWorkflowPattern .
+
+### LLM agent and its model/config
+:JokeAgent rdf:type agento:LLMAgent ,
+                   agento:Tool ;
+    rdfs:label "Joke LLM Agent" ;
+    agento:agentID "joke_agent_1" ;
+    agento:agentRole "joke-generator" ;
+    :agentType "ChatOpenAI wrapper" ;
+    :hasReasoningEnabled "false"^^xsd:boolean ;
+    :hasMaxReasoningAttempts "1"^^xsd:integer ;
+    :useLanguageModel :GPT4oModel ;
+    :hasAgentConfig :JokeAgentConfig ;
+    :hasImplementationReference "langchain_openai.ChatOpenAI (invoked with model='gpt-4o')" .
+
+:GPT4oModel rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model used by the LLM agent. Model name as provided to the ChatOpenAI wrapper: 'gpt-4o'." .
+
+:JokeAgentConfig rdf:type agento:Config ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" ;
+    dcterms:description "Configuration entry indicating the LLM model used by the agent." .
+
+#################################################################
+#    Workflow pattern and steps
+#################################################################
+
+:JokeWorkflowPattern rdf:type agento:WorkflowPattern ;
+    rdfs:label "Joke Generation Workflow Pattern" ;
+    dcterms:description "Workflow pattern representing the state graph: START -> generate_joke (conditional) -> (PASS -> END) or (FAIL -> improve_joke -> polish_joke -> END)." ;
+    :hasWorkflowStep :StartStepNode ,
+                     :GenerateJokeStep ,
+                     :ImproveJokeStep ,
+                     :PolishJokeStep ,
+                     :EndStepNode .
+
+## Start and End sentinel steps
+:StartStepNode rdf:type agento:StartStep ;
+    rdfs:label "Start" ;
+    :stepOrder "0"^^xsd:integer ;
+    :nextStep :GenerateJokeStep .
+
+:EndStepNode rdf:type agento:EndStep ;
+    rdfs:label "End" ;
+    dcterms:description "Workflow termination node (END)." .
+
+## Conditional generate_joke step (contains routing logic)
+:GenerateJokeStep rdf:type :ConditionalStep ;
+    rdfs:label "generate_joke (conditional)" ;
+    :stepOrder "1"^^xsd:integer ;
+    :hasAssociatedTask :GenerateJokeTask ;
+    :hasAssociatedAgent :JokeAgent ;
+    :hasDecoratorArgument "generate_joke" ;
+    :hasRoutingLogic "Gate: check_punchline(state) -> if the generated joke contains a '?' or '!' then route 'Pass' to END; otherwise route 'Fail' to improve_joke. (Original implementation: check_punchline checks for '?' or '!' in the 'joke' text.)" ;
+    :nextStep :ImproveJokeStep , :EndStepNode .
+
+## Improve joke step (follows when the gate fails)
+:ImproveJokeStep rdf:type agento:WorkflowStep ;
+    rdfs:label "improve_joke" ;
+    :stepOrder "2"^^xsd:integer ;
+    :hasAssociatedTask :ImproveJokeTask ;
+    :hasAssociatedAgent :JokeAgent ;
+    :hasDecoratorArgument "improve_joke" ;
+    :nextStep :PolishJokeStep .
+
+## Final polishing step
+:PolishJokeStep rdf:type agento:WorkflowStep ;
+    rdfs:label "polish_joke" ;
+    :stepOrder "3"^^xsd:integer ;
+    :hasAssociatedTask :PolishJokeTask ;
+    :hasAssociatedAgent :JokeAgent ;
+    :hasDecoratorArgument "polish_joke" ;
+    :nextStep :EndStepNode .
+
+#################################################################
+#    Tasks and their prompts, resources, and tool usage
+#################################################################
+
+### Tasks: generate_joke, improve_joke, polish_joke
+:GenerateJokeTask rdf:type agento:Task ;
+    rdfs:label "generate_joke" ;
+    dcterms:description "First LLM call to generate initial joke using the provided topic." ;
+    agento:taskPrompt :GenerateJokePrompt ;
+    agento:requiresResource :TopicResource ;
+    agento:producedResource :JokeResource ;
+    :hasExpectedOutput "joke" ;
+    :performedByAgent :JokeAgent ;
+    :taskToolUsage :JokeAgent .
+
+:ImproveJokeTask rdf:type agento:Task ;
+    rdfs:label "improve_joke" ;
+    dcterms:description "Second LLM call to improve the joke by adding wordplay." ;
+    agento:taskPrompt :ImproveJokePrompt ;
+    agento:requiresResource :JokeResource ;
+    agento:producedResource :ImprovedJokeResource ;
+    :hasExpectedOutput "improved_joke" ;
+    :performedByAgent :JokeAgent ;
+    :taskToolUsage :JokeAgent .
+
+:PolishJokeTask rdf:type agento:Task ;
+    rdfs:label "polish_joke" ;
+    dcterms:description "Third LLM call to add a surprising twist to the improved joke." ;
+    agento:taskPrompt :PolishJokePrompt ;
+    agento:requiresResource :ImprovedJokeResource ;
+    agento:producedResource :FinalJokeResource ;
+    :hasExpectedOutput "final_joke" ;
+    :performedByAgent :JokeAgent ;
+    :taskToolUsage :JokeAgent .
+
+#################################################################
+#    Prompts (literal content preserved)
+#################################################################
+
+:GenerateJokePrompt rdf:type agento:Prompt ;
+    rdfs:label "Generate joke prompt" ;
+    :promptInstruction "Write a short joke about {topic}" ;
+    :promptInputData "{topic}" ;
+    :promptOutputIndicator "joke" ;
+    dcterms:description "Template prompt used to request an initial joke. {topic} is substituted with the topic resource (e.g., 'cats')." .
+
+:ImproveJokePrompt rdf:type agento:Prompt ;
+    rdfs:label "Improve joke prompt" ;
+    :promptInstruction "Make this joke funnier by adding wordplay: {joke}" ;
+    :promptInputData "{joke}" ;
+    :promptOutputIndicator "improved_joke" ;
+    dcterms:description "Prompt used to request an improved version of an existing joke; the original joke text is provided as input." .
+
+:PolishJokePrompt rdf:type agento:Prompt ;
+    rdfs:label "Polish joke prompt" ;
+    :promptInstruction "Add a surprising twist to this joke: {improved_joke}" ;
+    :promptInputData "{improved_joke}" ;
+    :promptOutputIndicator "final_joke" ;
+    dcterms:description "Prompt used to request final polishing / twist applied to the improved joke." .
+
+#################################################################
+#    Data/Artifacts (resources representing state variables)
+#################################################################
+
+:TopicResource rdf:type beam:Resource ;
+    rdfs:label "topic" ;
+    dcterms:description "Input topic string (state variable). Example invocation used topic 'cats' in the demonstration run." ;
+    dcterms:title "topic" .
+
+:JokeResource rdf:type beam:Resource ;
+    rdfs:label "joke" ;
+    dcterms:description "Text produced by the generate_joke task; used by the conditional gate to determine whether to improve the joke." ;
+    dcterms:title "joke" .
+
+:ImprovedJokeResource rdf:type beam:Resource ;
+    rdfs:label "improved_joke" ;
+    dcterms:description "Text produced by the improve_joke task (wordplay-enhanced joke)." ;
+    dcterms:title "improved_joke" .
+
+:FinalJokeResource rdf:type beam:Resource ;
+    rdfs:label "final_joke" ;
+    dcterms:description "Text produced by the polish_joke task (final polished joke with surprising twist)." ;
+    dcterms:title "final_joke" .
+
+#################################################################
+#    Additional metadata / mappings preserved
+#################################################################
+
+# Mapping of tasks to tool usage (explicit subproperty)
+:GenerateJokeTask :taskToolUsage :JokeAgent .
+:ImproveJokeTask :taskToolUsage :JokeAgent .
+:PolishJokeTask :taskToolUsage :JokeAgent .
+
+# Example invocation data preserved as an annotation on the system
+:JokeAgenticSystem dcterms:description "Example invocation in source: chain.invoke({'topic': 'cats'}) — the state dictionary contains keys: topic, joke, improved_joke, final_joke." .
+
+# End of instance data

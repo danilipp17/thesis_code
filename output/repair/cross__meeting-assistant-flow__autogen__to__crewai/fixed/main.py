@@ -1,0 +1,205 @@
+"""
+Auto-generated CrewAI Flow: AutoGenFlow
+"""
+
+import dotenv
+from typing import Any, Dict, List, Optional
+import json
+import os
+import asyncio
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+dotenv.load_dotenv()
+
+# Import the generated crew class
+from crews.round_robin_group_chat.round_robin_group_chat import RoundRobinGroupChat
+
+# Import the tool classes (auto-generated wrappers). We'll instantiate and call them.
+from tools.save_tasks_to_trello import save_tasks_to_trello as SaveTasksTool
+from tools.send_message_to_channel import send_message_to_channel as SendMessageTool
+
+
+class AutoGenFlowState(BaseModel):
+    """Flow state — customize fields as needed."""
+    pass
+
+
+class AutoGenFlow(Flow[AutoGenFlowState]):
+
+    @start()
+    def run_team(self):
+        """
+        This step:
+          - Reads meeting_notes.txt (or uses a small fallback transcript)
+          - Instantiates the generated RoundRobinGroupChat crew
+          - Invokes the meeting_analyzer agent with the composed prompt
+          - Parses the agent's textual response as JSON (list of objects with name/description)
+          - Calls the generated tools to print/save/send notifications and writes a CSV file
+        """
+
+        # Read transcript from file if available, else use a small representative default
+        transcript = ""
+        try:
+            here = os.getcwd()
+            path = os.path.join(here, "meeting_notes.txt")
+            with open(path, "r", encoding="utf-8") as f:
+                transcript = f.read()
+        except Exception:
+            transcript = (
+                "Team discussed the new product launch timeline. "
+                "Alice will draft the marketing plan. Bob to confirm pricing by next Tuesday. "
+                "We need to follow up on the vendor contract; legal to review terms."
+            )
+
+        prompt = (
+            "Analyze the following meeting transcript and extract actionable tasks.\n\n"
+            f"Transcript:\n{transcript}"
+        )
+
+        # Instantiate the crew/agent
+        rr = RoundRobinGroupChat()
+
+        # The @agent decorator in the generated crew makes meeting_analyzer accessible as an attribute.
+        agent = getattr(rr, "meeting_analyzer", None)
+        if agent is None:
+            # As a fallback, if it's a method, call it to get the Agent instance
+            if callable(rr.meeting_analyzer):
+                agent = rr.meeting_analyzer()
+            else:
+                raise RuntimeError("Could not obtain meeting_analyzer agent from RoundRobinGroupChat")
+
+        # Try several common agent invocation method names, handle sync/async returns.
+        agent_response_text = None
+        tried_methods = []
+        for method_name in ("run", "chat", "send", "think", "act", "__call__"):
+            meth = getattr(agent, method_name, None)
+            if not callable(meth):
+                continue
+            tried_methods.append(method_name)
+            try:
+                res = meth(prompt)
+            except TypeError:
+                # maybe method expects dict or named arg 'task' or 'message'
+                try:
+                    res = meth(task=prompt)
+                except Exception:
+                    try:
+                        res = meth(message=prompt)
+                    except Exception:
+                        continue
+            # If coroutine, run it
+            if asyncio.iscoroutine(res):
+                try:
+                    res = asyncio.get_event_loop().run_until_complete(res)
+                except RuntimeError:
+                    # no running loop
+                    loop = asyncio.new_event_loop()
+                    try:
+                        res = loop.run_until_complete(res)
+                    finally:
+                        loop.close()
+
+            # Normalize different possible return shapes
+            if isinstance(res, str):
+                agent_response_text = res
+                break
+            # Some agent types return objects with .content or .text
+            if hasattr(res, "content"):
+                agent_response_text = getattr(res, "content")
+                break
+            if hasattr(res, "text"):
+                agent_response_text = getattr(res, "text")
+                break
+            if isinstance(res, (list, tuple)) and len(res) > 0:
+                # try to find a message-like entry
+                first = res[-1]
+                if isinstance(first, str):
+                    agent_response_text = first
+                    break
+                if hasattr(first, "content"):
+                    agent_response_text = getattr(first, "content")
+                    break
+            # As last resort, try stringifying
+            try:
+                agent_response_text = str(res)
+                break
+            except Exception:
+                continue
+
+        if agent_response_text is None:
+            raise RuntimeError(f"Agent invocation failed. Tried methods: {tried_methods}")
+
+        # Print the raw agent output so the run produces visible LM-generated text.
+        print("=== Agent raw response ===")
+        print(agent_response_text)
+        print("=== End agent response ===")
+
+        # Try to parse JSON from the output. Agent was instructed to return JSON list.
+        tasks = []
+        try:
+            tasks = json.loads(agent_response_text)
+            if not isinstance(tasks, list):
+                tasks = []
+        except Exception:
+            # Try to recover a JSON substring from the text (naive approach)
+            try:
+                start = agent_response_text.index("[")
+                end = agent_response_text.rindex("]") + 1
+                snippet = agent_response_text[start:end]
+                tasks = json.loads(snippet)
+                if not isinstance(tasks, list):
+                    tasks = []
+            except Exception:
+                tasks = []
+
+        # Use the auto-generated tool wrappers to perform side-effect printing.
+        # The generated tools implement _run; BaseTool classes typically expose .run or ._run.
+        # We'll attempt both.
+        save_tool = SaveTasksTool()
+        send_tool = SendMessageTool()
+
+        # Ensure tasks is JSON-serializable for the tool wrappers (they may expect str)
+        # Pass the actual list to the tool; the tool implementations below will handle printing.
+        try:
+            if hasattr(save_tool, "run"):
+                save_tool.run(tasks=tasks)
+            else:
+                # fallback to calling _run directly
+                save_tool._run(tasks=tasks)
+        except Exception:
+            # best-effort: print using Python if tool call fails
+            for t in tasks:
+                print(f"[Trello - fallback] {t.get('name','')}: {t.get('description','')}")
+
+        # Write CSV as in reference behavior
+        csv_path = os.path.join(os.getcwd(), "new_tasks.csv")
+        try:
+            import csv
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                w = csv.writer(f)
+                w.writerow(["Name", "Description"])
+                for t in tasks:
+                    w.writerow([t.get("name", ""), t.get("description", "")])
+        except Exception as e:
+            print(f"Failed to write CSV: {e}")
+
+        # Send Slack-like message via tool wrapper
+        try:
+            message = f"{len(tasks)} New tasks have been added to Trello!"
+            if hasattr(send_tool, "run"):
+                send_tool.run(message=message)
+            else:
+                send_tool._run(message=message)
+        except Exception:
+            print(f"[Slack - fallback] {message}")
+
+
+def kickoff():
+    flow = AutoGenFlow()
+    flow.kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()

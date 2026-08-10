@@ -1,0 +1,486 @@
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix ex: <http://example.org/travel_planning#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.org/travel_planning> a owl:Ontology ;
+    owl:imports <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> .
+
+ex:travel_planning a agentoscin:AgenticSystem ;
+    agentoscin:containsAgent ex:Agent_publish ;
+    agentoscin:containsOrchestration ex:Orchestration_StateGraph ;
+    agentoscin:containsTeam ex:Team_langgraph_team_0 ;
+    agentoscin:hasSourceFramework "LangGraph"^^xsd:string ;
+    agentoscin:hasTitle "travel_planning"^^xsd:string .
+
+agentoscin:ChainOfThought a owl:Class ;
+    rdfs:label "Chain of Thought" ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:Custom a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Custom" .
+
+agentoscin:Hierarchical a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Hierarchical" .
+
+agentoscin:Network a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Network" .
+
+agentoscin:ReAct a owl:Class ;
+    rdfs:label "ReAct" ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:ReActLoop a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "ReAct Loop" .
+
+agentoscin:ReflectionLoop a owl:Class ;
+    rdfs:label "Reflection Loop" ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:RoundRobin a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Round Robin" .
+
+agentoscin:SelectorBased a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Selector Based" .
+
+agentoscin:Swarm a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Swarm" .
+
+agentoscin:TreeOfThoughts a owl:Class ;
+    rdfs:label "Tree of Thoughts" ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:Unspecified a owl:Class ;
+    rdfs:label "Unspecified" ;
+    rdfs:subClassOf agentoscin:ReasoningPattern .
+
+agentoscin:agentType a owl:DatatypeProperty ;
+    rdfs:label "agent type" ;
+    rdfs:domain agento:LLMAgent ;
+    rdfs:range xsd:string .
+
+agentoscin:bindsMemory a owl:ObjectProperty ;
+    rdfs:label "binds memory" ;
+    rdfs:comment "Links a memory binding to the memory it binds." ;
+    rdfs:domain agentoscin:MemoryBinding ;
+    rdfs:range agento:Memory .
+
+agentoscin:callsCrew a owl:DatatypeProperty ;
+    rdfs:label "calls crew" ;
+    rdfs:comment "Key of the team/crew invoked by this workflow step (e.g. CrewAI @listen method calling crew.kickoff()). Enables per-step crew binding through the ontology round-trip." ;
+    rdfs:domain agento:WorkflowStep ;
+    rdfs:range xsd:string .
+
+agentoscin:containsAgent a owl:ObjectProperty ;
+    rdfs:label "contains agent" ;
+    rdfs:comment "Relates an agentic system to an agent it contains." ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range agento:LLMAgent .
+
+agentoscin:containsOrchestration a owl:ObjectProperty ;
+    rdfs:label "contains orchestration" ;
+    rdfs:comment "Relates an agentic system to its orchestration." ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range agentoscin:Orchestration .
+
+agentoscin:containsTeam a owl:ObjectProperty ;
+    rdfs:label "contains team" ;
+    rdfs:comment "Relates an agentic system to a team it contains." ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range agento:Team .
+
+agentoscin:dependsOn a owl:ObjectProperty ;
+    rdfs:label "depends on" ;
+    rdfs:comment "Indicates that one task depends on another." ;
+    rdfs:domain agento:Task ;
+    rdfs:range agento:Task .
+
+agentoscin:employsCoordinationPattern a owl:ObjectProperty ;
+    rdfs:label "employs coordination pattern" ;
+    rdfs:comment "Relates a team to the coordination pattern it employs." ;
+    rdfs:domain agento:Team ;
+    rdfs:range agentoscin:CoordinationPattern .
+
+agentoscin:employsReasoningPattern a owl:ObjectProperty ;
+    rdfs:label "employs reasoning pattern" ;
+    rdfs:comment "Relates an agent to the reasoning pattern it employs." ;
+    rdfs:domain agento:LLMAgent ;
+    rdfs:range agentoscin:ReasoningPattern .
+
+agentoscin:hasAgentMemoryBinding a owl:ObjectProperty ;
+    rdfs:label "has agent memory binding" ;
+    rdfs:comment "Memory binding attached to an individual agent." ;
+    rdfs:domain agento:LLMAgent ;
+    rdfs:range agentoscin:MemoryBinding ;
+    rdfs:subPropertyOf agentoscin:hasMemoryBinding .
+
+agentoscin:hasAggregationCombinator a owl:DatatypeProperty ;
+    rdfs:label "has aggregation combinator" ;
+    rdfs:comment "Combinator used to aggregate multiple predecessor steps in the source decorator (e.g. CrewAI @listen(or_(step_a, step_b)) stores \"or_\"). Values: \"or_\", \"and_\", or empty for single-predecessor steps." ;
+    rdfs:domain agento:WorkflowStep ;
+    rdfs:range xsd:string .
+
+agentoscin:hasAssociatedAgent a owl:ObjectProperty ;
+    rdfs:label "has associated agent" ;
+    rdfs:comment "Links a workflow step to the agent that executes it (e.g. a LangGraph node function implemented by a specific LLMAgent)." ;
+    rdfs:domain agento:WorkflowStep ;
+    rdfs:range agento:LLMAgent .
+
+agentoscin:hasCheckpointPosition a owl:DatatypeProperty ;
+    rdfs:label "has checkpoint position" ;
+    rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:string .
+
+agentoscin:hasCheckpointType a owl:DatatypeProperty ;
+    rdfs:label "has checkpoint type" ;
+    rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:string .
+
+agentoscin:hasDecoratorArgument a owl:DatatypeProperty ;
+    rdfs:label "has decorator argument" ;
+    rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." ;
+    rdfs:domain agento:WorkflowStep ;
+    rdfs:range xsd:string .
+
+agentoscin:hasDelegationStrategy a owl:DatatypeProperty ;
+    rdfs:label "has delegation strategy" ;
+    rdfs:domain agento:Task ;
+    rdfs:range xsd:string .
+
+agentoscin:hasDependencyType a owl:DatatypeProperty ;
+    rdfs:label "has dependency type" ;
+    rdfs:domain agento:Task ;
+    rdfs:range xsd:string .
+
+agentoscin:hasDirectiveFunction a owl:DatatypeProperty ;
+    rdfs:label "has directive function" ;
+    rdfs:domain agento:Prompt ;
+    rdfs:range xsd:string .
+
+agentoscin:hasEdgeMapping a owl:DatatypeProperty ;
+    rdfs:label "has edge mapping" ;
+    rdfs:domain agento:WorkflowStep ;
+    rdfs:range xsd:string .
+
+agentoscin:hasExpectedOutput a owl:DatatypeProperty ;
+    rdfs:label "has expected output" ;
+    rdfs:domain agento:Task ;
+    rdfs:range xsd:string .
+
+agentoscin:hasGuardrail a owl:ObjectProperty ;
+    rdfs:label "has guardrail" ;
+    rdfs:comment "Associates a guardrail with a task." ;
+    rdfs:domain agento:Task ;
+    rdfs:range agentoscin:Guardrail .
+
+agentoscin:hasGuardrailType a owl:DatatypeProperty ;
+    rdfs:label "has guardrail type" ;
+    rdfs:domain agentoscin:Guardrail ;
+    rdfs:range xsd:string .
+
+agentoscin:hasHumanCheckpoint a owl:ObjectProperty ;
+    rdfs:label "has human checkpoint" ;
+    rdfs:comment "Associates a human-in-the-loop checkpoint with a task." ;
+    rdfs:domain agento:Task ;
+    rdfs:range agentoscin:HumanCheckpoint .
+
+agentoscin:hasImplementationReference a owl:DatatypeProperty ;
+    rdfs:label "has implementation reference" ;
+    rdfs:domain agento:Tool ;
+    rdfs:range xsd:string .
+
+agentoscin:hasInputSchema a owl:DatatypeProperty ;
+    rdfs:label "has input schema" ;
+    rdfs:domain agento:Tool ;
+    rdfs:range xsd:string .
+
+agentoscin:hasMaxReasoningAttempts a owl:DatatypeProperty ;
+    rdfs:label "has max reasoning attempts" ;
+    rdfs:domain agento:LLMAgent ;
+    rdfs:range xsd:integer .
+
+agentoscin:hasMaxRetries a owl:DatatypeProperty ;
+    rdfs:label "has max retries" ;
+    rdfs:domain agentoscin:Guardrail ;
+    rdfs:range xsd:integer .
+
+agentoscin:hasMaxTurns a owl:DatatypeProperty ;
+    rdfs:label "has max turns" ;
+    rdfs:domain agentoscin:TurnLimitTermination ;
+    rdfs:range xsd:integer .
+
+agentoscin:hasMemoryScope a owl:DatatypeProperty ;
+    rdfs:label "has memory scope" ;
+    rdfs:domain agentoscin:MemoryBinding ;
+    rdfs:range xsd:string .
+
+agentoscin:hasOperator a owl:DatatypeProperty ;
+    rdfs:label "has operator" ;
+    rdfs:domain agentoscin:CompositeTermination ;
+    rdfs:range xsd:string .
+
+agentoscin:hasOutputSchema a owl:ObjectProperty ;
+    rdfs:label "has output schema" ;
+    rdfs:comment "Specifies the schema of the structured output produced by an orchestration or task." ;
+    rdfs:domain [ a owl:Class ;
+            owl:unionOf ( agentoscin:Orchestration agento:Task ) ] ;
+    rdfs:range agentoscin:Schema .
+
+agentoscin:hasPersistenceScope a owl:DatatypeProperty ;
+    rdfs:label "has persistence scope" ;
+    rdfs:domain agento:Memory ;
+    rdfs:range xsd:string .
+
+agentoscin:hasReasoningEnabled a owl:DatatypeProperty ;
+    rdfs:label "has reasoning enabled" ;
+    rdfs:domain agento:LLMAgent ;
+    rdfs:range xsd:boolean .
+
+agentoscin:hasReasoningOrigin a owl:DatatypeProperty ;
+    rdfs:label "has reasoning origin" ;
+    rdfs:domain agento:LLMAgent ;
+    rdfs:range xsd:string .
+
+agentoscin:hasRoutingLogic a owl:DatatypeProperty ;
+    rdfs:label "has routing logic" ;
+    rdfs:domain agentoscin:ConditionalStep ;
+    rdfs:range xsd:string .
+
+agentoscin:hasSchemaDefinition a owl:DatatypeProperty ;
+    rdfs:label "has schema definition" ;
+    rdfs:domain agentoscin:Schema ;
+    rdfs:range xsd:string .
+
+agentoscin:hasSourceAttribute a owl:DatatypeProperty ;
+    rdfs:label "has source attribute" ;
+    rdfs:domain agento:Prompt ;
+    rdfs:range xsd:string .
+
+agentoscin:hasSourceFramework a owl:DatatypeProperty ;
+    rdfs:label "has source framework" ;
+    rdfs:domain agentoscin:AgenticSystem ;
+    rdfs:range xsd:string .
+
+agentoscin:hasSubCondition a owl:ObjectProperty ;
+    rdfs:label "has sub condition" ;
+    rdfs:comment "A sub-condition combined within a composite termination condition." ;
+    rdfs:domain agentoscin:CompositeTermination ;
+    rdfs:range agentoscin:TerminationCondition .
+
+agentoscin:hasTeamMemoryBinding a owl:ObjectProperty ;
+    rdfs:label "has team memory binding" ;
+    rdfs:comment "Memory binding attached to a team." ;
+    rdfs:domain agento:Team ;
+    rdfs:range agentoscin:MemoryBinding ;
+    rdfs:subPropertyOf agentoscin:hasMemoryBinding .
+
+agentoscin:hasTerminationCondition a owl:ObjectProperty ;
+    rdfs:label "has termination condition" ;
+    rdfs:comment "Relates a team to a termination condition that ends its execution." ;
+    rdfs:domain agento:Team ;
+    rdfs:range agentoscin:TerminationCondition .
+
+agentoscin:hasTriggerExpression a owl:DatatypeProperty ;
+    rdfs:label "has trigger expression" ;
+    rdfs:domain agentoscin:EventBasedTermination ;
+    rdfs:range xsd:string .
+
+agentoscin:hasValidationLogic a owl:DatatypeProperty ;
+    rdfs:label "has validation logic" ;
+    rdfs:domain agentoscin:Guardrail ;
+    rdfs:range xsd:string .
+
+agentoscin:isMandatory a owl:DatatypeProperty ;
+    rdfs:label "is mandatory" ;
+    rdfs:domain agentoscin:HumanCheckpoint ;
+    rdfs:range xsd:boolean .
+
+agentoscin:memoryBoundTo a owl:ObjectProperty ;
+    rdfs:label "memory bound to" ;
+    rdfs:comment "Links a memory binding to the agent, team, or system that owns it." ;
+    rdfs:domain agentoscin:MemoryBinding ;
+    rdfs:range [ a owl:Class ;
+            owl:unionOf ( agentoscin:AgenticSystem agento:LLMAgent agento:Team ) ] .
+
+agentoscin:orchestratesTeam a owl:ObjectProperty ;
+    rdfs:label "orchestrates team" ;
+    rdfs:comment "Relates an orchestration to the team it orchestrates." ;
+    rdfs:domain agentoscin:Orchestration ;
+    rdfs:range agento:Team .
+
+agentoscin:taskToolUsage a owl:ObjectProperty ;
+    rdfs:label "task tool usage" ;
+    rdfs:comment "A tool used in the execution of a task." ;
+    rdfs:domain agento:Task ;
+    rdfs:range agento:Tool ;
+    rdfs:subPropertyOf agento:toolUsage .
+
+ex:AgentPrompt_publish a agento:Prompt ;
+    agentoscin:hasDirectiveFunction "ModelDirective"^^xsd:string ;
+    agentoscin:hasSourceAttribute "system_prompt"^^xsd:string ;
+    agento:promptInstruction "Node: publish"^^xsd:string .
+
+ex:CrewStep_langgraph_team_0_task_publish a agento:EndStep,
+        agento:StartStep ;
+    agentoscin:hasTitle "task_publish"^^xsd:string ;
+    agento:hasAssociatedTask ex:Task_task_publish ;
+    agento:stepOrder 1 .
+
+ex:FlowStep_plan_trip a agento:StartStep,
+        agento:WorkflowStep ;
+    agentoscin:hasTitle "plan_trip"^^xsd:string ;
+    agento:stepOrder 1 .
+
+ex:FlowStep_publish a agento:EndStep,
+        agento:WorkflowStep ;
+    agentoscin:hasAssociatedAgent ex:Agent_publish ;
+    agentoscin:hasTitle "publish"^^xsd:string ;
+    agento:stepOrder 2 .
+
+ex:FlowWorkflowPattern_StateGraph a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:FlowStep_plan_trip,
+        ex:FlowStep_publish .
+
+ex:Goal_publish a agento:Goal ;
+    agentoscin:hasDescription "Node: publish"^^xsd:string .
+
+ex:LM_gpt_4o a agento:LanguageModel ;
+    agentoscin:hasTitle "gpt-4o"^^xsd:string .
+
+ex:Orchestration_StateGraph a agentoscin:Orchestration ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasOutputSchema ex:StateSchema_StateGraph ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agento:hasWorkflowPattern ex:FlowWorkflowPattern_StateGraph .
+
+ex:RoutingTermination_langgraph_team_0_0 a agentoscin:RoutingTermination .
+
+ex:StateSchema_StateGraph a agentoscin:Schema ;
+    agentoscin:hasSchemaDefinition "{\"messages\": \"Annotated[list, add_messages]\", \"plan\": \"str\", \"request\": \"str\"}"^^xsd:string ;
+    agentoscin:hasSourceAttribute "state_model"^^xsd:string ;
+    agentoscin:hasTitle "TravelPlanningState"^^xsd:string .
+
+ex:TaskPrompt_task_publish a agento:Prompt ;
+    agento:promptInstruction "Perform publish responsibilities"^^xsd:string ;
+    agento:promptOutputIndicator "messages"^^xsd:string .
+
+ex:Task_task_publish a agento:Task ;
+    agentoscin:hasDelegationStrategy "TopologyDetermined"^^xsd:string ;
+    agentoscin:hasExpectedOutput "messages"^^xsd:string ;
+    agento:performedByAgent ex:Agent_publish ;
+    agento:taskPrompt ex:TaskPrompt_task_publish .
+
+ex:Team_langgraph_team_0 a agento:Team ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agentoscin:hasTerminationCondition ex:RoutingTermination_langgraph_team_0_0 ;
+    agentoscin:hasTitle "StateGraph"^^xsd:string ;
+    agento:hasAgentMember ex:Agent_publish ;
+    agento:hasWorkflowPattern ex:WorkflowPattern_langgraph_team_0 .
+
+ex:WorkflowPattern_langgraph_team_0 a agento:WorkflowPattern ;
+    agento:hasWorkflowStep ex:CrewStep_langgraph_team_0_task_publish .
+
+<http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin> a owl:Ontology ;
+    rdfs:label "AgentOSCIN Ontology" ;
+    dc:creator "Dani Lippmann" ;
+    dc:description "Extension of agentO adding agentic-system orchestration, coordination & reasoning patterns, memory bindings, guardrails, human checkpoints, termination conditions, schemas, and framework-mapping properties."@en ;
+    dc:title "AgentOSCIn — Extension of the Agentic AI Ontology" ;
+    owl:imports <http://www.w3id.org/agentic-ai/onto> ;
+    owl:versionInfo 0.1 .
+
+agentoscin:ConditionalStep a owl:Class ;
+    rdfs:label "Conditional Step" ;
+    rdfs:comment "A workflow step that branches based on routing logic." ;
+    rdfs:subClassOf agento:WorkflowStep .
+
+agentoscin:TaskCompletionTermination a owl:Class ;
+    rdfs:label "Task Completion Termination" ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:EventBasedTermination a owl:Class ;
+    rdfs:label "Event Based Termination" ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:RoutingTermination a owl:Class ;
+    rdfs:label "Routing Termination" ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:Sequential a agentoscin:CoordinationPattern,
+        owl:NamedIndividual ;
+    rdfs:label "Sequential" .
+
+agentoscin:TurnLimitTermination a owl:Class ;
+    rdfs:label "Turn Limit Termination" ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:hasMemoryBinding a owl:ObjectProperty ;
+    rdfs:label "has memory binding" ;
+    rdfs:comment "Associates a subject (agent, team, system) with a memory binding." ;
+    rdfs:range agentoscin:MemoryBinding .
+
+agentoscin:CompositeTermination a owl:Class ;
+    rdfs:label "Composite Termination" ;
+    rdfs:comment "A termination condition built by combining other conditions via a logical operator." ;
+    rdfs:subClassOf agentoscin:TerminationCondition .
+
+agentoscin:Schema a owl:Class ;
+    rdfs:label "Schema" ;
+    rdfs:comment "A structured-output schema (e.g. JSON Schema, Pydantic model)." .
+
+ex:Agent_publish a agento:LLMAgent ;
+    agentoscin:hasReasoningEnabled false ;
+    agento:agentID "publish"^^xsd:string ;
+    agento:agentPrompt ex:AgentPrompt_publish ;
+    agento:agentRole "publish"^^xsd:string ;
+    agento:hasAgentGoal ex:Goal_publish ;
+    agento:useLanguageModel ex:LM_gpt_4o .
+
+agentoscin:Guardrail a owl:Class ;
+    rdfs:label "Guardrail" ;
+    rdfs:comment "A validation, safety, or policy check applied to a task." .
+
+agentoscin:HumanCheckpoint a owl:Class ;
+    rdfs:label "Human Checkpoint" ;
+    rdfs:comment "A human-in-the-loop checkpoint inserted into task execution." .
+
+agentoscin:Orchestration a owl:Class ;
+    rdfs:label "Orchestration" ;
+    rdfs:comment "A controller that orchestrates one or more teams to execute a workflow." ;
+    rdfs:subClassOf agento:Team .
+
+agentoscin:AgenticSystem a owl:Class ;
+    rdfs:label "Agentic System" ;
+    rdfs:comment "A complete agentic AI system encompassing one or more agents, teams, and an orchestration." ;
+    rdfs:subClassOf beam:System .
+
+agentoscin:MemoryBinding a owl:Class ;
+    rdfs:label "Memory Binding" ;
+    rdfs:comment "A reified link between a memory and the agent, team, or system that uses it, with scope and configuration." .
+
+agentoscin:ReasoningPattern a owl:Class ;
+    rdfs:label "Reasoning Pattern" ;
+    rdfs:comment "A reasoning strategy adopted by an agent (e.g. chain-of-thought, ReAct, tree-of-thoughts)." .
+
+agentoscin:TerminationCondition a owl:Class ;
+    rdfs:label "Termination Condition" ;
+    rdfs:comment "A condition under which a team's execution terminates." .
+
+agentoscin:CoordinationPattern a owl:Class ;
+    rdfs:label "Coordination Pattern" ;
+    rdfs:comment "A pattern of coordination among agents in a team (e.g. sequential, hierarchical, swarm)." .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( agentoscin:CompositeTermination agentoscin:EventBasedTermination agentoscin:RoutingTermination agentoscin:TaskCompletionTermination agentoscin:TurnLimitTermination ) .
+

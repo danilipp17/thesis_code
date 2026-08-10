@@ -1,0 +1,87 @@
+"""
+Auto-generated LangGraph application: tech_blog
+"""
+
+import dotenv
+from typing import Annotated, Sequence, TypedDict
+import operator
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+
+
+class TechBlogState(TypedDict):
+    """Graph state."""
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    draft: str
+    final_post: str
+    research: str
+    topic: str
+
+model = ChatOpenAI(model="gpt-4o")
+
+
+def researcher(state: TechBlogState) -> dict:
+    """Node: researcher"""
+    topic = state.get('topic', '')
+    task_prompt = f'Research the following topic and provide a comprehensive summary: {topic}'
+    messages = state.get("messages", []) + [HumanMessage(content=task_prompt)]
+    response = model.invoke(messages)
+    return {"research": response.content}
+
+
+def writer(state: TechBlogState) -> dict:
+    """Node: writer"""
+    research = state.get('research', '')
+    task_prompt = f'Using the following research, write a 500-word engaging tech blog post:\n\n{research}'
+    messages = state.get("messages", []) + [HumanMessage(content=task_prompt)]
+    response = model.invoke(messages)
+    return {"draft": response.content}
+
+
+def editor(state: TechBlogState) -> dict:
+    """Node: editor"""
+    draft = state.get('draft', '')
+    task_prompt = f'Review the following drafted blog post. Fix any grammatical errors, improve the flow, and return the final polished version ready for publishing:\n\n{draft}'
+    messages = state.get("messages", []) + [HumanMessage(content=task_prompt)]
+    response = model.invoke(messages)
+    return {"final_post": response.content}
+
+
+# Build the graph
+graph = StateGraph(TechBlogState)
+
+graph.add_node("researcher", researcher)
+graph.add_node("writer", writer)
+graph.add_node("editor", editor)
+
+# Set entry point and wire the linear workflow researcher -> writer -> editor -> END
+graph.set_entry_point("researcher")
+graph.add_edge("researcher", "writer")
+graph.add_edge("writer", "editor")
+graph.add_edge("editor", END)
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    print("Starting LangGraph Tech Blog Generation...")
+    initial_state = {
+        "messages": [],
+        "topic": "Agentic AI Frameworks",
+        "research": "",
+        "draft": "",
+        "final_post": "",
+    }
+    result = app.invoke(initial_state)
+    print("Completed!")
+    # Print the final post produced by the editor node
+    if isinstance(result, dict) and "final_post" in result:
+        print(result["final_post"])
+    else:
+        print(result)

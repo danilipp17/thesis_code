@@ -1,0 +1,221 @@
+# Issues / Assumptions:
+# - The source MaxMessageTermination class from the code is mapped to the ontology's TurnLimitTermination (hasMaxTurns). The code's class name "MaxMessageTermination" and internal semantics (counting messages) are represented by the TurnLimitTermination individual's hasMaxTurns value, but the specific runtime semantics (message counting granularity, per-agent vs per-team counting) are not expressible with the current schema.
+# - The runtime round-robin scheduling behavior (message ordering, cadence, and "group chat" mechanics) is represented via a CoordinationPattern (RoundRobin) and an ordered set of WorkflowStep individuals. The ontology cannot express the dynamic scheduler or the iterative runtime loop semantics (e.g., how turns wrap, when the termination check is applied) beyond the step order and nextStep links.
+# - Framework- or implementation-specific details (library names, class names, method calls, async loop, environment variables, or API keys) are intentionally not modeled. The model name ("gpt-4o") is included as a LanguageModel literal but API keys and client SDK details are omitted for security and portability.
+# - The ontology cannot capture message-level runtime contents (the actual messages produced during execution) because they are produced dynamically. We preserve the prompts, expected output indicators, and termination parameters so another agent can reconstruct equivalent behavior.
+# - No new classes or properties were introduced. Some code-level constructs (e.g., RoundRobinGroupChat class, MaxMessageTermination type) are modeled using the closest matching ontology classes/properties (CoordinationPattern, TurnLimitTermination, WorkflowStep ordering, etc.).
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+
+#################################################################
+#    Agentic system (top-level)
+#################################################################
+
+:AutoGenTechBlogSystem rdf:type :AgenticSystem ;
+    rdfs:label "AutoGen Tech Blog Generation System" ;
+    :hasSourceFramework "autogen_agentchat" ;
+    :containsTeam :RoundRobinGroupChatTeam ;
+    :containsAgent :ResearcherAgent ,
+                   :WriterAgent ,
+                   :EditorAgent .
+
+#################################################################
+#    Team and coordination
+#################################################################
+
+:RoundRobinGroupChatTeam rdf:type agento:Team ;
+    rdfs:label "RoundRobinGroupChat Team" ;
+    :hasTeamGoal :WriteTechBlogGoal ;
+    :hasTerminationCondition :MaxMessageTurnLimit ;
+    :employsCoordinationPattern :RoundRobin ;
+    agento:hasAgentMember :ResearcherAgent ,
+                          :WriterAgent ,
+                          :EditorAgent .
+
+:WriteTechBlogGoal rdf:type agento:Goal ;
+    rdfs:label "Produce Tech Blog Post" ;
+    dcterms:description "Produce a clear, engaging 500-word blog post about Agentic AI Frameworks; workflow includes research, writing, and editing stages." .
+
+#################################################################
+#    Termination condition (mapped from MaxMessageTermination)
+#################################################################
+
+:MaxMessageTurnLimit rdf:type :TurnLimitTermination ;
+    rdfs:label "MaxMessageTermination (mapped to TurnLimitTermination)" ;
+    :hasMaxTurns "4"^^xsd:integer .
+
+#################################################################
+#    Language model used by agents
+#################################################################
+
+:gpt4oModel rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model configured for agents in this system (model identifier: gpt-4o). API key and client details omitted for security." .
+
+#################################################################
+#    Agents (LLMAgents)
+#################################################################
+
+:ResearcherAgent rdf:type agento:LLMAgent ;
+    rdfs:label "Researcher" ;
+    agento:agentID "Researcher" ;
+    agento:agentRole "Senior Tech Researcher" ;
+    agento:agentPrompt :ResearcherSystemPrompt ;
+    agento:hasAgentConfig :ResearcherConfig_system_message ,
+                         :ResearcherConfig_model ;
+    agento:useLanguageModel :gpt4oModel ;
+    rdfs:comment "Agent responsible for gathering comprehensive information on the requested topic and producing a research summary." .
+
+:WriterAgent rdf:type agento:LLMAgent ;
+    rdfs:label "Writer" ;
+    agento:agentID "Writer" ;
+    agento:agentRole "Tech Blog Writer" ;
+    agento:agentPrompt :WriterSystemPrompt ;
+    agento:hasAgentConfig :WriterConfig_system_message ,
+                         :WriterConfig_model ;
+    agento:useLanguageModel :gpt4oModel ;
+    rdfs:comment "Agent that takes the research provided by the Researcher and writes a clear, engaging 500-word blog post; instructed to output 'WRITTEN' when done." .
+
+:EditorAgent rdf:type agento:LLMAgent ;
+    rdfs:label "Editor" ;
+    agento:agentID "Editor" ;
+    agento:agentRole "Content Editor" ;
+    agento:agentPrompt :EditorSystemPrompt ;
+    agento:hasAgentConfig :EditorConfig_system_message ,
+                         :EditorConfig_model ;
+    agento:useLanguageModel :gpt4oModel ;
+    rdfs:comment "Agent that reviews the blog post, fixes grammar and flow, outputs final polished version, and concludes with 'TERMINATE'." .
+
+#################################################################
+#    Agent prompts (system messages)
+#################################################################
+
+:ResearcherSystemPrompt rdf:type agento:Prompt ;
+    rdfs:label "Researcher - system message" ;
+    agento:promptInstruction "You are a Senior Tech Researcher. Your goal is to gather comprehensive information on the requested topic and provide a detailed summary of your findings." ;
+    :hasSourceAttribute "system_message" ;
+    agento:promptOutputIndicator "" .
+
+:WriterSystemPrompt rdf:type agento:Prompt ;
+    rdfs:label "Writer - system message" ;
+    agento:promptInstruction "You are a Tech Blog Writer. Take the research provided by the Researcher and write a clear, engaging 500-word blog post. Output 'WRITTEN' when done." ;
+    :hasSourceAttribute "system_message" ;
+    agento:promptOutputIndicator "WRITTEN" .
+
+:EditorSystemPrompt rdf:type agento:Prompt ;
+    rdfs:label "Editor - system message" ;
+    agento:promptInstruction "You are a Content Editor. Review the blog post written by the Writer. Fix grammar, improve flow, and output the final polished version. Conclude with 'TERMINATE'." ;
+    :hasSourceAttribute "system_message" ;
+    agento:promptOutputIndicator "TERMINATE" .
+
+#################################################################
+#    Agent configs (key/value pairs)
+#################################################################
+
+:ResearcherConfig_system_message rdf:type agento:Config ;
+    rdfs:label "Researcher system message config" ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are a Senior Tech Researcher. Your goal is to gather comprehensive information on the requested topic and provide a detailed summary of your findings." .
+
+:ResearcherConfig_model rdf:type agento:Config ;
+    rdfs:label "Researcher model config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+:WriterConfig_system_message rdf:type agento:Config ;
+    rdfs:label "Writer system message config" ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are a Tech Blog Writer. Take the research provided by the Researcher and write a clear, engaging 500-word blog post. Output 'WRITTEN' when done." .
+
+:WriterConfig_model rdf:type agento:Config ;
+    rdfs:label "Writer model config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+:EditorConfig_system_message rdf:type agento:Config ;
+    rdfs:label "Editor system message config" ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are a Content Editor. Review the blog post written by the Writer. Fix grammar, improve flow, and output the final polished version. Conclude with 'TERMINATE'." .
+
+:EditorConfig_model rdf:type agento:Config ;
+    rdfs:label "Editor model config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+#################################################################
+#    Task and task-level prompt (the team.run input)
+#################################################################
+
+:TechBlogGenerationTask rdf:type agento:Task ;
+    rdfs:label "Tech Blog Generation Task" ;
+    dcterms:description "We need a blog post about Agentic AI Frameworks. Please research, write, and edit." ;
+    :hasExpectedOutput "A clear, engaging 500-word blog post about Agentic AI Frameworks; Writer will indicate completion with 'WRITTEN'; Editor will finish and conclude with 'TERMINATE'." ;
+    agento:taskPrompt :TechBlogTaskPrompt ;
+    rdfs:comment "Task invoked via team.run(task=...) in the source; models and agents are expected to collaborate to produce the requested blog post." .
+
+:TechBlogTaskPrompt rdf:type agento:Prompt ;
+    rdfs:label "Task input prompt" ;
+    agento:promptInstruction "We need a blog post about Agentic AI Frameworks. Please research, write, and edit." ;
+    agento:promptContext "User-provided task instruction passed to the team.run invocation." ;
+    agento:promptOutputIndicator "Final polished blog post; Editor concludes with 'TERMINATE'." ;
+    :hasSourceAttribute "task_argument" .
+
+#################################################################
+#    Workflow steps to approximate round-robin collaboration
+#################################################################
+
+:ResearcherStep rdf:type agento:WorkflowStep ;
+    rdfs:label "Step: Researcher produces research summary" ;
+    :stepOrder "1"^^xsd:integer ;
+    :hasAssociatedTask :TechBlogGenerationTask ;
+    :hasAssociatedAgent :ResearcherAgent ;
+    :nextStep :WriterStep ;
+    :hasDecoratorArgument "round-robin:step_researcher" .
+
+:WriterStep rdf:type agento:WorkflowStep ;
+    rdfs:label "Step: Writer drafts blog post" ;
+    :stepOrder "2"^^xsd:integer ;
+    :hasAssociatedTask :TechBlogGenerationTask ;
+    :hasAssociatedAgent :WriterAgent ;
+    :nextStep :EditorStep ;
+    :hasDecoratorArgument "round-robin:step_writer" .
+
+:EditorStep rdf:type agento:WorkflowStep ;
+    rdfs:label "Step: Editor polishes and finalizes" ;
+    :stepOrder "3"^^xsd:integer ;
+    :hasAssociatedTask :TechBlogGenerationTask ;
+    :hasAssociatedAgent :EditorAgent ;
+    :nextStep :ResearcherStep ;
+    :hasDecoratorArgument "round-robin:step_editor" .
+
+#################################################################
+#    Misc / mapping notes as individuals (non-functional metadata)
+#################################################################
+
+:RoundRobin rdf:type :CoordinationPattern ;
+    rdfs:label "Round Robin" ;
+    rdfs:comment "Coordination pattern indicating participants take turns in sequence; used by RoundRobinGroupChat team." .
+
+#################################################################
+#    Optional links and metadata (preserve important system config info)
+#################################################################
+
+:AutoGenClientConfig rdf:type agento:Config ;
+    rdfs:label "Model client config (abstract)" ;
+    agento:configKey "model_client" ;
+    agento:configValue "OpenAIChatCompletionClient (model=gpt-4o). API key not stored in ontology." .
+
+#################################################################
+#    Provenance / authorship of the modeled system
+#################################################################
+
+:ModelingProvenance rdf:type prov:Agent ;
+    rdfs:label "Modeling provenance: extracted from source" ;
+    dcterms:description "Individuals and properties were generated to semantically describe the agent-based solution in the provided source code. Sensitive credentials and framework-specific code were omitted." .

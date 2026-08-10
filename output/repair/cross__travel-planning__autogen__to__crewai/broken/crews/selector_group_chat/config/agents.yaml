@@ -1,0 +1,12 @@
+planner_agent:
+  role: planner_agent
+  goal: A helpful assistant that can plan trips.
+local_agent:
+  role: local_agent
+  goal: A local assistant that can suggest local activities or places to visit.
+language_agent:
+  role: language_agent
+  goal: A helpful assistant that can provide language tips for a given destination.
+travel_summary_agent:
+  role: travel_summary_agent
+  goal: An assistant that can summarize the travel plan.

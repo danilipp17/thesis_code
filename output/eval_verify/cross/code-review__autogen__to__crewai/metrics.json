@@ -1,0 +1,15 @@
+{
+  "family": "code-review",
+  "src": "autogen",
+  "tgt": "crewai",
+  "triple_f1": 0.3813559322033898,
+  "aligned_triple_f1": 0.45762711864406774,
+  "individual_f1": 0.6666666666666666,
+  "property_f1": 0.6666666666666666,
+  "literal_overlap": 0.25,
+  "ast_precision": 0.609,
+  "ast_recall": 0.517,
+  "ast_f1": 0.544,
+  "parse_rate": 1.0,
+  "import_rate": 0.8
+}

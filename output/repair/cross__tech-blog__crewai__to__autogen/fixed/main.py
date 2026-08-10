@@ -1,0 +1,98 @@
+"""
+Auto-generated AutoGen application: tech_blog
+"""
+
+import asyncio
+import dotenv
+from typing import Any, Dict, List, Optional
+
+dotenv.load_dotenv()
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+
+# -- Agents --
+researcher = AssistantAgent(
+    name="Senior_Tech_Researcher",
+    model_client=model_client,
+    system_message=(
+        "Gather comprehensive, up-to-date information on '{topic}'. An expert researcher skilled at finding the latest technological trends and summarizing them clearly."
+    ),
+)
+
+writer = AssistantAgent(
+    name="Tech_Blog_Writer",
+    model_client=model_client,
+    system_message=(
+        "Write an engaging, easy-to-read blog post based on research. A seasoned technical writer who can make complex topics accessible to a broad audience."
+    ),
+)
+
+editor = AssistantAgent(
+    name="Content_Editor",
+    model_client=model_client,
+    system_message=(
+        "Review and refine the blog post for clarity, grammar, and flow. A meticulous editor with a keen eye for detail, ensuring every published piece is top-notch."
+    ),
+)
+
+# -- Team --
+max_msg_termination = MaxMessageTermination(10)
+termination = max_msg_termination
+
+team = RoundRobinGroupChat(
+    participants=[researcher, writer, editor],
+    termination_condition=termination,
+)
+
+
+async def main():
+    # Wire a concrete topic into the task prompt (was previously left as a literal placeholder).
+    topic = "Agentic AI Frameworks"
+    task_template = "Conduct thorough research on the topic: '{topic}'. Identify key trends, benefits, challenges, and future outlook."
+    task = task_template.format(topic=topic)
+
+    # Run the team as a stream and collect outputs as they arrive.
+    stream = team.run_stream(task=task)
+
+    aggregated_parts: List[str] = []
+    # The stream yields events/messages produced by the agents and the framework.
+    # We print each as it arrives (so the run is interactive) and also accumulate
+    # textual content so we can print a final aggregated result at the end.
+    async for event in stream:
+        # Best-effort extraction of text content from the yielded event.
+        text = None
+        try:
+            if isinstance(event, dict):
+                # common keys used by various autogen stream events
+                text = event.get("content") or event.get("message") or event.get("text")
+            else:
+                # objects may have attributes like 'content' or 'message'
+                text = getattr(event, "content", None) or getattr(event, "message", None)
+        except Exception:
+            text = None
+
+        # Fallback to stringifying the event if no structured text found.
+        if text is None:
+            text = str(event)
+
+        print(text)
+        aggregated_parts.append(text)
+
+    # After the stream completes, present the aggregated final output.
+    final_text = "\n".join(aggregated_parts).strip()
+    print("\n--- FINAL AGGREGATED OUTPUT ---\n")
+    print(final_text)
+
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

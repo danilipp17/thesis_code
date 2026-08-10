@@ -1,0 +1,330 @@
+# Issues / Assumptions:
+# - The ontology does not model framework-specific code constructs (e.g., Python functions, LangGraph StateGraph objects, function signatures, or runtime invocation mechanics). I preserved semantic behavior (what each node/step does) but not implementation code.
+# - Exact runtime parameters for the LLM (timeout, temperature, max tokens, API keys) are not present in the source; the ontology supports storing a model identifier but not full SDK invocation parameters. I recorded the model name ("gpt-4o") as a LanguageModel and config.
+# - The ontology lacks an explicit property to express "parallel fan-out" semantics vs. sequential execution. The workflow is modeled as an ordered sequence of steps using stepOrder and nextStep; the original implementation fans out three listeners conceptually in parallel but the LangGraph port modeled them as a sequential tail. I preserved the sequence as in the port.
+# - The ontology cannot capture typed program structures (TypedDict MeetingState) or exact function signatures. I represented the state and produced/consumed artifacts as Resources and described structures in prompt and schema literals.
+# - External service credentials and runtime environment (e.g., Trello board id, Slack channel id, .env contents) are not modeled for security and because schema lacks properties for secrets/credentials; I put descriptive literals instead.
+# - Implementation references (function names like save_tasks_to_trello) are recorded in tool description/implementation-reference but the ontology does not allow encoding executable code. No code is stored in the ontology.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+###############################################################################
+# Agentic system (top-level)
+###############################################################################
+
+:meeting_assistant_system
+    rdf:type agentoscin:AgenticSystem ;
+    dcterms:title "meeting-assistant (LangGraph port)" ;
+    dcterms:description
+        "LangGraph port of the CrewAI Flow meeting assistant. Loads a meeting transcript "
+        "from disk, extracts actionable tasks via an LLM analyzer, and then fans out "
+        "into three listeners that push created tasks to Trello, write to CSV, and "
+        "notify Slack. This ontology instance preserves the semantic workflow, agents, "
+        "tools, prompts, and artifacts used by the solution." ;
+    agentoscin:containsOrchestration :meeting_orchestration ;
+    agentoscin:containsAgent :analyzer_agent ;
+    agentoscin:containsTeam :meeting_team ;
+    agentoscin:hasSourceFramework "LangGraph (port of CrewAI Flow example)" .
+
+###############################################################################
+# Orchestration, Team, Workflow pattern
+###############################################################################
+
+:meeting_orchestration
+    rdf:type agentoscin:Orchestration ;
+    rdfs:label "meeting_assistant_orchestration" ;
+    agentoscin:orchestratesTeam :meeting_team ;
+    dcterms:description "Controller/orchestration entity that coordinates the meeting assistant workflow." .
+
+:meeting_team
+    rdf:type agento:Team ;
+    rdfs:label "meeting_assistant_team" ;
+    agento:hasAgentMember :analyzer_agent ;
+    agento:hasWorkflowPattern :meeting_workflow_pattern ;
+    dcterms:description "Team that executes the meeting-assistant workflow (contains analyzer agent and uses tools for side effects)." .
+
+:meeting_workflow_pattern
+    rdf:type agento:WorkflowPattern ;
+    rdfs:label "meeting_assistant_workflow" ;
+    dcterms:description "Workflow pattern modeling the flow: load_meeting_notes -> analyze_meeting -> upload_trello -> save_csv -> notify_slack." ;
+    agento:hasWorkflowStep :step_start,
+                           :step_load_meeting_notes,
+                           :step_analyze_meeting,
+                           :step_upload_trello,
+                           :step_save_csv,
+                           :step_notify_slack,
+                           :step_end .
+
+###############################################################################
+# Workflow steps (Start, Steps, End) and ordering
+###############################################################################
+
+:step_start
+    rdf:type agento:StartStep ;
+    rdfs:label "start" ;
+    agento:stepOrder "0"^^xsd:integer ;
+    agento:hasAssociatedTask :task_start_load_meeting_notes ;
+    agento:nextStep :step_load_meeting_notes ;
+    agentoscin:hasDecoratorArgument "START" ;
+    dcterms:description "Workflow entry point (START)." .
+
+:step_load_meeting_notes
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "load_meeting_notes_step" ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agento:hasAssociatedTask :task_start_load_meeting_notes ;
+    agento:nextStep :step_analyze_meeting ;
+    agentoscin:hasDecoratorArgument "@start load_meeting_notes" ;
+    dcterms:description "Step that loads meeting notes from 'meeting_notes.txt' into the workflow state." .
+
+:step_analyze_meeting
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "analyze_meeting_step" ;
+    agento:stepOrder "2"^^xsd:integer ;
+    agento:hasAssociatedTask :task_analyze_meeting ;
+    agento:hasAssociatedAgent :analyzer_agent ;
+    agento:nextStep :step_upload_trello ;
+    agentoscin:hasDecoratorArgument "@listen analyze" ;
+    dcterms:description "Step that calls the LLM to extract actionable tasks from the transcript." .
+
+:step_upload_trello
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "upload_trello_step" ;
+    agento:stepOrder "3"^^xsd:integer ;
+    agento:hasAssociatedTask :task_upload_trello ;
+    agento:nextStep :step_save_csv ;
+    agentoscin:hasDecoratorArgument "@listen upload_trello" ;
+    dcterms:description "Step that pushes the extracted tasks to Trello (side-effect tool)." .
+
+:step_save_csv
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "save_csv_step" ;
+    agento:stepOrder "4"^^xsd:integer ;
+    agento:hasAssociatedTask :task_save_csv ;
+    agento:nextStep :step_notify_slack ;
+    agentoscin:hasDecoratorArgument "@listen save_csv" ;
+    dcterms:description "Step that writes tasks to 'new_tasks.csv' (side-effect tool)." .
+
+:step_notify_slack
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "notify_slack_step" ;
+    agento:stepOrder "5"^^xsd:integer ;
+    agento:hasAssociatedTask :task_notify_slack ;
+    agento:nextStep :step_end ;
+    agentoscin:hasDecoratorArgument "@listen notify_slack" ;
+    dcterms:description "Step that posts a Slack notification indicating how many tasks were added." .
+
+:step_end
+    rdf:type agento:EndStep ;
+    rdfs:label "end" ;
+    agento:stepOrder "6"^^xsd:integer ;
+    dcterms:description "Workflow termination (END)." .
+
+###############################################################################
+# Tasks and their semantics
+###############################################################################
+
+:task_start_load_meeting_notes
+    rdf:type agento:Task ;
+    rdfs:label "load_meeting_notes" ;
+    dcterms:description
+        "Read the meeting transcript from disk file 'meeting_notes.txt' and return state with 'transcript'. "
+        "Implementation detail: in the original port this reads the file and returns {\"transcript\": <file contents>}." ;
+    agento:producedResource :resource_meeting_transcript_file ;
+    agento:hasPrompt :prompt_load_meeting_notes .
+
+:task_analyze_meeting
+    rdf:type agento:Task ;
+    rdfs:label "analyze_meeting" ;
+    dcterms:description
+        "Call an LLM to extract actionable tasks from the meeting transcript. The LLM is expected to return a JSON list of "
+        "{\"name\": str, \"description\": str} objects. The returned tasks are stored into the workflow state under 'tasks'." ;
+    agento:requiresResource :resource_meeting_transcript_file ;
+    agento:producedResource :resource_extracted_tasks_json ;
+    agento:performedByAgent :analyzer_agent ;
+    agento:hasPrompt :prompt_analyze_meeting ;
+    agentoscin:hasOutputSchema :schema_tasks_list ;
+    agentoscin:hasExpectedOutput "JSON list of {\"name\": str, \"description\": str}" .
+
+:task_upload_trello
+    rdf:type agento:Task ;
+    rdfs:label "upload_trello" ;
+    dcterms:description
+        "Push each extracted task to a Trello board. Implementation note: this is a side-effect sink; the example uses a helper function that prints stubbed Trello calls." ;
+    agento:performedBy :tool_trello ;
+    agento:requiresResource :resource_extracted_tasks_json ;
+    agento:producedResource :resource_trello_cards ;
+    agentoscin:hasImplementationReference "save_tasks_to_trello (stub)".
+
+:task_save_csv
+    rdf:type agento:Task ;
+    rdfs:label "save_csv" ;
+    dcterms:description
+        "Write the extracted tasks to a CSV file named 'new_tasks.csv' with headers [Name, Description]. Implementation uses CSV writer." ;
+    agento:performedBy :tool_csv_writer ;
+    agento:requiresResource :resource_extracted_tasks_json ;
+    agento:producedResource :resource_new_tasks_csv ;
+    agentoscin:hasImplementationReference "save to 'new_tasks.csv' (writes Name and Description for each task)".
+
+:task_notify_slack
+    rdf:type agento:Task ;
+    rdfs:label "notify_slack" ;
+    dcterms:description
+        "Send a notification to a Slack channel stating how many new tasks were added to Trello. Implementation uses a helper that posts to Slack (stub prints to stdout)." ;
+    agento:performedBy :tool_slack_notifier ;
+    agento:requiresResource :resource_extracted_tasks_json ;
+    agento:producedResource :resource_slack_message ;
+    agentoscin:hasImplementationReference "send_message_to_channel (stub)" .
+
+###############################################################################
+# Prompts (preserve full prompt text and associated metadata)
+###############################################################################
+
+:prompt_load_meeting_notes
+    rdf:type agento:Prompt ;
+    rdfs:label "load_meeting_notes_prompt" ;
+    agento:promptInstruction "Read meeting notes file 'meeting_notes.txt' and return a state object containing the transcript." ;
+    agento:promptOutputIndicator "state with key 'transcript' containing file contents" ;
+    dcterms:description "Prompt/semantic description for the load_meeting_notes step (file read)." .
+
+:prompt_analyze_meeting
+    rdf:type agento:Prompt ;
+    rdfs:label "analyze_meeting_prompt" ;
+    agento:promptInstruction
+        "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks. Analyze the provided meeting "
+        "transcript and generate a set of detailed, well-organized issues based on the discussion. Return a JSON list of "
+        '{\"name\": str, \"description\": str} objects.\n\nTranscript:\n<transcript text inserted here>" ;
+    agento:promptInputData "transcript (string) - meeting transcript read from file 'meeting_notes.txt'" ;
+    agento:promptOutputIndicator "JSON list of {name, description}" ;
+    agentoscin:hasSourceAttribute "constructed in analyze_meeting(state) with the transcript interpolated into the prompt" ;
+    dcterms:description "LLM instruction used by the analyze_meeting task. Exact instruction preserved from source." .
+
+###############################################################################
+# Schema for structured output produced by analyze_meeting
+###############################################################################
+
+:schema_tasks_list
+    rdf:type agentoscin:Schema ;
+    rdfs:label "tasks_list_schema" ;
+    agentoscin:hasSchemaDefinition
+        "JSON array of objects. Each object has: {\"name\": string, \"description\": string}." ;
+    dcterms:description "Structured-output schema describing the expected JSON list of tasks." .
+
+###############################################################################
+# Agent (LLM) and LanguageModel
+###############################################################################
+
+:analyzer_agent
+    rdf:type agento:LLMAgent ;
+    rdfs:label "meeting_analyzer_agent" ;
+    agento:agentID "analyzer_1" ;
+    agento:agentRole "analyzer" ;
+    agentoscin:agentType "ChatOpenAI" ;
+    agento:useLanguageModel :gpt4o_model ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean ;
+    agento:hasAgentConfig :analyzer_agent_config ;
+    dcterms:description "LLM-based agent that performs the analyze_meeting task using the ChatOpenAI wrapper configured with model 'gpt-4o'." .
+
+:analyzer_agent_config
+    rdf:type agento:Config ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" ;
+    dcterms:description "Agent configuration capturing the model identifier used by the ChatOpenAI wrapper." .
+
+:gpt4o_model
+    rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model instance referenced by the analyzer agent (ChatOpenAI model='gpt-4o')." .
+
+###############################################################################
+# Tools (side-effect sinks) and configs
+###############################################################################
+
+:tool_trello
+    rdf:type agento:Tool ;
+    rdfs:label "trello_uploader_tool" ;
+    dcterms:description "Tool that pushes tasks to Trello. In the original port this is a stub that prints each task to stdout in the form: '[Trello] <name>: <description>'." ;
+    agentoscin:hasImplementationReference "save_tasks_to_trello (stub)" ;
+    agento:hasToolConfig :trello_tool_config .
+
+:trello_tool_config
+    rdf:type agento:Config ;
+    agento:configKey "board" ;
+    agento:configValue "unspecified (example stub; real integration would require board id and credentials)" ;
+    dcterms:description "Configuration placeholder describing Trello integration settings (board id, lists, credentials not included here)." .
+
+:tool_csv_writer
+    rdf:type agento:Tool ;
+    rdfs:label "csv_writer_tool" ;
+    dcterms:description "Tool that writes tasks to a CSV file 'new_tasks.csv' with header row [Name, Description]." ;
+    agentoscin:hasImplementationReference "writes 'new_tasks.csv' using CSV writer" ;
+    agento:hasToolConfig :csv_writer_config .
+
+:csv_writer_config
+    rdf:type agento:Config ;
+    agento:configKey "output_file" ;
+    agento:configValue "new_tasks.csv" ;
+    dcterms:description "Configuration for CSV writer tool (file path)." .
+
+:tool_slack_notifier
+    rdf:type agento:Tool ;
+    rdfs:label "slack_notifier_tool" ;
+    dcterms:description "Tool that posts a message to Slack. Example stub prints: '[Slack] <message>'." ;
+    agentoscin:hasImplementationReference "send_message_to_channel (stub)" ;
+    agento:hasToolConfig :slack_tool_config .
+
+:slack_tool_config
+    rdf:type agento:Config ;
+    agento:configKey "channel" ;
+    agento:configValue "unspecified (example stub; replace with channel id)" ;
+    dcterms:description "Configuration placeholder for Slack notifier (channel id not provided in source)." .
+
+###############################################################################
+# Resources and artifacts (files, boards, messages)
+###############################################################################
+
+:resource_meeting_transcript_file
+    rdf:type beam:Resource ;
+    rdfs:label "meeting_notes.txt" ;
+    dcterms:description "Input file containing meeting transcript read by load_meeting_notes. In the source code path: 'meeting_notes.txt'." .
+
+:resource_extracted_tasks_json
+    rdf:type beam:Resource ;
+    rdfs:label "extracted_tasks_json" ;
+    dcterms:description "In-memory/serialized JSON list of tasks produced by analyze_meeting: JSON array of {name, description}." .
+
+:resource_new_tasks_csv
+    rdf:type beam:Resource ;
+    rdfs:label "new_tasks.csv" ;
+    dcterms:description "CSV file produced by save_csv with the extracted tasks. Created at 'new_tasks.csv'." .
+
+:resource_trello_cards
+    rdf:type beam:Resource ;
+    rdfs:label "trello_cards" ;
+    dcterms:description "Representation of Trello cards created by upload_trello. In the port this is a side-effect; external Trello board not modeled here." .
+
+:resource_slack_message
+    rdf:type beam:Resource ;
+    rdfs:label "slack_notification" ;
+    dcterms:description "Slack message notifying about number of tasks added. Produced by notify_slack task." .
+
+###############################################################################
+# Additional metadata mapping / traceability hints
+###############################################################################
+
+:trace_workflow_source
+    rdf:type agento:Instance ;
+    rdfs:label "source_code_reference" ;
+    dcterms:description
+        "This instance encodes traceability back to the original port: main.py defines a StateGraph with nodes: "
+        "load_meeting_notes, analyze_meeting, upload_trello, save_csv, notify_slack; edges link START->load_meeting_notes->analyze_meeting->upload_trello->save_csv->notify_slack->END. "
+        "Prompts, file names, and the model name have been preserved in the ontology individuals." .
+
+# End of instance data.

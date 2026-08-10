@@ -1,0 +1,130 @@
+"""
+Auto-generated CrewAI Flow: StateGraph
+
+This file has been corrected so each step actually calls a real LLM at runtime.
+The Flow methods update the Flow.state (a TravelState) and print the final plan
+when the summary agent completes.
+
+Note: This uses the OpenAI Python client. Ensure OPENAI_API_KEY is set in env.
+"""
+
+import dotenv
+import openai
+from typing import Any, Dict, List, Optional
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+dotenv.load_dotenv()
+
+
+# Helper to call the OpenAI ChatCompletion API.
+def call_llm(system_prompt: str, user_prompt: str, model: str = "gpt-4o") -> str:
+    # Use the Chat Completions API to produce a text response.
+    # This is a real model call performed at runtime.
+    resp = openai.ChatCompletion.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.7,
+        max_tokens=800,
+    )
+    return resp["choices"][0]["message"]["content"]
+
+
+class TravelState(BaseModel):
+    """Flow state — customize fields as needed."""
+    final_plan: str = ""
+    language_notes: str = ""
+    local_notes: str = ""
+    plan: str = ""
+    request: str = ""
+
+
+class StateGraph(Flow[TravelState]):
+
+    @start()
+    def planner_agent(self):
+        """
+        Sketch the initial itinerary.
+        Reads: self.state.request
+        Writes: self.state.plan
+        """
+        system = "You are a helpful assistant that can suggest a travel plan for a user based on their request."
+        user = f"Request: {self.state.request}"
+        plan_text = call_llm(system, user, model="gpt-4o")
+        # update state
+        self.state.plan = plan_text
+
+    @listen(planner_agent)
+    def local_agent(self):
+        """
+        Add local activities based on the plan so far.
+        Reads: self.state.plan
+        Writes: self.state.local_notes
+        """
+        system = (
+            "You are a helpful assistant that can suggest authentic and interesting "
+            "local activities or places to visit. Given the initial plan, contribute "
+            "concrete local suggestions."
+        )
+        user = f"Plan so far:\n{self.state.plan}"
+        local_text = call_llm(system, user, model="gpt-4o")
+        self.state.local_notes = local_text
+
+    @listen(local_agent)
+    def language_agent(self):
+        """
+        Add language / communication tips.
+        Reads: self.state.plan, self.state.local_notes
+        Writes: self.state.language_notes
+        """
+        system = (
+            "You review travel plans and provide feedback on important tips about how "
+            "best to address language or communication challenges for the destination."
+        )
+        user = (
+            f"Plan so far:\n{self.state.plan}\n\n"
+            f"Local suggestions:\n{self.state.local_notes}"
+        )
+        language_text = call_llm(system, user, model="gpt-4o")
+        self.state.language_notes = language_text
+
+    @listen(language_agent)
+    def travel_summary_agent(self):
+        """
+        Integrate everything into the final plan.
+        Reads: self.state.plan, self.state.local_notes, self.state.language_notes
+        Writes: self.state.final_plan
+
+        When complete, prints the final plan to stdout.
+        """
+        system = (
+            "You compile all suggestions and advice from the other agents and provide a detailed final travel plan. "
+            "Your final response must be the complete plan. When the plan is complete, conclude with TERMINATE."
+        )
+        user = (
+            f"Initial plan:\n{self.state.plan}\n\n"
+            f"Local notes:\n{self.state.local_notes}\n\n"
+            f"Language notes:\n{self.state.language_notes}"
+        )
+        final_text = call_llm(system, user, model="gpt-4o")
+        self.state.final_plan = final_text
+
+        # Print the final plan as the program's output.
+        print(self.state.final_plan)
+
+
+def kickoff():
+    # Create the flow and set an initial request; the crewai.flow framework will
+    # orchestrate the sequence of decorated steps.
+    flow = StateGraph()
+    # Set an exemplar concrete input so the flow runs end-to-end.
+    flow.state = TravelState(request="Plan a 10 day trip to Luxembourg.")
+    flow.kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()

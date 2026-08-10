@@ -1,0 +1,186 @@
+### FILE: main.py
+```python
+"""
+Auto-generated AutoGen application: code_review
+"""
+
+import asyncio
+import dotenv
+from typing import Any, Dict, List, Optional
+
+dotenv.load_dotenv()
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+from autogen_core.tools import FunctionTool
+from tools import code_analyzer
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+# -- Tools --
+code_analyzer_tool = FunctionTool(
+    code_analyzer,
+    description="Performs static analysis on source code. Checks for syntax errors, undefined variables, unused imports, and common anti-patterns.",
+)
+
+# -- Agents --
+code_reviewer = AssistantAgent(
+    name="Code_Reviewer",
+    model_client=model_client,
+    tools=[code_analyzer_tool],
+    system_message=(
+        "You are a senior software engineer with 15 years of experience in code review. Review the code for correctness, readability, and best practices. Identify bugs, code smells, naming issues, and suggest improvements. Use the code analyzer tool to check for syntax and structural issues."
+    ),
+)
+
+security_auditor = AssistantAgent(
+    name="Security_Auditor",
+    model_client=model_client,
+    tools=[code_analyzer_tool],
+    system_message=(
+        "You are a certified security professional specializing in application security. Audit the code for security vulnerabilities including injection attacks, hardcoded secrets, insecure data handling, missing input validation, and OWASP Top 10 issues. Provide CWE classifications for each finding."
+    ),
+)
+
+review_summarizer = AssistantAgent(
+    name="Review_Summarizer",
+    model_client=model_client,
+    system_message=(
+        "You are a technical lead who synthesizes feedback from code reviewers and security auditors. Compile all findings into a structured review report. Provide a verdict: APPROVED if no critical or major issues, otherwise REQUEST CHANGES. Include a summary, critical count, and action items. When done, reply with TERMINATE."
+    ),
+)
+
+# -- Team --
+
+team = RoundRobinGroupChat(
+    participants=[code_reviewer, security_auditor, review_summarizer],
+    max_turns=3,
+)
+
+
+async def main():
+    code_to_review = """
+def process_user_input(data):
+    result = eval(data)
+    return result
+"""
+    stream = team.run_stream(
+        task=f"Review the following code for quality and security:\n{code_to_review}"
+    )
+    await Console(stream)
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### FILE: tools.py
+```python
+"""
+Auto-generated AutoGen tool definitions.
+"""
+
+import ast as python_ast
+from typing import Any
+
+
+def code_analyzer(code: str, language: str) -> str:
+    """
+    
+    Performs static analysis on source code. Checks for syntax errors, undefined variables, unused imports, and common anti-patterns.
+
+    Implementation reference: tools.code_analyzer
+    """
+    # Provide a simple static analysis for Python code. Keep the implementation lightweight
+    # but useful for the agents. Do not hardcode any outputs — analysis depends on the input.
+    issues = []
+    # Accept None or empty language by defaulting to python
+    if not language:
+        language = "python"
+
+    if language.lower() != "python":
+        return f"Unsupported language: {language}. This analyzer only supports Python."
+
+    try:
+        tree = python_ast.parse(code)
+        issues.append("Syntax: OK")
+
+        # Track assigned names to help detect unused imports/variables (simple heuristics)
+        assigned_names = set()
+        imported_names = set()
+        used_names = set()
+
+        for node in python_ast.walk(tree):
+            # Detect bare except clauses
+            if isinstance(node, python_ast.ExceptHandler) and node.type is None:
+                issues.append(
+                    f"Line {node.lineno}: Bare 'except' clause — should catch specific exceptions."
+                )
+
+            # Detect eval usage (security anti-pattern)
+            if isinstance(node, python_ast.Call):
+                func = node.func
+                if isinstance(func, python_ast.Name) and func.id == "eval":
+                    issues.append(
+                        f"Line {node.lineno}: Use of eval() — may lead to code injection. "
+                        "Consider safer parsing or restricted evaluation."
+                    )
+                # exec usage
+                if isinstance(func, python_ast.Name) and func.id == "exec":
+                    issues.append(
+                        f"Line {node.lineno}: Use of exec() — can execute arbitrary code and is unsafe."
+                    )
+
+            # Track imports
+            if isinstance(node, python_ast.Import):
+                for alias in node.names:
+                    imported_names.add(alias.asname or alias.name.split(".")[0])
+            if isinstance(node, python_ast.ImportFrom):
+                for alias in node.names:
+                    imported_names.add(alias.asname or alias.name)
+
+            # Track assigned and used names
+            if isinstance(node, python_ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, python_ast.Name):
+                        assigned_names.add(target.id)
+            if isinstance(node, python_ast.Name):
+                used_names.add(node.id)
+
+            # Detect calls to potentially dangerous functions (simple list)
+            if isinstance(node, python_ast.Call) and isinstance(node.func, python_ast.Attribute):
+                # e.g., subprocess.Popen, os.system
+                attr = node.func
+                if (
+                    isinstance(attr.value, python_ast.Name)
+                    and attr.value.id in {"os", "subprocess"}
+                    and isinstance(attr.attr, str)
+                ):
+                    issues.append(
+                        f"Line {node.lineno}: Potentially dangerous call '{attr.value.id}.{attr.attr}' — "
+                        "ensure inputs are validated and consider safer alternatives."
+                    )
+
+        # Unused imports heuristic
+        unused_imports = sorted(list(imported_names - used_names))
+        for name in unused_imports:
+            issues.append(f"Unused import detected: {name}")
+
+        # Unused assignments heuristic
+        unused_assignments = sorted(list(assigned_names - used_names))
+        for name in unused_assignments:
+            issues.append(f"Assigned but unused variable: {name}")
+
+        if len(issues) == 1 and issues[0] == "Syntax: OK":
+            issues.append("No obvious structural issues found.")
+
+    except SyntaxError as e:
+        issues = [f"Syntax error at line {e.lineno}: {e.msg}"]
+
+    return "\n".join(issues)
+```

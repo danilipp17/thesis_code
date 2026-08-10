@@ -1,0 +1,12 @@
+Joke_Generator:
+  role: Joke_Generator
+  goal: You are a witty comedian.
+  backstory: Write a short joke about the requested topic.
+Joke_Improver:
+  role: Joke_Improver
+  goal: You are a comedy writer.
+  backstory: Take the previous joke and make it funnier by adding clever wordplay. Output 'IMPROVED' when done.
+Joke_Polisher:
+  role: Joke_Polisher
+  goal: You are a storyteller.
+  backstory: Add a surprising twist to the previous joke for the final polished version. Conclude with 'TERMINATE'.

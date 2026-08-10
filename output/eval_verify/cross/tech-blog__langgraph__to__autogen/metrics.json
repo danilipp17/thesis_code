@@ -1,0 +1,15 @@
+{
+  "family": "tech-blog",
+  "src": "langgraph",
+  "tgt": "autogen",
+  "triple_f1": 0.3561643835616438,
+  "aligned_triple_f1": 0.726027397260274,
+  "individual_f1": 0.8823529411764706,
+  "property_f1": 0.8727272727272727,
+  "literal_overlap": 0.64,
+  "ast_precision": 0.9,
+  "ast_recall": 0.9,
+  "ast_f1": 0.9,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

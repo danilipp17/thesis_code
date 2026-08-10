@@ -1,0 +1,272 @@
+{
+  "provider": "openai",
+  "model": "gpt-5-mini",
+  "cells": [
+    {
+      "family": "joke",
+      "framework": "crewai",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.401985111662531,
+      "individual_f1": 0.8354430379746834,
+      "property_f1": 0.6171003717472119,
+      "literal_overlap": 0.5,
+      "gt_triples": 186,
+      "llm_triples": 220
+    },
+    {
+      "family": "joke",
+      "framework": "langgraph",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.30705394190871366,
+      "individual_f1": 0.64,
+      "property_f1": 0.2735042735042735,
+      "literal_overlap": 0.4074074074074074,
+      "gt_triples": 114,
+      "llm_triples": 128
+    },
+    {
+      "family": "joke",
+      "framework": "autogen",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3414634146341463,
+      "individual_f1": 0.6829268292682926,
+      "property_f1": 0.5106382978723404,
+      "literal_overlap": 0.32,
+      "gt_triples": 83,
+      "llm_triples": 123
+    },
+    {
+      "family": "code-review",
+      "framework": "crewai",
+      "triple_f1": 0.15853658536585366,
+      "aligned_triple_f1": 0.4695121951219512,
+      "individual_f1": 0.735294117647059,
+      "property_f1": 0.5555555555555556,
+      "literal_overlap": 0.6041666666666666,
+      "gt_triples": 158,
+      "llm_triples": 171
+    },
+    {
+      "family": "code-review",
+      "framework": "langgraph",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3014705882352941,
+      "individual_f1": 0.6545454545454547,
+      "property_f1": 0.5955056179775281,
+      "literal_overlap": 0.3333333333333333,
+      "gt_triples": 135,
+      "llm_triples": 138
+    },
+    {
+      "family": "code-review",
+      "framework": "autogen",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3152709359605911,
+      "individual_f1": 0.6829268292682926,
+      "property_f1": 0.5511811023622046,
+      "literal_overlap": 0.17857142857142858,
+      "gt_triples": 89,
+      "llm_triples": 115
+    },
+    {
+      "family": "tech-blog",
+      "framework": "crewai",
+      "triple_f1": 0.13068181818181818,
+      "aligned_triple_f1": 0.3522727272727272,
+      "individual_f1": 0.7058823529411764,
+      "property_f1": 0.6120689655172413,
+      "literal_overlap": 0.5652173913043478,
+      "gt_triples": 152,
+      "llm_triples": 203
+    },
+    {
+      "family": "tech-blog",
+      "framework": "langgraph",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3408360128617363,
+      "individual_f1": 0.634920634920635,
+      "property_f1": 0.5355191256830601,
+      "literal_overlap": 0.37037037037037035,
+      "gt_triples": 123,
+      "llm_triples": 189
+    },
+    {
+      "family": "tech-blog",
+      "framework": "autogen",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.34418604651162793,
+      "individual_f1": 0.6363636363636364,
+      "property_f1": 0.5238095238095237,
+      "literal_overlap": 0.32,
+      "gt_triples": 83,
+      "llm_triples": 133
+    },
+    {
+      "family": "meeting-assistant-flow",
+      "framework": "crewai",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.26515151515151514,
+      "individual_f1": 0.5245901639344263,
+      "property_f1": 0.38848920863309355,
+      "literal_overlap": 0.4594594594594595,
+      "gt_triples": 95,
+      "llm_triples": 170
+    },
+    {
+      "family": "meeting-assistant-flow",
+      "framework": "langgraph",
+      "error": "parse failed"
+    },
+    {
+      "family": "meeting-assistant-flow",
+      "framework": "autogen",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.27848101265822783,
+      "individual_f1": 0.7428571428571429,
+      "property_f1": 0.5,
+      "literal_overlap": 0.07692307692307693,
+      "gt_triples": 59,
+      "llm_triples": 100
+    },
+    {
+      "family": "travel-planning",
+      "framework": "crewai",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.46115288220551376,
+      "individual_f1": 0.8831168831168831,
+      "property_f1": 0.6285714285714286,
+      "literal_overlap": 0.6181818181818182,
+      "gt_triples": 190,
+      "llm_triples": 210
+    },
+    {
+      "family": "travel-planning",
+      "framework": "langgraph",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3669724770642202,
+      "individual_f1": 0.716417910447761,
+      "property_f1": 0.5535714285714286,
+      "literal_overlap": 0.325,
+      "gt_triples": 172,
+      "llm_triples": 156
+    },
+    {
+      "family": "travel-planning",
+      "framework": "autogen",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.37499999999999994,
+      "individual_f1": 0.7719298245614036,
+      "property_f1": 0.5487804878048781,
+      "literal_overlap": 0.4375,
+      "gt_triples": 118,
+      "llm_triples": 155
+    },
+    {
+      "family": "maths",
+      "framework": "crewai",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3555555555555555,
+      "individual_f1": 0.7368421052631579,
+      "property_f1": 0.6371681415929202,
+      "literal_overlap": 0.4473684210526316,
+      "gt_triples": 95,
+      "llm_triples": 86
+    },
+    {
+      "family": "maths",
+      "framework": "langgraph",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.2232558139534884,
+      "individual_f1": 0.6222222222222222,
+      "property_f1": 0.4545454545454545,
+      "literal_overlap": 0.26666666666666666,
+      "gt_triples": 79,
+      "llm_triples": 137
+    },
+    {
+      "family": "maths",
+      "framework": "autogen",
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.2696629213483146,
+      "individual_f1": 0.6486486486486486,
+      "property_f1": 0.38554216867469876,
+      "literal_overlap": 0.25925925925925924,
+      "gt_triples": 66,
+      "llm_triples": 113
+    }
+  ],
+  "overall_mean": {
+    "triple_f1": 0.01701284726751011,
+    "aligned_triple_f1": 0.339369597182715,
+    "individual_f1": 0.6973486937635809,
+    "property_f1": 0.5218559501425201,
+    "literal_overlap": 0.3817308999527333
+  },
+  "framework_mean": {
+    "crewai": {
+      "triple_f1": 0.048203067257945306,
+      "aligned_triple_f1": 0.38427166449496564,
+      "individual_f1": 0.7368614434795644,
+      "property_f1": 0.5731589452695752,
+      "literal_overlap": 0.5323989594441539
+    },
+    "langgraph": {
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.3079177668046905,
+      "individual_f1": 0.6536212444272146,
+      "property_f1": 0.482529180056349,
+      "literal_overlap": 0.34055555555555556
+    },
+    "autogen": {
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.32067738851881794,
+      "individual_f1": 0.694275485161236,
+      "property_f1": 0.5033252634206076,
+      "literal_overlap": 0.2653756274589608
+    }
+  },
+  "family_mean": {
+    "joke": {
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.350167489401797,
+      "individual_f1": 0.7194566224143254,
+      "property_f1": 0.46708098104127527,
+      "literal_overlap": 0.4091358024691358
+    },
+    "code-review": {
+      "triple_f1": 0.052845528455284556,
+      "aligned_triple_f1": 0.36208457310594544,
+      "individual_f1": 0.6909221338202688,
+      "property_f1": 0.5674140919650961,
+      "literal_overlap": 0.37202380952380953
+    },
+    "tech-blog": {
+      "triple_f1": 0.04356060606060606,
+      "aligned_triple_f1": 0.3457649288820305,
+      "individual_f1": 0.6590555414084825,
+      "property_f1": 0.5571325383366084,
+      "literal_overlap": 0.4185292538915727
+    },
+    "meeting-assistant-flow": {
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.27181626390487146,
+      "individual_f1": 0.6337236533957846,
+      "property_f1": 0.4442446043165468,
+      "literal_overlap": 0.2681912681912682
+    },
+    "travel-planning": {
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.4010417864232446,
+      "individual_f1": 0.7904882060420159,
+      "property_f1": 0.5769744483159117,
+      "literal_overlap": 0.4602272727272727
+    },
+    "maths": {
+      "triple_f1": 0.0,
+      "aligned_triple_f1": 0.2828247636191195,
+      "individual_f1": 0.6692376587113429,
+      "property_f1": 0.49241858827102447,
+      "literal_overlap": 0.3244314489928525
+    }
+  }
+}

@@ -1,0 +1,4 @@
+generate_joke_task:
+  description: Write a short joke about {topic}.
+  expected_output: A short joke as a single line of text.
+  agent: joke_generator

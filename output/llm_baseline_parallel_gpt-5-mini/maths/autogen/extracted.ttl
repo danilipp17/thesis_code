@@ -1,0 +1,161 @@
+# Issues / Assumptions:
+# - The ontology does not have a dedicated class or property to represent framework-specific constructs such as "RoundRobinGroupChat" or "AssistantAgent" as distinct classes; these are represented using the existing Team and LLMAgent classes and a Config individual to capture framework parameters (e.g., max_turns). 
+# - The ontology lacks an explicit property for "reflect_on_tool_use"; this is modeled using hasReasoningEnabled (boolean) and a ReAct reasoning pattern instance to preserve intent.
+# - Function implementation code (callable functions) cannot be expressed as executable artifacts in the schema. Function semantics and signatures are preserved as literals via hasImplementationReference and hasInputSchema on Tool individuals.
+# - The ontology cannot represent streaming UI behavior (Console) or client lifecycle methods (e.g., model_client.close()) in a semantically meaningful way. These are omitted; only the model identity ("gpt-4o") and role are recorded.
+# - The conditional internal control flow of the ReAct loop ("exit when no more tool calls are requested") is represented as routing logic on a ConditionalStep and an overall TurnLimitTermination; exact control semantics and loop internals cannot be fully reconstructed from the schema alone.
+# - No representation exists for the SDK/implementation classes (FunctionTool, OpenAIChatCompletionClient) as distinct ontology types; they are modeled as Tools and LanguageModel individuals with descriptive literals.
+# - No explicit representation of "reflect_on_tool_use" attempts count or detailed tracing; only hasReasoningEnabled is used to capture the reflective behavior flag.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Agentic system (top-level)
+:ReactExampleSystem rdf:type :AgenticSystem ;
+    dcterms:title "ReAct — parallel example (AutoGen port)" ;
+    dcterms:description "Agentic system composed of a single LLM agent running a ReAct loop with three arithmetic tools and a RoundRobin team wrapper (max_turns=1). The system accepts a user task to compute arithmetic and produce a joke." ;
+    :containsAgent :our_agent ;
+    :containsTeam :roundrobin_team .
+
+# The LLM agent (AssistantAgent instance)
+:our_agent rdf:type agento:LLMAgent , prov:Agent ;
+    dcterms:title "our_agent" ;
+    agento:agentID "our_agent" ;
+    agento:agentRole "assistant" ;
+    :agentType "AssistantAgent (framework mapping)" ;
+    :hasAgentConfig :our_agent_config ;
+    :useLanguageModel :gpt4o_model ;
+    :hasAgentCapability :ArithmeticCapability , :JokeCapability , :ToolCallingCapability ;
+    :hasReasoningEnabled "true"^^xsd:boolean ;
+    :employsReasoningPattern :ReActPattern ;
+    rdfs:label "our_agent (LLM Agent, AssistantAgent role)" .
+
+# Agent configuration (captures system_message, reflect flag)
+:our_agent_config rdf:type agento:Config ;
+    agento:configKey "system_message" ;
+    agento:configValue "You are my AI assistant, please answer my query to the best of your ability." ;
+    agento:configKey "reflect_on_tool_use" ;
+    agento:configValue "true" .
+
+# Language model client (abstracted)
+:gpt4o_model rdf:type agento:LanguageModel ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "OpenAIChatCompletionClient model identifier: gpt-4o (used by our_agent)." .
+
+# Capabilities
+:ArithmeticCapability rdf:type agento:Capability ;
+    rdfs:label "Arithmetic capability" ;
+    dcterms:description "Capability to perform arithmetic calculations using tools (add, subtract, multiply)." .
+
+:JokeCapability rdf:type agento:Capability ;
+    rdfs:label "Joke generation capability" ;
+    dcterms:description "Capability to generate a short joke in natural language." .
+
+:ToolCallingCapability rdf:type agento:Capability ;
+    rdfs:label "Tool calling capability" ;
+    dcterms:description "Capability to call external tools / function wrappers (FunctionTool) as part of a reasoning loop." .
+
+# Tools (FunctionTool wrappers modeled as Tool individuals)
+:add_tool rdf:type agento:Tool ;
+    dcterms:title "add_tool" ;
+    agento:hasImplementationReference "Function signature: add(a:int, b:int) -> int. Docstring: 'This is an addition function that adds 2 numbers together.'; Description: Add two integers." ;
+    :hasInputSchema "(a: integer, b: integer)" ;
+    :hasCapability :ArithmeticCapability ;
+    rdfs:label "Add tool" .
+
+:subtract_tool rdf:type agento:Tool ;
+    dcterms:title "subtract_tool" ;
+    agento:hasImplementationReference "Function signature: subtract(a:int, b:int) -> int. Docstring: 'Subtraction function.'; Description: Subtract second integer from first." ;
+    :hasInputSchema "(a: integer, b: integer)" ;
+    :hasCapability :ArithmeticCapability ;
+    rdfs:label "Subtract tool" .
+
+:multiply_tool rdf:type agento:Tool ;
+    dcterms:title "multiply_tool" ;
+    agento:hasImplementationReference "Function signature: multiply(a:int, b:int) -> int. Docstring: 'Multiplication function.'; Description: Multiply two integers." ;
+    :hasInputSchema "(a: integer, b: integer)" ;
+    :hasCapability :ArithmeticCapability ;
+    rdfs:label "Multiply tool" .
+
+# Team wrapper (RoundRobinGroupChat represented as a Team with config)
+:roundrobin_team rdf:type agento:Team ;
+    dcterms:title "RoundRobinGroupChat (single-member)" ;
+    :hasAgentMember :our_agent ;
+    :hasSystemConfig :roundrobin_config ;
+    :hasWorkflowPattern :react_workflow ;
+    :hasTerminationCondition :turn_limit_termination ;
+    rdfs:label "RoundRobinGroupChat (team wrapper for our_agent)" .
+
+:roundrobin_config rdf:type agento:Config ;
+    agento:configKey "group_type" ;
+    agento:configValue "RoundRobinGroupChat (framework mapping)" ;
+    agento:configKey "max_turns" ;
+    agento:configValue "1" .
+
+# Termination condition that enforces one turn (as in max_turns=1)
+:turn_limit_termination rdf:type :TurnLimitTermination ;
+    dcterms:title "Round robin turn limit" ;
+    :hasMaxTurns "1"^^xsd:integer ;
+    dcterms:description "Termination condition to keep the ReAct loop scoped to a single user query (max_turns=1)." .
+
+# User task and prompt (the Console input)
+:user_task rdf:type agento:Task ;
+    dcterms:title "User query task" ;
+    :taskPrompt :user_task_prompt ;
+    :performedByAgent :our_agent ;
+    :hasExpectedOutput "1) Numeric result of: (40 + 12) * 6 ; 2) A short joke in natural language. The agent should compute the arithmetic and present the computed numbers and then include a joke." ;
+    dcterms:description "Task issued to the RoundRobinGroupChat -> our_agent via Console.run_stream." .
+
+:user_task_prompt rdf:type agento:Prompt ;
+    agento:promptInstruction "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please." ;
+    agento:promptContext "Console user input / task string." ;
+    rdfs:label "User task prompt" .
+
+# Workflow pattern representing the ReAct loop + conditional exit
+:react_workflow rdf:type agento:WorkflowPattern ;
+    dcterms:title "ReAct loop workflow pattern (single-agent)" ;
+    dcterms:description "Workflow pattern describing a single-agent ReAct loop that may call tools and exits when no tool calls remain or when team termination condition is reached." ;
+    :hasWorkflowStep :start_step , :react_conditional_step , :end_step ;
+    rdfs:label "ReAct workflow pattern" .
+
+# Workflow steps
+:start_step rdf:type agento:StartStep ;
+    dcterms:title "Start step — accept task and begin ReAct" ;
+    :hasAssociatedAgent :our_agent ;
+    :hasAssociatedTask :user_task ;
+    agento:stepOrder "1"^^xsd:integer ;
+    rdfs:label "StartStep" .
+
+:react_conditional_step rdf:type :ConditionalStep ;
+    dcterms:title "ReAct internal step — tool usage & reflection" ;
+    :hasAssociatedAgent :our_agent ;
+    :hasAssociatedTask :user_task ;
+    agento:stepOrder "2"^^xsd:integer ;
+    :hasRoutingLogic "Exit when no tool calls are requested by the agent (agent ends its turn). Otherwise invoke tool functions as needed and reflect on tool use." ;
+    :nextStep :end_step ;
+    rdfs:label "Conditional ReAct step" .
+
+:end_step rdf:type agento:EndStep ;
+    dcterms:title "End step — produce final output" ;
+    agento:stepOrder "3"^^xsd:integer ;
+    rdfs:label "EndStep" .
+
+# Link task tool usage (task may involve use of arithmetic tools)
+:user_task :taskToolUsage :add_tool , :subtract_tool , :multiply_tool .
+
+# Reasoning pattern instance (ReAct)
+:ReActPattern rdf:type :ReAct ;
+    dcterms:title "ReAct reasoning pattern instance" ;
+    dcterms:description "Agent reasoning strategy: ReAct (interleave reasoning & acting/tool-calls) with reflection on tool use enabled." .
+
+# Memory / bindings: none for this example (left out intentionally)
+
+# Additional provenance / mapping
+:ReactExampleSystem dc:creator "Ported from AutoGen / LangGraph example" ;
+    dcterms:reference "Source mapping: single AssistantAgent using OpenAIChatCompletionClient model='gpt-4o'; three FunctionTool wrappers (add, subtract, multiply); RoundRobinGroupChat(participants=[our_agent], max_turns=1); Console-run of user task string." .

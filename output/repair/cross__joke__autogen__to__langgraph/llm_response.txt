@@ -1,0 +1,155 @@
+### FILE: main.py
+```python
+"""
+Auto-generated LangGraph application: joke
+"""
+
+import dotenv
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+
+class State(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+
+model = ChatOpenAI(model="gpt-4o")
+
+
+def _call_model(system_prompt: str, user_prompt: str):
+    """
+    Helper to call the ChatOpenAI model with flexible response handling.
+    Returns the textual content produced by the model.
+    """
+    # Prepare messages
+    msgs = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+    try:
+        resp = model(msgs)
+    except TypeError:
+        # Some LangChain builds expect a single list-of-lists for generate()
+        try:
+            resp = model.generate([msgs])
+        except Exception as e:
+            # Final fallback: try calling with plain strings
+            try:
+                resp = model(user_prompt)
+            except Exception as ee:
+                raise RuntimeError(f"Model invocation failed: {e}; {ee}") from ee
+
+    # Normalize different possible return shapes
+    # 1) If resp is a BaseMessage-like with .content
+    if hasattr(resp, "content"):
+        return resp.content
+    # 2) If resp is a string
+    if isinstance(resp, str):
+        return resp
+    # 3) LangChain LLMResult / ChatResult shapes
+    if hasattr(resp, "generations"):
+        gens = resp.generations
+        try:
+            # gens may be list[list[generation]]
+            first = gens[0]
+            if isinstance(first, list) and len(first) > 0:
+                gen0 = first[0]
+            else:
+                gen0 = first
+            if hasattr(gen0, "text"):
+                return gen0.text
+            if hasattr(gen0, "message") and hasattr(gen0.message, "content"):
+                return gen0.message.content
+        except Exception:
+            pass
+    # 4) Some wrappers expose 'output_text' or 'text'
+    if hasattr(resp, "output_text"):
+        return resp.output_text
+    if hasattr(resp, "text"):
+        return resp.text
+    # 5) As a last resort, stringize
+    return str(resp)
+
+
+def run_team(state: State) -> dict:
+    """Subgraph node: run_team
+
+    Orchestrates a three-step joke-generation pipeline:
+      1. Joke_Generator: produce a short joke about the requested topic.
+      2. Joke_Improver: make the joke funnier by adding wordplay.
+      3. Joke_Polisher: add a surprising twist for a polished version.
+
+    The initial task prompt is read from state["messages"] (the first HumanMessage).
+    """
+    # Extract the task prompt from the incoming state messages
+    incoming_messages = state.get("messages", [])
+    task_prompt = None
+    for m in incoming_messages:
+        # We expect HumanMessage-like inputs; try to retrieve .content if present
+        if hasattr(m, "content"):
+            task_prompt = m.content
+            break
+        # Fallback if a plain string was provided
+        if isinstance(m, str):
+            task_prompt = m
+            break
+    if not task_prompt:
+        task_prompt = "Write a short joke about cats, then improve and polish it."
+
+    out_messages = []
+    # Record the original task as provided
+    out_messages.append(HumanMessage(content=task_prompt))
+
+    # Step 1: Joke_Generator
+    gen_system = "You are a witty comedian."
+    gen_user = f"{task_prompt}\n\nPlease write a short joke about the requested topic."
+    joke = _call_model(gen_system, gen_user).strip()
+    out_messages.append(HumanMessage(content=joke))
+
+    # Step 2: Joke_Improver
+    imp_system = "You are a comedy writer."
+    imp_user = (
+        "Take the previous joke and make it funnier by adding clever wordplay. "
+        "Here is the previous joke:\n\n" + joke
+    )
+    improved = _call_model(imp_system, imp_user).strip()
+    out_messages.append(HumanMessage(content=improved))
+
+    # Step 3: Joke_Polisher
+    pol_system = "You are a storyteller."
+    pol_user = (
+        "Add a surprising twist to the previous joke for the final polished version. "
+        "Here is the previous (improved) joke:\n\n" + improved
+    )
+    polished = _call_model(pol_system, pol_user).strip()
+    out_messages.append(HumanMessage(content=polished))
+
+    return {"messages": out_messages}
+
+
+# Build the graph
+graph = StateGraph(State)
+
+graph.add_node("run_team", run_team)
+
+graph.add_edge(START, "run_team")
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    # Provide a concrete task prompt so the agents run end-to-end.
+    initial_task = "Write a joke about cats, then improve and polish it."
+    result = app.invoke({"messages": [HumanMessage(content=initial_task)]})
+    if isinstance(result, dict):
+        for _k, _v in result.items():
+            _s = _v[-1].content if isinstance(_v, list) and _v and hasattr(_v[-1], "content") else _v
+            print(f"=== {_k} ===")
+            print(str(_s)[:800])
+    else:
+        print(result)
+```

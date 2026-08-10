@@ -1,0 +1,15 @@
+{
+  "family": "travel-planning",
+  "src": "langgraph",
+  "tgt": "autogen",
+  "triple_f1": 0.6220095693779905,
+  "aligned_triple_f1": 0.6794258373205742,
+  "individual_f1": 0.8936170212765957,
+  "property_f1": 0.8750000000000001,
+  "literal_overlap": 0.4375,
+  "ast_precision": 0.9,
+  "ast_recall": 1.0,
+  "ast_f1": 0.945,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

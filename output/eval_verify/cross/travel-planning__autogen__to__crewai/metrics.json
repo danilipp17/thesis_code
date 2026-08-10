@@ -1,0 +1,15 @@
+{
+  "family": "travel-planning",
+  "src": "autogen",
+  "tgt": "crewai",
+  "triple_f1": 0.3941605839416058,
+  "aligned_triple_f1": 0.4671532846715329,
+  "individual_f1": 0.6440677966101694,
+  "property_f1": 0.6103286384976526,
+  "literal_overlap": 0.21818181818181817,
+  "ast_precision": 0.515,
+  "ast_recall": 0.407,
+  "ast_f1": 0.447,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

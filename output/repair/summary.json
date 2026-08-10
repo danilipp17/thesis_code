@@ -1,0 +1,750 @@
+[
+  {
+    "cell": "gen__joke__langgraph",
+    "section": "gen",
+    "family": "joke",
+    "src": "langgraph",
+    "tgt": "langgraph",
+    "before": "outcome=OK_REAL; error=None; produced==== messages === === final_joke === sample final_joke === improved_joke === sample improved_joke === joke === Of course! Please provide the details of the task you'd like me to help with, and I'll do my best to assist you. === topic === sam\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 1.665,
+      "error": null,
+      "produced": "=== messages === [] === joke === Why was the cat sitting on the computer? It wanted to keep an eye on the mouse! === topic === cats"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "gen__code-review__autogen",
+    "section": "gen",
+    "family": "code-review",
+    "src": "autogen",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- f'Review the following code for quality and security:\\n{code_to_review}' ---------- TextMessage (Code_Reviewer) ---------- Please provide the code you want me to review for quality and security. Once\u2026",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 7.84,
+      "error": null,
+      "produced": "---------- TextMessage (user) ---------- Review the following code for quality and security: def process_user_input(data): result = eval(data) return result ---------- ToolCallRequestEvent (Code_Reviewer) ---------- [FunctionCall(id='call_pSJ29tQFR0jjXNmGjIXn6brF', arguments='{\"code\":\"def process_user_input(data):\\\\n result = eval(data)\\\\n return result\",\"language\":\"python\"}', name='code_analyzer')] ---------- ToolCallExecutionEvent (Code_Reviewer) ---------- [FunctionExecutionResult(content='Syntax: OK\\nLine 2: Use of eval() \u2014 may lead to code injection. Consider safer parsing or restricted e"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "gen__meeting-assistant-flow__crewai",
+    "section": "gen",
+    "family": "meeting-assistant-flow",
+    "src": "crewai",
+    "tgt": "crewai",
+    "before": "outcome=FAIL; error=NameError: name 'MeetingTask' is not defined; produced=CRASH: NameError: name 'MeetingTask' is not defined",
+    "files_returned": [
+      "crews/meeting_assistant_crew/meeting_assistant_crew.py",
+      "main.py",
+      "models.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.652,
+      "error": "ValidationError: 1 validation error for MeetingFlow\n  Value error, Flow state model must have an 'id' field [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "gen__meeting-assistant-flow__langgraph",
+    "section": "gen",
+    "family": "meeting-assistant-flow",
+    "src": "langgraph",
+    "tgt": "langgraph",
+    "before": "outcome=OK_REAL; error=None; produced==== messages === Of course! Please provide me with the details of the task you'd like assistance with, and I'll do my best to help you. === tasks === To assist you with this request, I'll need a detailed transcript to analyze. You mentioned\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 2.814,
+      "error": null,
+      "produced": "[CSV] Wrote 0 tasks to new_tasks.csv [Slack] 0 New tasks have been added to Trello! === messages === ```json [ { \"name\": \"Create Database Migration Plan\", \"description\": \"Develop a comprehensive plan for migrating the database. This should include timeline, resource allocation, potential risks, and mitigation strategies.\" }, { \"name\": \"Assign Reviewers for Database Migration\", \"description\": \"Identify and assign responsible team members to review the migration plan to ensure all aspects are covered and any potential issues are addressed.\" }, { \"name\": \"Assign Owners for API Refactor\", \"descrip"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "gen__meeting-assistant-flow__autogen",
+    "section": "gen",
+    "family": "meeting-assistant-flow",
+    "src": "autogen",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- f'Analyze the following meeting transcript and extract actionable tasks.\\n\\nTranscript:\\n{transcript}' ---------- TextMessage (meeting_analyzer) ---------- Certainly! Please provide the meeting trans\u2026",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 0.628,
+      "error": "KeyError: 'tasks'",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "gen__travel-planning__autogen",
+    "section": "gen",
+    "family": "travel-planning",
+    "src": "autogen",
+    "tgt": "autogen",
+    "before": "outcome=TIMEOUT; error=timeout after 90.0s; produced=TIMEOUT after 90s (likely an unbounded agent loop)",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 30.083,
+      "error": null,
+      "produced": "orning/Afternoon:** - Arrive at Luxembourg Airport. - Transfer to your hotel in Luxembourg City. - **Evening:** - Explore the Old Town; stroll through cobblestone streets. - Visit the Grand Ducal Palace and observe the changing of the guard (check if guided tours are available). - Dinner at a traditional restaurant in the city center, trying local cuisine like Judd mat Gaardebounen. **Day 2: Luxembourg City - Cultural Exploration** - **Morning:** - Visit the Bock Casemates, explore its tunnels and history. - Explore the National Museum of History and Art for insight into Luxembourg's rich hist"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "gen__maths__crewai",
+    "section": "gen",
+    "family": "maths",
+    "src": "crewai",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Crew Completion \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Name: MathsCrew \u2502 \u2502 ID: a79cefee-55cf-4b00-8415-ebfc35c6a58f \u2502 \u2502 Final Output: Please provide the query you'd like me to answer. \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2026",
+    "files_returned": [
+      "crews/maths_crew/maths_crew.py",
+      "main.py",
+      "tools/add.py",
+      "tools/subtract.py",
+      "tools/multiply.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.238,
+      "error": "AttributeError: 'str' object has no attribute 'get'",
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83c\udf0a Flow Execution \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Starting Flow Execution \u2502 \u2502 Name: MathsFlow \u2502 \u2502 ID: 36a9ea4f-3527-43b8-8fa5-01fefa2c9777 \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 A new version of CrewAI is available! \u2502 \u2502 \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6 \u2502 \u2502 \u2502 \u2502 To update, run: uv sync --upgrade-package crewai \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "gen__maths__langgraph",
+    "section": "gen",
+    "family": "maths",
+    "src": "langgraph",
+    "tgt": "langgraph",
+    "before": "outcome=FAIL; error=KeyError: None; produced=CRASH: KeyError: None",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 3.063,
+      "error": null,
+      "produced": "=== messages === The sum of 40 and 12 is 52. When you multiply that sum by 6, you get 480. Now for a joke: Why don\u2019t skeletons fight each other? They don\u2019t have the guts! \ud83d\ude04"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__joke__crewai__to__langgraph",
+    "section": "cross",
+    "family": "joke",
+    "src": "crewai",
+    "tgt": "langgraph",
+    "before": "outcome=FAIL; error=ValueError: Found edge starting at unknown node 'Fail'; produced=CRASH: ValueError: Found edge starting at unknown node 'Fail'",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.991,
+      "error": "KeyError: 'Pass'",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__joke__langgraph__to__crewai",
+    "section": "cross",
+    "family": "joke",
+    "src": "langgraph",
+    "tgt": "crewai",
+    "before": "outcome=FAIL; error=TypeError: 'StateWithId' object is not subscriptable; produced=CRASH: TypeError: 'StateWithId' object is not subscriptable",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.247,
+      "error": "ValidationError: 1 validation error for Agent\nbackstory\n  Field required [type=missing, input_value={'llm': 'gpt-4o', 'reason... generate initial joke'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__joke__autogen__to__crewai",
+    "section": "cross",
+    "family": "joke",
+    "src": "autogen",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u2502 Name: AutoGenFlow \u2502 \u2502 ID: 36b76139-24d9-4a0b-93df-598a0cc6ba73 \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 A new version of CrewAI is available! \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.351,
+      "error": "AttributeError: 'Crew' object has no attribute 'run'",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__joke__autogen__to__langgraph",
+    "section": "cross",
+    "family": "joke",
+    "src": "autogen",
+    "tgt": "langgraph",
+    "before": "outcome=OK_TRIVIAL; error=None; produced=ran cleanly but produced no agent output (placeholder/stub nodes)",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 3.95,
+      "error": null,
+      "produced": "=== messages === Why did the cat sit on the computer? Because it heard the mouse had some byte-sized secrets! But to its surprise, the secrets were just the mouse bragging about its cheese investments in Swiss banks!"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__code-review__crewai__to__langgraph",
+    "section": "cross",
+    "family": "code-review",
+    "src": "crewai",
+    "tgt": "langgraph",
+    "before": "outcome=OK_REAL; error=None; produced==== messages === === code === sample code === report === sample report",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 0.89,
+      "error": "TypeError: 'StructuredTool' object is not callable",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__code-review__crewai__to__autogen",
+    "section": "cross",
+    "family": "code-review",
+    "src": "crewai",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=logic errors or bugs.] 2. **Readability**: - [Observations on the clarity of code, including naming conventions, comments, and organization.] 3. **Best Practices**: - [Notes on adherence to coding standards and patterns, including any recom\u2026",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 35.529,
+      "error": null,
+      "produced": "s to gracefully capture and respond to errors. This can prevent application crashes and facilitate debugging. 4. **Improve Documentation**: - Include detailed comments and documentation to articulate the function's purpose, expected input formats, and handling of edge cases. 5. **Conduct Comprehensive Security Testing**: - Perform thorough security reviews, including both static and dynamic analysis, to ensure all vulnerabilities are identified and mitigated. - Regularly update security practices in alignment with OWASP's recommendations to counter existing and emerging threats. By implementin"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__code-review__langgraph__to__crewai",
+    "section": "cross",
+    "family": "code-review",
+    "src": "langgraph",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=with ID: 130cf18e-6a29-4fdd-8532-f5a0f0bf0be1 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Method: code_reviewer \u2502 \u2502 Status: Running \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2705 Flow Method Completed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.465,
+      "error": "ModuleNotFoundError: No module named 'tools'",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__code-review__langgraph__to__autogen",
+    "section": "cross",
+    "family": "code-review",
+    "src": "langgraph",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- f\"You are a senior software engineer with 15 years of experience in code review. Review the following code for correctness, readability, and best practices. Identify bugs, code smells, naming issues,\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 58.108,
+      "error": null,
+      "produced": "Conclusion The initial use of `eval()` creates significant security vulnerabilities due to potential code injection risks. The refactored function, employing `ast.literal_eval()`, improves security by restricting evaluations to safe literals. Adding input validation, error handling, and comprehensive documentation enhances the function's reliability, security, and readability, aligning it with best practices in secure coding. ---------- TextMessage (review_summarizer) ---------- ### Comprehensive Report: Code Review and Security Analysis for `process_user_input` #### 1. Overview The function `"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__code-review__autogen__to__crewai",
+    "section": "cross",
+    "family": "code-review",
+    "src": "autogen",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u2502 Name: AutoGenFlow \u2502 \u2502 ID: 688d3f6e-8ec9-4570-87a2-f7725f3dde0f \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 A new version of CrewAI is available! \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6\u2026",
+    "files_returned": [
+      "crews/round_robin_group_chat/round_robin_group_chat.py",
+      "main.py",
+      "tools/code_analyzer.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.625,
+      "error": "TypeError: inputs must be a dict or Mapping, got str",
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83c\udf0a Flow Execution \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Starting Flow Execution \u2502 \u2502 Name: AutoGenFlow \u2502 \u2502 ID: 29156177-a737-445a-8463-c27c699a0ab4 \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 A new version of CrewAI is available! \u2502 \u2502 \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.7 \u2502 \u2502 \u2502 \u2502 To update, run: uv sync --upgrade-package crewai \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__code-review__autogen__to__langgraph",
+    "section": "cross",
+    "family": "code-review",
+    "src": "autogen",
+    "tgt": "langgraph",
+    "before": "outcome=OK_TRIVIAL; error=None; produced=ran cleanly but produced no agent output (placeholder/stub nodes)",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 0.861,
+      "error": "TypeError: 'ChatOpenAI' object is not callable",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__tech-blog__crewai__to__langgraph",
+    "section": "cross",
+    "family": "tech-blog",
+    "src": "crewai",
+    "tgt": "langgraph",
+    "before": "outcome=OK_REAL; error=None; produced==== messages === === final_post === sample final_post === topic === sample topic",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 24.504,
+      "error": null,
+      "produced": "unctionality of autonomous vehicles or revolutionizing industrial automation, the potential applications are immense. In smart homes, for example, such systems can independently optimize energy usage, enhance security, and adapt to personal preferences without constant user input. #### Navigating Ethical Waters As AI becomes more autonomous, embedding ethical guidelines and ensuring safety is increasingly important. Developers face the challenge of creating systems that perform efficiently while aligning with societal values and ethics. This is crucial in preventing undesirable and potentially"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__tech-blog__langgraph__to__crewai",
+    "section": "cross",
+    "family": "tech-blog",
+    "src": "langgraph",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=with ID: 45c088d4-d437-4e29-bc18-8028e598d0df \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Method: researcher \u2502 \u2502 Status: Running \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2705 Flow Method Completed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 31.691,
+      "error": null,
+      "produced": "ameworks** In the dynamic realm of artificial intelligence, a transformative shift is underway\u2014aimed at creating systems endowed with agency, a capability traditionally attributed to humans. Agentic AI frameworks epitomize this evolution, offering structured approaches for developing intelligent agents that perceive, reason, and act upon their environment with minimal human intervention. ### The Essence of Agency At the core of agentic AI is the concept of **agency**\u2014the ability of AI systems to operate independently within an environment. These systems are designed to sense inputs, process in"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__tech-blog__langgraph__to__autogen",
+    "section": "cross",
+    "family": "tech-blog",
+    "src": "langgraph",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- f'Research the following topic and provide a comprehensive summary: {topic}' ---------- TextMessage (researcher) ---------- I understand that you're looking for a comprehensive summary of a specific \u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 83.759,
+      "error": null,
+      "produced": "tive entities into autonomous decision-makers capable of adapting to complex and unpredictable environments. This burgeoning field is poised to revolutionize industries by advancing machine autonomy while ensuring AI actions align with human objectives and ethical standards.\\n\\n### Understanding AI Agency\\n\\nIn AI, **agency** refers to a system's ability to independently achieve specific objectives. This capability extends beyond executing predefined tasks, empowering systems to make informed decisions, strategize, and adapt to dynamic situations. Core elements of agency include:\\n\\n- **Percep"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__tech-blog__autogen__to__crewai",
+    "section": "cross",
+    "family": "tech-blog",
+    "src": "autogen",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u2502 Name: AutoGenFlow \u2502 \u2502 ID: 697f110a-0095-422e-92fe-2fca51d1feec \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 A new version of CrewAI is available! \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6\u2026",
+    "files_returned": [
+      "crews/round_robin_group_chat/round_robin_group_chat.py",
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.58,
+      "error": "ValidationError: 3 validation errors for Agent\nrole\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ngoal\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nbackstory\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__tech-blog__autogen__to__langgraph",
+    "section": "cross",
+    "family": "tech-blog",
+    "src": "autogen",
+    "tgt": "langgraph",
+    "before": "outcome=OK_TRIVIAL; error=None; produced=ran cleanly but produced no agent output (placeholder/stub nodes)",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.012,
+      "error": "TypeError: 'ChatOpenAI' object is not callable",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__meeting-assistant-flow__crewai__to__langgraph",
+    "section": "cross",
+    "family": "meeting-assistant-flow",
+    "src": "crewai",
+    "tgt": "langgraph",
+    "before": "outcome=FAIL; error=NameError: name 'MeetingTask' is not defined; produced=CRASH: NameError: name 'MeetingTask' is not defined",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 8.81,
+      "error": "InvalidUpdateError: At key 'tasks': Can receive only one value per step. Use an Annotated key to handle multiple values.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE",
+      "produced": "[TRELLO] Create card: Integrate Analytics Dashboard Description: Integration of analytics dashboard needs to be accomplished by next sprint. Coordinate efforts to install, test, and debug the system to ensure it's ready for deployment. --- [TRELLO] Create card: Review Mobile Layout Description: Conduct a thorough review of the mobile layout. Identify any issues with usability, presentation, or functionality. Document findings and recommend improvements. --- [TRELLO] Create card: Follow Up on Token Counter Design Description: Need to follow up with the design team regarding the token counter. D"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__meeting-assistant-flow__crewai__to__autogen",
+    "section": "cross",
+    "family": "meeting-assistant-flow",
+    "src": "crewai",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion. Focus on breaking down the transcript into manageable tasks or issues, making su\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": null,
+      "error": "timeout after 90s",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__meeting-assistant-flow__langgraph__to__crewai",
+    "section": "cross",
+    "family": "meeting-assistant-flow",
+    "src": "langgraph",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Method: upload_trello \u2502 \u2502 Status: Running \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2705 Flow Method Completed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Method: upload_trello \u2502 \u2502 Status\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 4.35,
+      "error": null,
+      "produced": "Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Method: upload_trello \u2502 \u2502 Status: Running \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2705 Flow Method Completed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Method: upload_trello \u2502 \u2502 Status: Completed \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Method: save_csv \u2502 \u2502 Status: Running \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__meeting-assistant-flow__langgraph__to__autogen",
+    "section": "cross",
+    "family": "meeting-assistant-flow",
+    "src": "langgraph",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- f\"Analyze the provided meeting transcript and generate a JSON list of {{name, description}} objects.\\n\\nTranscript:\\n{state['transcript']}\" ---------- TextMessage (analyze_meeting) ---------- I'm her\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 12.853,
+      "error": null,
+      "produced": "--- TextMessage (analyze_meeting) ---------- [ { \"name\": \"Finalize API Design\", \"description\": \"Complete the design for the API by Friday.\" }, { \"name\": \"Complete Authentication and Testing\", \"description\": \"Bob will finish the authentication component of the API and write corresponding tests.\" }, { \"name\": \"Prepare Deployment Notes\", \"description\": \"Carol will prepare the deployment notes and notify the infrastructure team.\" } ] ---------- TextMessage (analyze_meeting) ---------- [ { \"name\": \"Finalize API Design\", \"description\": \"Complete the design for the API by Friday.\" }, { \"name\": \"Compl"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__meeting-assistant-flow__autogen__to__crewai",
+    "section": "cross",
+    "family": "meeting-assistant-flow",
+    "src": "autogen",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u2502 Name: AutoGenFlow \u2502 \u2502 ID: 14c37a77-f29b-4343-9bd5-d63b5cf1ef6b \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 A new version of CrewAI is available! \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6\u2026",
+    "files_returned": [
+      "crews/round_robin_group_chat/round_robin_group_chat.py",
+      "main.py",
+      "tools/save_tasks_to_trello.py",
+      "tools/send_message_to_channel.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.528,
+      "error": "RuntimeError: Agent invocation failed. Tried methods: ['__call__']",
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83c\udf0a Flow Execution \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Starting Flow Execution \u2502 \u2502 Name: AutoGenFlow \u2502 \u2502 ID: d32a6ea7-4bd1-4b9b-97ec-e1e111ba6cce \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 A new version of CrewAI is available! \u2502 \u2502 \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.7 \u2502 \u2502 \u2502 \u2502 To update, run: uv sync --upgrade-package crewai \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__meeting-assistant-flow__autogen__to__langgraph",
+    "section": "cross",
+    "family": "meeting-assistant-flow",
+    "src": "autogen",
+    "tgt": "langgraph",
+    "before": "outcome=OK_TRIVIAL; error=None; produced=ran cleanly but produced no agent output (placeholder/stub nodes)",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.047,
+      "error": "ValueError: No AIMessage found in input",
+      "produced": "[tools] save_tasks_to_trello raised: 'StructuredTool' object is not callable [tools] send_message_to_channel raised: 'StructuredTool' object is not callable"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__travel-planning__crewai__to__langgraph",
+    "section": "cross",
+    "family": "travel-planning",
+    "src": "crewai",
+    "tgt": "langgraph",
+    "before": "outcome=OK_REAL; error=None; produced==== messages === === plan === sample plan === request === sample request",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 37.004,
+      "error": null,
+      "produced": "=== messages === **Comprehensive 10-Day Travel Plan for Luxembourg** Embark on a captivating journey through Luxembourg, blending rich history, breathtaking landscapes, and sumptuous cuisine. This carefully curated 10-day itinerary will guide you through vibrant city life, serene natural spaces, and the heart of Luxembourgish culture, embellished with local insights and language tips for an authentic experience. --- ### Day 1: Arrival in Luxembourg City - **Accommodation:** Hotel Le Royal Luxembourg, located centrally. - **Transport:** Use local buses or taxis from the airport. - **Activities:"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__travel-planning__langgraph__to__crewai",
+    "section": "cross",
+    "family": "travel-planning",
+    "src": "langgraph",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83d\udd04 Flow Method Running \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Method: local_agent \u2502 \u2502 Status: Running \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2705 Flow Method Completed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 Method: local_agent \u2502 \u2502 Status: Co\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.433,
+      "error": "AttributeError: property 'state' of 'StateGraph' object has no setter",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__travel-planning__langgraph__to__autogen",
+    "section": "cross",
+    "family": "travel-planning",
+    "src": "langgraph",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=xtMessage (language_agent) ---------- To craft the most suitable travel plan for you, it would be greatly helpful if you could share some more details about your preferences and plans. Here are a few guiding questions: 1. **Destination Pref\u2026",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 0.614,
+      "error": "TypeError: SelectorGroupChat.__init__() missing 1 required positional argument: 'model_client'",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__travel-planning__autogen__to__crewai",
+    "section": "cross",
+    "family": "travel-planning",
+    "src": "autogen",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u2502 Name: AutoGenFlow \u2502 \u2502 ID: 6454d11f-ad5d-4007-af1e-cf6bcf645a38 \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 A new version of CrewAI is available! \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6\u2026",
+    "files_returned": [
+      "crews/selector_group_chat/selector_group_chat.py",
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.36,
+      "error": "ValidationError: 3 validation errors for Agent\nrole\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ngoal\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nbackstory\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83c\udf0a Flow Execution \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Starting Flow Execution \u2502 \u2502 Name: AutoGenFlow \u2502 \u2502 ID: d5c8af16-83c0-4bcc-80eb-220201503a21 \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 A new version of CrewAI is available! \u2502 \u2502 \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.7 \u2502 \u2502 \u2502 \u2502 To update, run: uv sync --upgrade-package crewai \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__travel-planning__autogen__to__langgraph",
+    "section": "cross",
+    "family": "travel-planning",
+    "src": "autogen",
+    "tgt": "langgraph",
+    "before": "outcome=OK_TRIVIAL; error=None; produced=ran cleanly but produced no agent output (placeholder/stub nodes)",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 1.089,
+      "error": "RuntimeError: Model call did not return a parsable response.",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__maths__crewai__to__langgraph",
+    "section": "cross",
+    "family": "maths",
+    "src": "crewai",
+    "tgt": "langgraph",
+    "before": "outcome=OK_REAL; error=None; produced==== messages === === answer === sample answer === query === sample query",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 3.914,
+      "error": null,
+      "produced": "=== messages === To address your query, we'll first add 40 and 12, and then multiply the sum by 6. Let's perform the computations: 1. Calculate the sum of 40 and 12: \\[ 40 + 12 = 52 \\] 2. Multiply the result by 6: \\[ 52 \\times 6 = 312 \\] The final result is 312. Now, for a bit of humor: Why don't scientists trust atoms? Because they make up everything! === answer === To address your query, we'll first add 40 and 12, and then multiply the sum by 6. Let's perform the computations: 1. Calculate the sum of 40 and 12: \\[ 40 + 12 = 52 \\] 2. Multiply the result by 6: \\[ 52 \\times 6 = 312 \\] The final"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__maths__crewai__to__autogen",
+    "section": "cross",
+    "family": "maths",
+    "src": "crewai",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- Answer the following user query, using the available arithmetic tools whenever a step requires computation: {query} ---------- TextMessage (Maths_Reasoning_Assistant) ---------- Could you please prov\u2026",
+    "files_returned": [
+      "tools.py",
+      "main.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 6.759,
+      "error": null,
+      "produced": "---------- TextMessage (user) ---------- Answer the following user query, using the available arithmetic tools whenever a step requires computation: Add 40 + 12 and then multiply the result by 6. Also tell me a joke please. ---------- ToolCallRequestEvent (Maths_Reasoning_Assistant) ---------- [FunctionCall(id='call_HdxoVqdS9x1jdortD7Qa7xxn', arguments='{\"input\": \"40 + 12\"}', name='add')] ---------- ToolCallExecutionEvent (Maths_Reasoning_Assistant) ---------- [FunctionExecutionResult(content='52', name='add', call_id='call_HdxoVqdS9x1jdortD7Qa7xxn', is_error=False)] ---------- ToolCallSummary"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__maths__langgraph__to__crewai",
+    "section": "cross",
+    "family": "maths",
+    "src": "langgraph",
+    "tgt": "crewai",
+    "before": "outcome=FAIL; error=TypeError: 'StateWithId' object is not subscriptable; produced=CRASH: TypeError: 'StateWithId' object is not subscriptable",
+    "files_returned": [
+      "main.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.441,
+      "error": "APIRemovedInV1: \n\nYou tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.\n\nYou can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface. \n\nAlternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`\n\nA detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742\n",
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83c\udf0a Flow Execution \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Starting Flow Execution \u2502 \u2502 Name: StateGraph \u2502 \u2502 ID: 1484eeae-6f12-41d5-9d6b-e614d4f0448a \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 A new version of CrewAI is available! \u2502 \u2502 \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.7 \u2502 \u2502 \u2502 \u2502 To update, run: uv sync --upgrade-package crewai \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__maths__langgraph__to__autogen",
+    "section": "cross",
+    "family": "maths",
+    "src": "langgraph",
+    "tgt": "autogen",
+    "before": "outcome=OK_REAL; error=None; produced=---------- TextMessage (user) ---------- Perform our_agent responsibilities ---------- TextMessage (our_agent) ---------- It seems like you're referring to a specific set of tasks or responsibilities labeled as \"our_agent.\" However, I need \u2026",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": true,
+      "duration_s": 9.678,
+      "error": null,
+      "produced": "---------- TextMessage (user) ---------- Add 40 + 12 and then multiply the result by 6. Also tell me a joke please. ---------- ToolCallRequestEvent (our_agent) ---------- [FunctionCall(id='call_bkBQW4THHKcsEeyydBjKQEdK', arguments='{\"a\": 40, \"b\": 12}', name='add'), FunctionCall(id='call_eMr0J42vzRTKUovzemfZ5y7d', arguments='{\"a\": 52, \"b\": 6}', name='multiply')] ---------- ToolCallExecutionEvent (our_agent) ---------- [FunctionExecutionResult(content='52', name='add', call_id='call_bkBQW4THHKcsEeyydBjKQEdK', is_error=False), FunctionExecutionResult(content='312', name='multiply', call_id='call_"
+    },
+    "status": "ran_ok"
+  },
+  {
+    "cell": "cross__maths__autogen__to__crewai",
+    "section": "cross",
+    "family": "maths",
+    "src": "autogen",
+    "tgt": "crewai",
+    "before": "outcome=OK_REAL; error=None; produced=\u2502 Name: AutoGenFlow \u2502 \u2502 ID: 9cb3b67b-d726-47d6-951f-ebd37271e127 \u2502 \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 A new version of CrewAI is available! \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.6\u2026",
+    "files_returned": [
+      "crews/round_robin_group_chat/round_robin_group_chat.py",
+      "main.py",
+      "tools/add.py",
+      "tools/multiply.py",
+      "tools/subtract.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 2.184,
+      "error": "ValidationError: 1 validation error for Agent\nbackstory\n  Field required [type=missing, input_value={'tools': [add(name='add'... best of your ability.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+      "produced": "\u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \ud83c\udf0a Flow Execution \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 Starting Flow Execution \u2502 \u2502 Name: AutoGenFlow \u2502 \u2502 ID: 9027a264-307f-4504-9db8-f4f4ecf0daba \u2502 \u2502 \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2728 Update Available \u2728 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e \u2502 \u2502 \u2502 A new version of CrewAI is available! \u2502 \u2502 \u2502 \u2502 Current version: 1.14.5 \u2502 \u2502 Latest version: 1.14.7 \u2502 \u2502 \u2502 \u2502 To update, run: uv sync --upgrade-package crewai \u2502 \u2502 \u2502 \u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f \u256d\u2500\u2500\u2500\u2500\u2500"
+    },
+    "status": "ran_fail"
+  },
+  {
+    "cell": "cross__maths__autogen__to__langgraph",
+    "section": "cross",
+    "family": "maths",
+    "src": "autogen",
+    "tgt": "langgraph",
+    "before": "outcome=OK_TRIVIAL; error=None; produced=ran cleanly but produced no agent output (placeholder/stub nodes)",
+    "files_returned": [
+      "main.py",
+      "tools.py"
+    ],
+    "after": {
+      "ok": false,
+      "duration_s": 0.929,
+      "error": "AttributeError: 'tuple' object has no attribute 'content'",
+      "produced": ""
+    },
+    "status": "ran_fail"
+  }
+]

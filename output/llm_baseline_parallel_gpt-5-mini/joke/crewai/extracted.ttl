@@ -1,0 +1,372 @@
+# Issues / Assumptions:
+# - The ontology lacks an explicit property to record the "process" / execution mode (e.g., Process.sequential). I preserve this as a literal in team/orchestration descriptions.
+# - Framework-specific invocation semantics (e.g., Crew().kickoff(), separate sub-process execution, synchronous vs. asynchronous invocation) cannot be modeled precisely; these are represented as descriptive literals (dcterms:description / hasRoutingLogic / hasDecoratorArgument).
+# - The Flow state (the Pydantic JokeState with named fields and defaults) is represented using the existing Schema class (hasSchemaDefinition). There is no dedicated class for runtime state objects or variables; persistence / runtime bindings are not expressible.
+# - Conditional edge labels ("Pass"/"Fail") and their runtime control flow semantics are not first-class in the ontology. I encode the routing decision logic and the labels used as literals on the ConditionalStep (hasRoutingLogic).
+# - There is no property to represent "invocation of another Crew as a sub-crew" (i.e., a Task implemented by a whole Crew rather than a single in-process call). I model crews as Teams and record the fact that a workflow step calls a Team in textual properties (hasDecoratorArgument / dcterms:description).
+# - Implementation / code-level details (Python decorators, method names, SDK constructs) are intentionally omitted; instead I capture their semantic meaning (agents, tasks, prompts, goals, routing logic, step order, dependencies).
+# - No new classes or properties were added; everything uses classes/properties available in the provided ontologies.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@base <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+
+#################################################################
+# Agentic system (top-level)
+#################################################################
+
+:JokeAgenticSystem
+    a :AgenticSystem ;
+    dcterms:description "Agentic system implementing the three-step joke refinement flow (generate → conditional router → improve (optional) → polish). The system coordinates three single-agent crews and an orchestration (process modeled as sequential)." ;
+    :containsTeam :GenerateJokeTeam ,
+                  :ImproveJokeTeam ,
+                  :PolishJokeTeam ;
+    :containsOrchestration :JokeOrchestration .
+
+#################################################################
+# Orchestration and workflow pattern / schema
+#################################################################
+
+:JokeOrchestration
+    a :Orchestration ;
+    rdfs:label "JokeFlow Orchestration" ;
+    dcterms:description "Orchestration representing the JokeFlow controller that sequences three single-agent crews. Execution process: sequential (start -> router -> conditional/listen -> final). Invokes teams as sub-crews/kickoffs." ;
+    :orchestratesTeam :GenerateJokeTeam ,
+                      :ImproveJokeTeam ,
+                      :PolishJokeTeam ;
+    agento:hasWorkflowPattern :JokeFlowPattern ;
+    :hasOutputSchema :JokeStateSchema .
+
+:JokeFlowPattern
+    a agento:WorkflowPattern ;
+    rdfs:label "JokeFlowPattern" ;
+    dcterms:description "Workflow pattern capturing the start, routing (conditional), optional improvement, and polishing steps for a joke refinement flow." ;
+    agento:hasWorkflowStep :Step_generate_joke ,
+                          :Step_check_punchline ,
+                          :Step_improve_joke ,
+                          :Step_polish_joke .
+
+:JokeStateSchema
+    a :Schema ;
+    rdfs:label "JokeState (schema)" ;
+    :hasSchemaDefinition """
+Pydantic-like state schema (JokeState):
+- topic: str = \"cats\"   # default example
+- joke: str = \"\"
+- improved_joke: str = \"\"
+- final_joke: str = \"\"
+
+Semantics: 'topic' is input to the generate_joke task. 'joke' holds the initial generated joke. If the router determines the joke already has a punchline, the improvement step is skipped. 'improved_joke' and 'final_joke' hold successive refinements.
+""" .
+
+#################################################################
+# Teams (one crew per team)
+#################################################################
+
+:GenerateJokeTeam
+    a agento:Team ;
+    rdfs:label "GenerateJokeTeam" ;
+    dcterms:description "Single-agent crew that writes a short joke on a given topic (YAML-configured agent + task). Process in orchestration: start node." ;
+    agento:hasAgentMember :agent_joke_generator ;
+    agento:hasTeamGoal :Goal_GenerateJoke ;
+    :employsCoordinationPattern :Sequential .
+
+:ImproveJokeTeam
+    a agento:Team ;
+    rdfs:label "ImproveJokeTeam" ;
+    dcterms:description "Single-agent crew that improves a joke by adding clever wordplay (YAML-configured agent + task). Executed conditionally when the initial joke lacks a punchline." ;
+    agento:hasAgentMember :agent_joke_improver ;
+    agento:hasTeamGoal :Goal_ImproveJoke ;
+    :employsCoordinationPattern :Sequential .
+
+:PolishJokeTeam
+    a agento:Team ;
+    rdfs:label "PolishJokeTeam" ;
+    dcterms:description "Single-agent crew that adds a surprising twist to the improved joke (YAML-configured agent + task). Final polishing step." ;
+    agento:hasAgentMember :agent_joke_polisher ;
+    agento:hasTeamGoal :Goal_PolishJoke ;
+    :employsCoordinationPattern :Sequential .
+
+#################################################################
+# Goals (for agents/teams)
+#################################################################
+
+:Goal_GenerateJoke
+    a agento:Goal ;
+    dcterms:description "Write a short joke on the given topic." ;
+    rdfs:label "Generate joke goal" .
+
+:Goal_ImproveJoke
+    a agento:Goal ;
+    dcterms:description "Improve a joke by adding clever wordplay." ;
+    rdfs:label "Improve joke goal" .
+
+:Goal_PolishJoke
+    a agento:Goal ;
+    dcterms:description "Add a surprising twist to a joke." ;
+    rdfs:label "Polish joke goal" .
+
+#################################################################
+# Agents (LLM agents)
+#################################################################
+
+:agent_joke_generator
+    a agento:LLMAgent ;
+    agento:agentID "joke_generator" ;
+    agento:agentRole "Joke Generator" ;
+    agento:hasAgentConfig :Config_agent_joke_generator ;
+    agento:hasAgentGoal :Goal_GenerateJoke ;
+    agento:agentPrompt :Prompt_agent_joke_generator ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "Configured LLM agent representing the role 'Joke Generator'. Backstory: A witty comedian who comes up with sharp, short jokes." .
+
+:agent_joke_improver
+    a agento:LLMAgent ;
+    agento:agentID "joke_improver" ;
+    agento:agentRole "Joke Improver" ;
+    agento:hasAgentConfig :Config_agent_joke_improver ;
+    agento:hasAgentGoal :Goal_ImproveJoke ;
+    agento:agentPrompt :Prompt_agent_joke_improver ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "Configured LLM agent representing the role 'Joke Improver'. Backstory: A seasoned writer who polishes jokes for punch." .
+
+:agent_joke_polisher
+    a agento:LLMAgent ;
+    agento:agentID "joke_polisher" ;
+    agento:agentRole "Joke Polisher" ;
+    agento:hasAgentConfig :Config_agent_joke_polisher ;
+    agento:hasAgentGoal :Goal_PolishJoke ;
+    agento:agentPrompt :Prompt_agent_joke_polisher ;
+    agento:useLanguageModel :LM_gpt4o ;
+    dcterms:description "Configured LLM agent representing the role 'Joke Polisher'. Backstory: A storyteller who knows how to twist endings for effect." .
+
+#################################################################
+# Language model (shared)
+#################################################################
+
+:LM_gpt4o
+    a agento:LanguageModel ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "Language model specified in crew definitions (llm = 'gpt-4o')." .
+
+#################################################################
+# Agent configuration (represents content of config/agents.yaml)
+#################################################################
+
+:Config_agent_joke_generator
+    a agento:Config ;
+    rdfs:label "Config: joke_generator" ;
+    agento:configKey "role" ;
+    agento:configValue "Joke Generator" ;
+    agento:configKey "goal" ;
+    agento:configValue "Write a short joke on the given topic." ;
+    agento:configKey "backstory" ;
+    agento:configValue "A witty comedian who comes up with sharp, short jokes." .
+
+:Config_agent_joke_improver
+    a agento:Config ;
+    rdfs:label "Config: joke_improver" ;
+    agento:configKey "role" ;
+    agento:configValue "Joke Improver" ;
+    agento:configKey "goal" ;
+    agento:configValue "Improve a joke by adding clever wordplay." ;
+    agento:configKey "backstory" ;
+    agento:configValue "A seasoned writer who polishes jokes for punch." .
+
+:Config_agent_joke_polisher
+    a agento:Config ;
+    rdfs:label "Config: joke_polisher" ;
+    agento:configKey "role" ;
+    agento:configValue "Joke Polisher" ;
+    agento:configKey "goal" ;
+    agento:configValue "Add a surprising twist to a joke." ;
+    agento:configKey "backstory" ;
+    agento:configValue "A storyteller who knows how to twist endings for effect." .
+
+#################################################################
+# Tasks and task configs (reflect config/tasks.yaml + expected outputs)
+#################################################################
+
+:generate_joke_task
+    a agento:Task ;
+    rdfs:label "generate_joke" ;
+    dcterms:description "Write a short joke about {topic}." ;
+    :hasExpectedOutput "A short joke as a single line of text." ;
+    agento:performedByAgent :agent_joke_generator ;
+    agento:taskPrompt :Prompt_task_generate_joke ;
+    agento:hasConfig :Config_task_generate_joke ;
+    :taskToolUsage :LM_gpt4o ;
+    :dependsOn [] .  # no predecessor
+
+:improve_joke_task
+    a agento:Task ;
+    rdfs:label "improve_joke" ;
+    dcterms:description "Make this joke funnier by adding wordplay: {joke}" ;
+    :hasExpectedOutput "A funnier version of the joke." ;
+    agento:performedByAgent :agent_joke_improver ;
+    agento:taskPrompt :Prompt_task_improve_joke ;
+    agento:hasConfig :Config_task_improve_joke ;
+    :taskToolUsage :LM_gpt4o ;
+    :dependsOn :generate_joke_task .
+
+:polish_joke_task
+    a agento:Task ;
+    rdfs:label "polish_joke" ;
+    dcterms:description "Add a surprising twist to this joke: {improved_joke}" ;
+    :hasExpectedOutput "A polished joke with a surprising twist." ;
+    agento:performedByAgent :agent_joke_polisher ;
+    agento:taskPrompt :Prompt_task_polish_joke ;
+    agento:hasConfig :Config_task_polish_joke ;
+    :taskToolUsage :LM_gpt4o ;
+    :dependsOn :improve_joke_task .
+
+# Task config objects (reflect tasks.yaml content)
+:Config_task_generate_joke
+    a agento:Config ;
+    rdfs:label "Config: generate_joke" ;
+    agento:configKey "description" ;
+    agento:configValue "Write a short joke about {topic}." ;
+    agento:configKey "expected_output" ;
+    agento:configValue "A short joke as a single line of text." ;
+    agento:configKey "agent" ;
+    agento:configValue "joke_generator" .
+
+:Config_task_improve_joke
+    a agento:Config ;
+    rdfs:label "Config: improve_joke" ;
+    agento:configKey "description" ;
+    agento:configValue "Make this joke funnier by adding wordplay: {joke}" ;
+    agento:configKey "expected_output" ;
+    agento:configValue "A funnier version of the joke." ;
+    agento:configKey "agent" ;
+    agento:configValue "joke_improver" .
+
+:Config_task_polish_joke
+    a agento:Config ;
+    rdfs:label "Config: polish_joke" ;
+    agento:configKey "description" ;
+    agento:configValue "Add a surprising twist to this joke: {improved_joke}" ;
+    agento:configKey "expected_output" ;
+    agento:configValue "A polished joke with a surprising twist." ;
+    agento:configKey "agent" ;
+    agento:configValue "joke_polisher" .
+
+#################################################################
+# Prompts (agent-level and task-level)
+#################################################################
+
+:Prompt_agent_joke_generator
+    a agento:Prompt ;
+    rdfs:label "AgentPrompt: joke_generator" ;
+    agento:promptContext "Backstory: A witty comedian who comes up with sharp, short jokes." ;
+    agento:promptInstruction "Role: Joke Generator. Goal: Write a short joke on the given topic." ;
+    agento:promptOutputIndicator "A short joke as a single line of text." .
+
+:Prompt_agent_joke_improver
+    a agento:Prompt ;
+    rdfs:label "AgentPrompt: joke_improver" ;
+    agento:promptContext "Backstory: A seasoned writer who polishes jokes for punch." ;
+    agento:promptInstruction "Role: Joke Improver. Goal: Improve a joke by adding clever wordplay." ;
+    agento:promptOutputIndicator "A funnier version of the joke." .
+
+:Prompt_agent_joke_polisher
+    a agento:Prompt ;
+    rdfs:label "AgentPrompt: joke_polisher" ;
+    agento:promptContext "Backstory: A storyteller who knows how to twist endings for effect." ;
+    agento:promptInstruction "Role: Joke Polisher. Goal: Add a surprising twist to a joke." ;
+    agento:promptOutputIndicator "A polished joke with a surprising twist." .
+
+:Prompt_task_generate_joke
+    a agento:Prompt ;
+    rdfs:label "TaskPrompt: generate_joke" ;
+    agento:promptInstruction "Write a short joke about {topic}." ;
+    agento:promptInputData "{topic}" ;
+    agento:promptOutputIndicator "A short joke as a single line of text." ;
+    :hasDirectiveFunction "Generate initial joke text" .
+
+:Prompt_task_improve_joke
+    a agento:Prompt ;
+    rdfs:label "TaskPrompt: improve_joke" ;
+    agento:promptInstruction "Make this joke funnier by adding wordplay: {joke}" ;
+    agento:promptInputData "{joke}" ;
+    agento:promptOutputIndicator "A funnier version of the joke." ;
+    :hasDirectiveFunction "Refine/edit provided joke to increase funniness via wordplay" .
+
+:Prompt_task_polish_joke
+    a agento:Prompt ;
+    rdfs:label "TaskPrompt: polish_joke" ;
+    agento:promptInstruction "Add a surprising twist to this joke: {improved_joke}" ;
+    agento:promptInputData "{improved_joke}" ;
+    agento:promptOutputIndicator "A polished joke with a surprising twist." ;
+    :hasDirectiveFunction "Finalize joke text with a surprise twist" .
+
+#################################################################
+# Workflow steps (mapped from Flow methods)
+#################################################################
+
+:Step_generate_joke
+    a agento:StartStep ;
+    rdfs:label "Start: generate_joke" ;
+    agento:stepOrder 1 ;
+    agento:hasAssociatedTask :generate_joke_task ;
+    :hasAssociatedAgent :agent_joke_generator ;
+    dcterms:description "Start step: invokes the GenerateJokeTeam crew to produce an initial joke. Implementation note: calls GenerateJokeCrew().crew().kickoff(inputs={'topic': state.topic})." ;
+    :hasDecoratorArgument "@start()" .
+
+:Step_check_punchline
+    a :ConditionalStep ;
+    rdfs:label "Router: check_punchline" ;
+    agento:stepOrder 2 ;
+    agento:hasAssociatedTask [] ;
+    :hasRoutingLogic "Gate: inspect current state 'joke' string. If the joke contains '?' or '!' return 'Pass' (skip improve); otherwise return 'Fail' (execute improve_joke). Implemented in source as: if \"?\" in joke or \"!\" in joke -> 'Pass' else 'Fail'." ;
+    :hasDecoratorArgument "@router(generate_joke) — produces 'Pass' or 'Fail' branching labels." ;
+    dcterms:description "Routing step that decides whether to call the improve_joke crew. 'Pass' label corresponds to skipping improvement; 'Fail' corresponds to invoking the ImproveJokeTeam." .
+
+:Step_improve_joke
+    a agento:WorkflowStep ;
+    rdfs:label "Listen / improve_joke" ;
+    agento:stepOrder 3 ;
+    agento:hasAssociatedTask :improve_joke_task ;
+    :hasAssociatedAgent :agent_joke_improver ;
+    dcterms:description "Conditional listener step executed on branch 'Fail'. Invokes ImproveJokeCrew().crew().kickoff(inputs={'joke': state.joke})." ;
+    :hasDecoratorArgument "@listen('Fail')" .
+
+:Step_polish_joke
+    a agento:WorkflowStep ;
+    rdfs:label "Listen / polish_joke" ;
+    agento:stepOrder 4 ;
+    agento:hasAssociatedTask :polish_joke_task ;
+    :hasAssociatedAgent :agent_joke_polisher ;
+    dcterms:description "Final listener step invoked after improvement (or directly after generate_joke if improvement was skipped). Invokes PolishJokeCrew().crew().kickoff(inputs={'improved_joke': state.improved_joke})." ;
+    :hasDecoratorArgument "@listen(improve_joke)" .
+
+#################################################################
+# Task dependencies / runtime relationships (semantic)
+#################################################################
+
+:improve_joke_task :dependsOn :generate_joke_task .
+:polish_joke_task :dependsOn :improve_joke_task .
+
+#################################################################
+# Misc / descriptive links
+#################################################################
+
+# Indicate that the tasks produce textual outputs that populate the JokeState schema fields
+:generate_joke_task dcterms:description "Produces 'joke' (string) stored into state.joke. Template: description uses input {topic}." .
+:improve_joke_task dcterms:description "Produces 'improved_joke' (string) stored into state.improved_joke. Template: description uses input {joke}." .
+:polish_joke_task dcterms:description "Produces 'final_joke' (string) stored into state.final_joke. Template: description uses input {improved_joke}." .
+
+#################################################################
+# Coordination pattern instances reused from ontology (examples)
+#################################################################
+
+:Sequential a :CoordinationPattern ;
+    rdfs:label "Sequential" ;
+    dcterms:description "Coordination pattern indicating sequential processing order. (re-used from coordination pattern individuals defined in the ontology)" .

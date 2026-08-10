@@ -1,0 +1,169 @@
+# Issues / Assumptions:
+# - The ontology lacks a first-class key->value structure for Config entries (no property that ties a specific configKey literal to a specific configValue literal). Config is modeled using repeated configKey/configValue triples on the same Config instance; this loses an explicit binding between each key and its value. A richer key/value or map construct would be useful.
+# - The ontology does not provide explicit modeling for function signatures, parameter names/types, or return types (tools are modeled as Tool individuals with hasInputSchema string literals instead).
+# - Internal algorithmic/implementation details (for example, the internal ReAct reasoning loop, internal control flow of the CrewAI framework, or the exact SDK calls) cannot be modeled and were intentionally omitted. The ReAct-style reasoning behavior is captured semantically by linking the agent to a reasoning pattern but not the step-by-step loop implementation.
+# - The CrewAI Flow-level start/listen orchestration and the exact control flow (kicking off the crew, capturing outputs, printing) are only represented at a high level (WorkflowPattern / WorkflowStep / AgenticSystem). Low-level framework constructs and method names are not represented.
+# - The Process.sequential value from the source code is represented as a coordination/workflow pattern (employsCoordinationPattern -> Sequential and a WorkflowPattern instance). This is an interpretation because the ontology separates CoordinationPattern and WorkflowPattern; both are used to convey intent.
+# - No new classes or properties were introduced; everything is expressed using the provided ontology. Where information did not fit exactly, it was preserved as literals (e.g., hasImplementationReference, hasInputSchema, promptInstruction).
+
+@prefix : <http://example.org/maths_crew#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://example.org/maths_crew#> .
+
+#################################################################
+#    Agentic system / team / orchestration
+#################################################################
+
+:MathsAgenticSystem
+    rdf:type agentoscin:AgenticSystem ;
+    rdfs:label "Maths Agentic System" ;
+    dcterms:description
+        "Agentic system wrapping the single-agent MathsCrew and its orchestration." ;
+    agentoscin:hasSourceFramework "CrewAI" ;
+    agentoscin:containsOrchestration :MathsOrchestration ;
+    agentoscin:containsTeam :MathsOrchestration ;
+    agentoscin:containsAgent :OurAgent .
+
+:MathsOrchestration
+    rdf:type agentoscin:Orchestration ;
+    rdfs:label "MathsCrew (Orchestration)" ;
+    dcterms:description "Orchestration representing the MathsCrew. Single-agent crew executing arithmetic tasks via an LLM-driven agent." ;
+    agento:hasAgentMember :OurAgent ;
+    agentoscin:employsCoordinationPattern agentoscin:Sequential ;
+    agento:hasWorkflowPattern :MathsWorkflowPattern .
+
+#################################################################
+#    Agent (LLM agent) and configuration
+#################################################################
+
+:OurAgent
+    rdf:type agento:LLMAgent ;
+    rdfs:label "our_agent" ;
+    agento:agentID "our_agent" ;
+    agento:agentRole "Maths Reasoning Assistant" ;
+    agento:hasAgentConfig :OurAgentConfig ;
+    agento:hasAgentGoal :AnswerQueryGoal ;
+    agento:agentPrompt :OurAgentPrompt ;
+    agento:useLanguageModel :gpt4o ;
+    agentoscin:hasReasoningEnabled "true"^^xsd:boolean ;
+    agentoscin:employsReasoningPattern :ReActPattern ;
+    rdfs:comment "LLM-based agent configured to answer user queries and call arithmetic tools when needed." .
+
+:OurAgentConfig
+    rdf:type agento:Config ;
+    rdfs:label "our_agent config" ;
+    # Multiple key/value triples are attached (see Issues/Assumptions about lack of explicit binding)
+    agento:configKey "role" ;
+    agento:configValue "Maths Reasoning Assistant" ;
+    agento:configKey "goal" ;
+    agento:configValue "Answer the user query, calling arithmetic tools when needed." ;
+    agento:configKey "backstory" ;
+    agento:configValue
+        "You are an AI assistant that answers user queries to the best of your ability, using the available tools whenever a step requires computation." .
+
+:ReActPattern
+    rdf:type agentoscin:ReAct ;
+    rdfs:label "ReAct reasoning pattern (semantic)" ;
+    dcterms:description "Semantic marker indicating the agent follows a ReAct-style reasoning+action pattern (interleaving reasoning with tool calls)." .
+
+:gpt4o
+    rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model specified in crew definition (llm = \"gpt-4o\")." .
+
+:OurAgentPrompt
+    rdf:type agento:Prompt ;
+    rdfs:label "our_agent backstory prompt" ;
+    agento:promptInstruction
+        "You are an AI assistant that answers user queries to the best of your ability, using the available tools whenever a step requires computation." ;
+    agento:promptContext "Role: Maths Reasoning Assistant" ;
+    agentoscin:hasSourceAttribute "crews/maths_crew/config/agents.yaml::our_agent" .
+
+#################################################################
+#    Task(s), prompts and goals
+#################################################################
+
+:AnswerQueryTask
+    rdf:type agento:Task ;
+    rdfs:label "answer_query" ;
+    dcterms:description
+        "Answer the following user query, using the available arithmetic tools whenever a step requires computation: {query}" ;
+    agentoscin:hasExpectedOutput
+        "A direct natural-language answer to the user query." ;
+    agento:performedByAgent :OurAgent ;
+    agentoscin:taskToolUsage :ToolAdd , :ToolSubtract , :ToolMultiply ;
+    agento:taskPrompt :AnswerQueryPrompt ;
+    rdfs:comment "Task configured in crews/maths_crew/config/tasks.yaml and executed by the crew's agent." .
+
+:AnswerQueryPrompt
+    rdf:type agento:Prompt ;
+    rdfs:label "answer_query prompt" ;
+    agento:promptInstruction
+        "Answer the following user query, using the available arithmetic tools whenever a step requires computation: {query}" ;
+    agento:promptOutputIndicator "A direct natural-language answer to the user query." ;
+    agentoscin:hasSourceAttribute "crews/maths_crew/config/tasks.yaml::answer_query" .
+
+:AnswerQueryGoal
+    rdf:type agento:Goal ;
+    rdfs:label "Answer user query goal" ;
+    dcterms:description "Answer the user query, calling arithmetic tools when needed." .
+
+#################################################################
+#    Tools (arithmetic primitives)
+#################################################################
+
+:ToolAdd
+    rdf:type agento:Tool ;
+    rdfs:label "add" ;
+    dcterms:description "This is an addition function that adds 2 numbers together." ;
+    agentoscin:hasImplementationReference "tools/arithmetic.py::add" ;
+    agentoscin:hasInputSchema "params: (a: int, b: int) -> int" .
+
+:ToolSubtract
+    rdf:type agento:Tool ;
+    rdfs:label "subtract" ;
+    dcterms:description "Subtraction function." ;
+    agentoscin:hasImplementationReference "tools/arithmetic.py::subtract" ;
+    agentoscin:hasInputSchema "params: (a: int, b: int) -> int" .
+
+:ToolMultiply
+    rdf:type agento:Tool ;
+    rdfs:label "multiply" ;
+    dcterms:description "Multiplication function." ;
+    agentoscin:hasImplementationReference "tools/arithmetic.py::multiply" ;
+    agentoscin:hasInputSchema "params: (a: int, b: int) -> int" .
+
+#################################################################
+#    Workflow / steps (high-level)
+#################################################################
+
+:MathsWorkflowPattern
+    rdf:type agento:WorkflowPattern ;
+    rdfs:label "MathsCrew sequential workflow" ;
+    dcterms:description
+        "Workflow of the MathsCrew: a sequential process where the 'answer_query' task is executed by our_agent. The surrounding Flow (start/listen) is represented at a high level: the crew is kicked off with a query input and the resulting answer is published." ;
+    agento:hasWorkflowStep :AnswerQueryStep .
+
+:AnswerQueryStep
+    rdf:type agento:WorkflowStep ;
+    rdfs:label "Answer Query Step" ;
+    agento:hasAssociatedTask :AnswerQueryTask ;
+    agentoscin:hasAssociatedAgent :OurAgent ;
+    agento:stepOrder "1"^^xsd:integer ;
+    rdfs:comment "High-level workflow step responsible for executing the answer_query task." .
+
+#################################################################
+#    Misc / provenance
+#################################################################
+
+# Note: The orchestration and crew are represented as an Orchestration (a Team) inside an AgenticSystem.
+# The Flow-level details (Flow entrypoints, listen/start decorators, Process.sequential) are captured
+# semantically via the workflow/coordination pattern and agentic system description above.
+
+# End of instance data for the MathsCrew solution.

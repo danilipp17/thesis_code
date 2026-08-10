@@ -1,0 +1,59 @@
+"""
+travel-planning — CrewAI Flow port of the AutoGen original.
+
+Original: examples/parallel/travel-planning/autogen — four AssistantAgents
+(planner, local, language, summary) in a SelectorGroupChat coordinated
+by a TextMentionTermination("TERMINATE") condition.
+
+CrewAI mapping:
+  - AssistantAgent          -> crewai.Agent
+  - SelectorGroupChat       -> TravelPlanningCrew (Process.sequential)
+                                (CrewAI has no selector-based routing;
+                                 the four agents run in fixed order,
+                                 documented as a thesis finding)
+  - TextMentionTermination  -> implicit at end of last task
+  - top-level Flow wraps the single crew, matching the other Flow ports.
+"""
+
+import dotenv
+from pydantic import BaseModel
+
+from crewai.flow.flow import Flow, listen, start
+
+dotenv.load_dotenv()
+
+from crews.travel_planning_crew.travel_planning_crew import TravelPlanningCrew
+
+
+class TravelPlanningState(BaseModel):
+    """Flow state — customize fields as needed."""
+    plan: str = ""
+    request: str = "Plan a 10 day trip to Luxembourg."
+
+
+class TravelPlanningFlow(Flow[TravelPlanningState]):
+    """CrewAI Flow that orchestrates the TravelPlanningCrew."""
+
+    @start()
+    def plan_trip(self):
+        print("Kicking off TravelPlanningCrew...")
+        result = (
+            TravelPlanningCrew()
+            .crew()
+            .kickoff(inputs={"request": self.state.request})
+        )
+        # store the raw result in the flow state for publishing
+        self.state.plan = str(getattr(result, "raw", result))
+
+    @listen(plan_trip)
+    def publish(self):
+        print("Final travel plan:")
+        print(self.state.plan)
+
+
+def kickoff():
+    TravelPlanningFlow().kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()

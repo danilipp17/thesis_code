@@ -1,0 +1,434 @@
+[
+  {
+    "group": "pre-fixup",
+    "cell": "gen joke/crewai",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen joke/autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen code-review/crewai",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen code-review/langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen tech-blog/crewai",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen tech-blog/langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen tech-blog/autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen travel-planning/crewai",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen travel-planning/langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "gen maths/autogen",
+    "verdict": "NO-GOAL",
+    "detail": "runs but goal not produced",
+    "varies": true,
+    "goal": false
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "cross joke crewai->autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "cross joke langgraph->autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "cross tech-blog crewai->autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "pre-fixup",
+    "cell": "cross travel-planning crewai->autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "gen__joke__langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "gen__code-review__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "gen__meeting-assistant-flow__crewai",
+    "verdict": "ERROR",
+    "detail": "ValidationError: 1 validation error for MeetingFlow\n  Value error, Flow state model must have an 'id' field [type=value_error, input_value={}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "gen__meeting-assistant-flow__langgraph",
+    "verdict": "NO-GOAL",
+    "detail": "runs but goal not produced",
+    "varies": true,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "gen__meeting-assistant-flow__autogen",
+    "verdict": "ERROR",
+    "detail": "KeyError: 'tasks'",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "gen__travel-planning__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "gen__maths__crewai",
+    "verdict": "ERROR",
+    "detail": "AttributeError: 'str' object has no attribute 'get'",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "gen__maths__langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__joke__crewai__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "KeyError: 'Pass'",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__joke__langgraph__to__crewai",
+    "verdict": "ERROR",
+    "detail": "ValidationError: 1 validation error for Agent\nbackstory\n  Field required [type=missing, input_value={'llm': 'gpt-4o', 'reason... generate initial joke'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__joke__autogen__to__crewai",
+    "verdict": "ERROR",
+    "detail": "AttributeError: 'Crew' object has no attribute 'run'",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__joke__autogen__to__langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__code-review__crewai__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "TypeError: 'StructuredTool' object is not callable",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__code-review__crewai__to__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__code-review__langgraph__to__crewai",
+    "verdict": "ERROR",
+    "detail": "ModuleNotFoundError: No module named 'tools'",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__code-review__langgraph__to__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__code-review__autogen__to__crewai",
+    "verdict": "ERROR",
+    "detail": "TypeError: inputs must be a dict or Mapping, got str",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__code-review__autogen__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "TypeError: 'ChatOpenAI' object is not callable",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__tech-blog__crewai__to__langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__tech-blog__langgraph__to__crewai",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__tech-blog__langgraph__to__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__tech-blog__autogen__to__crewai",
+    "verdict": "ERROR",
+    "detail": "ValidationError: 3 validation errors for Agent\nrole\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ngoal\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nbackstory\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__tech-blog__autogen__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "TypeError: 'ChatOpenAI' object is not callable",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__meeting-assistant-flow__crewai__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "InvalidUpdateError: At key 'tasks': Can receive only one value per step. Use an Annotated key to handle multiple values.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__meeting-assistant-flow__crewai__to__autogen",
+    "verdict": "ERROR",
+    "detail": "timeout after 90s",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__meeting-assistant-flow__langgraph__to__crewai",
+    "verdict": "ERROR",
+    "detail": "RuntimeError: Failed to call an LLM: \n\nYou tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.\n\nYou can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface. \n\nAlternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`\n\nA detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742\n",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__meeting-assistant-flow__langgraph__to__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__meeting-assistant-flow__autogen__to__crewai",
+    "verdict": "ERROR",
+    "detail": "RuntimeError: Agent invocation failed. Tried methods: ['__call__']",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__meeting-assistant-flow__autogen__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "ValueError: No AIMessage found in input",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__travel-planning__crewai__to__langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__travel-planning__langgraph__to__crewai",
+    "verdict": "ERROR",
+    "detail": "AttributeError: property 'state' of 'StateGraph' object has no setter",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__travel-planning__langgraph__to__autogen",
+    "verdict": "ERROR",
+    "detail": "TypeError: SelectorGroupChat.__init__() missing 1 required positional argument: 'model_client'",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__travel-planning__autogen__to__crewai",
+    "verdict": "ERROR",
+    "detail": "ValidationError: 3 validation errors for Agent\nrole\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\ngoal\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing\nbackstory\n  Field required [type=missing, input_value={'config': {}, 'llm': 'gp... False, 'memory': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__travel-planning__autogen__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "RuntimeError: Model call did not return a parsable response.",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__maths__crewai__to__langgraph",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__maths__crewai__to__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__maths__langgraph__to__crewai",
+    "verdict": "ERROR",
+    "detail": "APIRemovedInV1: \n\nYou tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.\n\nYou can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface. \n\nAlternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`\n\nA detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742\n",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__maths__langgraph__to__autogen",
+    "verdict": "GENUINE",
+    "detail": "varies across runs",
+    "varies": true,
+    "goal": true
+  },
+  {
+    "group": "repair",
+    "cell": "cross__maths__autogen__to__crewai",
+    "verdict": "ERROR",
+    "detail": "ValidationError: 1 validation error for Agent\nbackstory\n  Field required [type=missing, input_value={'tools': [add(name='add'... best of your ability.'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing",
+    "varies": null,
+    "goal": false
+  },
+  {
+    "group": "repair",
+    "cell": "cross__maths__autogen__to__langgraph",
+    "verdict": "ERROR",
+    "detail": "AttributeError: 'tuple' object has no attribute 'content'",
+    "varies": null,
+    "goal": false
+  }
+]

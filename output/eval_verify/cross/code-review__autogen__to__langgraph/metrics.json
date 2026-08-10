@@ -1,0 +1,15 @@
+{
+  "family": "code-review",
+  "src": "autogen",
+  "tgt": "langgraph",
+  "triple_f1": 0.22352941176470587,
+  "aligned_triple_f1": 0.3058823529411765,
+  "individual_f1": 0.4761904761904761,
+  "property_f1": 0.3492063492063492,
+  "literal_overlap": 0.2,
+  "ast_precision": 0.438,
+  "ast_recall": 0.269,
+  "ast_f1": 0.309,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

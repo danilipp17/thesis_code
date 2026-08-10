@@ -1,0 +1,15 @@
+{
+  "family": "tech-blog",
+  "src": "autogen",
+  "tgt": "crewai",
+  "triple_f1": 0.37668161434977576,
+  "aligned_triple_f1": 0.4394618834080718,
+  "individual_f1": 0.653061224489796,
+  "property_f1": 0.6395348837209301,
+  "literal_overlap": 0.2391304347826087,
+  "ast_precision": 0.512,
+  "ast_recall": 0.407,
+  "ast_f1": 0.446,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

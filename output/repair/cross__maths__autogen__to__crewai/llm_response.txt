@@ -1,0 +1,290 @@
+### FILE: crews/round_robin_group_chat/round_robin_group_chat.py
+```python
+"""
+Auto-generated CrewAI crew: RoundRobinGroupChat
+"""
+
+import dotenv
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
+
+dotenv.load_dotenv()
+from tools.add import add
+from tools.multiply import multiply
+from tools.subtract import subtract
+
+
+@CrewBase
+class RoundRobinGroupChat:
+    """RoundRobinGroupChat"""
+
+    agents_config = "config/agents.yaml"
+    tasks_config = "config/tasks.yaml"
+
+
+    @agent
+    def our_agent(self) -> Agent:
+        # Load the YAML config for the agent so we pass a real config dict
+        # into the Agent constructor (the generator left a string path).
+        # Import locally to avoid changing top-level imports.
+        import os
+        import yaml
+
+        cfg_path = os.path.join(os.path.dirname(__file__), "config", "agents.yaml")
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            cfg = {}
+
+        # The generated config uses a mapping with key "our_agent"
+        agent_cfg = cfg.get("our_agent", {})
+
+        # Instantiate and return an Agent instance with concrete tool objects.
+        return Agent(
+            config=agent_cfg,
+            tools=[add(), subtract(), multiply()],
+            llm="gpt-4o",
+            reasoning=True,
+            memory=False,
+        )
+
+
+    @crew
+    def crew(self) -> Crew:
+        """Creates the RoundRobinGroupChat"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=False,
+        )
+```
+
+### FILE: main.py
+```python
+"""
+Auto-generated CrewAI Flow: AutoGenFlow
+"""
+
+import dotenv
+from typing import Any, Dict, List, Optional
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+dotenv.load_dotenv()
+
+
+
+
+class AutoGenFlowState(BaseModel):
+    """Flow state — customize fields as needed."""
+    pass
+
+
+class AutoGenFlow(Flow[AutoGenFlowState]):
+
+    @start()
+    def run_team(self):
+        """
+        Kick off the RoundRobinGroupChat crew and print the produced result.
+
+        We attempt a few likely runner method names on the Crew object (and,
+        as fallback, on the Agent) because generated code targets the CrewAI
+        runtime and different versions expose slightly different entry points.
+        """
+        import asyncio
+        import inspect
+
+        # Import the crew base class and instantiate it
+        from crews.round_robin_group_chat.round_robin_group_chat import RoundRobinGroupChat
+
+        rr = RoundRobinGroupChat()
+        crew = rr.crew()
+
+        task_text = (
+            "Add 40 + 12 and then multiply the result by 6. Also tell me a joke please."
+        )
+
+        result = None
+
+        # Helper to call a callable, handling async/sync transparently.
+        def call_maybe_async(fn, *args, **kwargs):
+            try:
+                res = fn(*args, **kwargs)
+            except TypeError:
+                # try without kwargs
+                res = fn(*args)
+            if inspect.isawaitable(res):
+                # run the coroutine to completion
+                return asyncio.get_event_loop().run_until_complete(res)
+            return res
+
+        # Try common crew entry points
+        crew_methods = ("run_stream", "run", "kickoff", "start", "execute", "invoke", "launch")
+        for m in crew_methods:
+            if hasattr(crew, m):
+                try:
+                    fn = getattr(crew, m)
+                    result = call_maybe_async(fn, task_text)
+                    break
+                except Exception:
+                    # If this method failed, continue to try others.
+                    continue
+
+        # Fallback: try invoking the single agent directly
+        if result is None:
+            agent = rr.our_agent()
+            agent_methods = ("run_stream", "run", "invoke", "start", "chat", "converse", "complete")
+            for m in agent_methods:
+                if hasattr(agent, m):
+                    try:
+                        fn = getattr(agent, m)
+                        # many agent methods accept either a single string or a named task kw
+                        try:
+                            result = call_maybe_async(fn, task_text)
+                        except TypeError:
+                            result = call_maybe_async(fn, task=task_text)
+                        break
+                    except Exception:
+                        continue
+
+        # As a final fallback, attempt to call a generic "kickoff" on the crew base
+        if result is None and hasattr(rr, "crew"):
+            try:
+                # Some older/generated APIs expect a kickoff or run without args
+                if hasattr(crew, "kickoff"):
+                    result = call_maybe_async(getattr(crew, "kickoff"))
+            except Exception:
+                result = None
+
+        # Print whatever we got. This must be produced by the model or the crew runtime.
+        print(result)
+
+
+def kickoff():
+    flow = AutoGenFlow()
+    flow.kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()
+```
+
+### FILE: tools/add.py
+```python
+"""
+Auto-generated tool: add
+Add two integers.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type
+
+
+class addSchema(BaseModel):
+    a: int = Field(description="")
+    b: int = Field(description="")
+
+
+class add(BaseTool):
+    name: str = "add"
+    description: str = """Add two integers."""
+    args_schema: Type[BaseModel] = addSchema
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: main.add
+
+        Implemented to perform integer addition and return the sum as a string.
+        """
+        a = kwargs.get("a")
+        b = kwargs.get("b")
+        if a is None or b is None:
+            raise ValueError("add tool requires 'a' and 'b' integer arguments")
+        try:
+            result = int(a) + int(b)
+        except Exception as e:
+            raise ValueError(f"Invalid arguments for add: {e}")
+        return str(result)
+```
+
+### FILE: tools/multiply.py
+```python
+"""
+Auto-generated tool: multiply
+Multiply two integers.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type
+
+
+class multiplySchema(BaseModel):
+    a: int = Field(description="")
+    b: int = Field(description="")
+
+
+class multiply(BaseTool):
+    name: str = "multiply"
+    description: str = """Multiply two integers."""
+    args_schema: Type[BaseModel] = multiplySchema
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: main.multiply
+
+        Implemented to perform integer multiplication and return the product as a string.
+        """
+        a = kwargs.get("a")
+        b = kwargs.get("b")
+        if a is None or b is None:
+            raise ValueError("multiply tool requires 'a' and 'b' integer arguments")
+        try:
+            result = int(a) * int(b)
+        except Exception as e:
+            raise ValueError(f"Invalid arguments for multiply: {e}")
+        return str(result)
+```
+
+### FILE: tools/subtract.py
+```python
+"""
+Auto-generated tool: subtract
+Subtract two integers.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type
+
+
+class subtractSchema(BaseModel):
+    a: int = Field(description="")
+    b: int = Field(description="")
+
+
+class subtract(BaseTool):
+    name: str = "subtract"
+    description: str = """Subtract two integers."""
+    args_schema: Type[BaseModel] = subtractSchema
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: main.subtract
+
+        Implemented to perform integer subtraction and return the difference as a string.
+        """
+        a = kwargs.get("a")
+        b = kwargs.get("b")
+        if a is None or b is None:
+            raise ValueError("subtract tool requires 'a' and 'b' integer arguments")
+        try:
+            result = int(a) - int(b)
+        except Exception as e:
+            raise ValueError(f"Invalid arguments for subtract: {e}")
+        return str(result)
+```

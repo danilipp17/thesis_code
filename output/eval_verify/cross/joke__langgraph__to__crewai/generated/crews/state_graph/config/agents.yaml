@@ -1,0 +1,9 @@
+generate_joke:
+  role: generate_joke
+  goal: First LLM call to generate initial joke
+improve_joke:
+  role: improve_joke
+  goal: Second LLM call to improve the joke
+polish_joke:
+  role: polish_joke
+  goal: Third LLM call for final polish

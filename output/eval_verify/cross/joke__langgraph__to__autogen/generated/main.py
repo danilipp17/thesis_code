@@ -1,0 +1,65 @@
+"""
+Auto-generated AutoGen application: joke
+"""
+
+import asyncio
+import dotenv
+from typing import Any, Dict, List, Optional
+
+dotenv.load_dotenv()
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+
+# -- Agents --
+generate_joke = AssistantAgent(
+    name="generate_joke",
+    model_client=model_client,
+    system_message=(
+        "First LLM call to generate initial joke"
+    ),
+)
+
+improve_joke = AssistantAgent(
+    name="improve_joke",
+    model_client=model_client,
+    system_message=(
+        "Second LLM call to improve the joke"
+    ),
+)
+
+polish_joke = AssistantAgent(
+    name="polish_joke",
+    model_client=model_client,
+    system_message=(
+        "Third LLM call for final polish"
+    ),
+)
+
+# -- Team --
+max_msg_termination = MaxMessageTermination(10)
+termination = max_msg_termination
+
+team = RoundRobinGroupChat(
+    participants=[generate_joke, improve_joke, polish_joke],
+    termination_condition=termination,
+)
+
+
+async def main():
+    stream = team.run_stream(
+        task="Perform generate_joke responsibilities"
+    )
+    await Console(stream)
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

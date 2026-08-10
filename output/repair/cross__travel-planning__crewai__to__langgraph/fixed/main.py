@@ -1,0 +1,157 @@
+"""
+Auto-generated LangGraph application: travel_planning
+"""
+
+import dotenv
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+# Graph state.
+class TravelPlanningState(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+    plan: str
+    request: str
+
+model = ChatOpenAI(model="gpt-4o")
+
+
+def _extract_text(resp) -> str:
+    """Helper to extract text content from various model return shapes."""
+    # Prefer direct content/text attributes, otherwise fall back to str().
+    if resp is None:
+        return ""
+    if hasattr(resp, "content"):
+        return resp.content
+    if hasattr(resp, "text"):
+        return resp.text
+    # Some langchain-like results expose generations
+    if hasattr(resp, "generations"):
+        gens = getattr(resp, "generations")
+        try:
+            # gens may be a list of lists or objects; be defensive
+            first = gens[0]
+            if hasattr(first, "text"):
+                return first.text
+            if isinstance(first, (list, tuple)) and hasattr(first[0], "text"):
+                return first[0].text
+        except Exception:
+            pass
+    return str(resp)
+
+
+def plan_trip(state: TravelPlanningState) -> dict:
+    """Subgraph node: plan_trip
+
+    Runs a short 4-step agent pipeline by invoking the model sequentially:
+      1) planner_agent - creates an initial high-level itinerary
+      2) local_agent - suggests local activities integrated into the plan
+      3) language_agent - adds language/communication tips
+      4) travel_summary_agent - compiles everything into a final plan (ends with TERMINATE)
+
+    The final plan text is returned in both "plan" (string) and "messages" (list with a HumanMessage)
+    so downstream nodes and the graph caller can access it.
+    """
+    request = state.get("request", "").strip()
+    if not request:
+        request = "Plan a 10 day trip to Luxembourg."
+
+    # 1) Planner agent
+    planner_system = SystemMessage(
+        content=(
+            "You are the Travel Planner. Suggest a travel plan for a user based on their request. "
+            "Produce a high-level itinerary covering accommodation, transport and the overall day-by-day structure."
+        )
+    )
+    planner_human = HumanMessage(content=f"User request:\n{request}\n\nPlease provide the itinerary.")
+    planner_resp = model.invoke([planner_system, planner_human])
+    planner_text = _extract_text(planner_resp)
+
+    # 2) Local agent
+    local_system = SystemMessage(
+        content=(
+            "You are a Local Guide. Given the initial plan, suggest authentic and interesting local activities or places "
+            "to visit and integrate them into the itinerary. Be concrete about places and activities."
+        )
+    )
+    local_human = HumanMessage(content=f"Initial plan:\n{planner_text}\n\nPlease augment with local activities integrated into the days.")
+    local_resp = model.invoke([local_system, local_human])
+    local_text = _extract_text(local_resp)
+
+    # 3) Language adviser agent
+    language_system = SystemMessage(
+        content=(
+            "You are a Language Adviser. Review the current plan and provide language or communication tips for the destination. "
+            "Keep suggestions practical for a traveler (key phrases, etiquette, signage info)."
+        )
+    )
+    language_human = HumanMessage(content=f"Plan to review:\n{local_text}\n\nPlease respond with important language/communication tips.")
+    language_resp = model.invoke([language_system, language_human])
+    language_text = _extract_text(language_resp)
+
+    # 4) Summary / Travel Summary Writer (final)
+    summary_system = SystemMessage(
+        content=(
+            "You are the Travel Summary Writer. Compile every contribution into a detailed, integrated final travel plan. "
+            "Your final response must be the complete plan. End the response with the token: TERMINATE"
+        )
+    )
+    summary_human = HumanMessage(
+        content=(
+            "Assemble a final, polished travel plan using the following inputs:\n\n"
+            f"Initial itinerary (planner):\n{planner_text}\n\n"
+            f"Local activities (local guide):\n{local_text}\n\n"
+            f"Language tips (language adviser):\n{language_text}\n\n"
+            "Produce a single, coherent travel plan suitable to give to the user. End the response with TERMINATE."
+        )
+    )
+    summary_resp = model.invoke([summary_system, summary_human])
+    summary_text = _extract_text(summary_resp)
+
+    # Prepare outgoing messages list: include final summary as a HumanMessage so downstream
+    # consumers (and the __main__ printer) can access .content on the last message object.
+    final_message = HumanMessage(content=summary_text)
+    return {"messages": [final_message], "plan": summary_text}
+
+
+def publish(state: TravelPlanningState) -> dict:
+    """Node: publish
+
+    This node simply echoes the final plan into the messages slot if available.
+    """
+    plan = state.get("plan", "")
+    if plan:
+        msg = HumanMessage(content=plan)
+        return {"messages": [msg]}
+    # Fallback: keep any existing messages
+    return {"messages": state.get("messages", [])}
+
+
+# Build the graph
+graph = StateGraph(TravelPlanningState)
+
+graph.add_node("plan_trip", plan_trip)
+graph.add_node("publish", publish)
+
+graph.add_edge(START, "plan_trip")
+graph.add_edge("plan_trip", "publish")
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    result = app.invoke({"messages": [HumanMessage(content="Start the task.")], "plan": "", "request": "Plan a 10 day trip to Luxembourg."})
+    if isinstance(result, dict):
+        for _k, _v in result.items():
+            _s = _v[-1].content if isinstance(_v, list) and _v and hasattr(_v[-1], "content") else _v
+            print(f"=== {_k} ===")
+            print(str(_s)[:800])
+    else:
+        print(result)

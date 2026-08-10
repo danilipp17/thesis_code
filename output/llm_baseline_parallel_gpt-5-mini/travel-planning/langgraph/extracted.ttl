@@ -1,0 +1,285 @@
+Issues / Assumptions:
+- Missing concept: "TextMentionTermination" (a termination triggered by a special token in LLM output, e.g., "TERMINATE") is used in the source but not represented by any TerminationCondition class in the current ontology. I document this here rather than inventing a new class/property.
+- Missing concept: explicit "StateGraph / SelectorGroupChat" execution semantics (dynamic selector/group-chat routing) are part of the original mapping but the ontology models only workflow steps and patterns. I map the StateGraph to an Orchestration + WorkflowPattern + ordered WorkflowSteps, but complex selector/selector-group semantics (e.g., dynamic selection logic) are not expressible with existing properties.
+- Missing concept: typed program constructs (Python functions, LangGraph nodes/state) and precise runtime bindings (START/END tokens, runtime State updates) cannot be modeled directly. I model the semantic equivalents: WorkflowSteps (ordered), Tasks (with expected outputs), and a Schema for the shared state (TravelState).
+- Assumption: LLMAgent runtime configuration is limited in the code to one explicit parameter we can observe (the LLM model name "gpt-4o"). I represent that as a Config tied to each agent. No other internal SDK or provider-specific parameters are recorded because they are implementation details.
+- No changes were made to the ontology schema; only individuals (instances) from the existing classes/properties were created.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix p-plan: <http://purl.org/net/p-plan#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+#################################################################
+# Agentic system
+#################################################################
+
+:TravelPlanningSystem rdf:type :AgenticSystem ;
+    rdfs:label "travel-planning (LangGraph / AutoGen port)" ;
+    :hasSourceFramework "LangGraph StateGraph (port of AutoGen example)" ;
+    :containsOrchestration :TravelOrchestration ;
+    :containsAgent :PlannerAgent ,
+                    :LocalAgent ,
+                    :LanguageAgent ,
+                    :TravelSummaryAgent ;
+    :containsTeam :TravelTeam .
+
+#################################################################
+# Team and Orchestration / Workflow pattern
+#################################################################
+
+:TravelTeam rdf:type agento:Team ;
+    rdfs:label "Travel Team" ;
+    agento:hasAgentMember :PlannerAgent ,
+                          :LocalAgent ,
+                          :LanguageAgent ,
+                          :TravelSummaryAgent .
+
+:TravelOrchestration rdf:type :Orchestration ;
+    rdfs:label "Travel Planning Orchestration (StateGraph mapping)" ;
+    :orchestratesTeam :TravelTeam ;
+    agento:hasWorkflowPattern :TravelWorkflowPattern .
+
+:TravelWorkflowPattern rdf:type agento:WorkflowPattern ;
+    rdfs:label "Travel workflow (sequential StateGraph)" ;
+    agento:hasWorkflowStep :StartStep ,
+                            :PlannerStep ,
+                            :LocalStep ,
+                            :LanguageStep ,
+                            :SummaryStep ,
+                            :EndStep .
+
+#################################################################
+# Workflow steps (ordered sequence)
+#################################################################
+
+:StartStep rdf:type agento:StartStep ;
+    rdfs:label "START" ;
+    agento:stepOrder 0 .
+
+:PlannerStep rdf:type agento:WorkflowStep ;
+    rdfs:label "planner_agent step" ;
+    agento:stepOrder 1 ;
+    :hasAssociatedAgent :PlannerAgent ;
+    agento:hasAssociatedTask :PlannerTask ;
+    agento:nextStep :LocalStep .
+
+:LocalStep rdf:type agento:WorkflowStep ;
+    rdfs:label "local_agent step" ;
+    agento:stepOrder 2 ;
+    :hasAssociatedAgent :LocalAgent ;
+    agento:hasAssociatedTask :LocalTask ;
+    agento:nextStep :LanguageStep .
+
+:LanguageStep rdf:type agento:WorkflowStep ;
+    rdfs:label "language_agent step" ;
+    agento:stepOrder 3 ;
+    :hasAssociatedAgent :LanguageAgent ;
+    agento:hasAssociatedTask :LanguageTask ;
+    agento:nextStep :SummaryStep .
+
+:SummaryStep rdf:type agento:WorkflowStep ;
+    rdfs:label "travel_summary_agent step" ;
+    agento:stepOrder 4 ;
+    :hasAssociatedAgent :TravelSummaryAgent ;
+    agento:hasAssociatedTask :SummaryTask ;
+    agento:nextStep :EndStep .
+
+:EndStep rdf:type agento:EndStep ;
+    rdfs:label "END" ;
+    agento:stepOrder 5 .
+
+#################################################################
+# Agents (LLM-based agents)
+#################################################################
+
+# Planner agent: sketches initial itinerary
+:PlannerAgent rdf:type agento:LLMAgent ;
+    rdfs:label "planner_agent" ;
+    agento:agentID "planner_agent" ;
+    agento:agentRole "planner" ;
+    :agentType "AssistantAgent (planner)" ;
+    agento:hasAgentConfig :PlannerAgentConfig ;
+    agento:useLanguageModel :GPT4oModel ;
+    :agentPrompt :PlannerPrompt .
+
+# Local agent: adds local activities
+:LocalAgent rdf:type agento:LLMAgent ;
+    rdfs:label "local_agent" ;
+    agento:agentID "local_agent" ;
+    agento:agentRole "local" ;
+    :agentType "AssistantAgent (local)" ;
+    agento:hasAgentConfig :LocalAgentConfig ;
+    agento:useLanguageModel :GPT4oModel ;
+    :agentPrompt :LocalPrompt .
+
+# Language tips agent: adds language/communication advice
+:LanguageAgent rdf:type agento:LLMAgent ;
+    rdfs:label "language_agent" ;
+    agento:agentID "language_agent" ;
+    agento:agentRole "language" ;
+    :agentType "AssistantAgent (language)" ;
+    agento:hasAgentConfig :LanguageAgentConfig ;
+    agento:useLanguageModel :GPT4oModel ;
+    :agentPrompt :LanguagePrompt .
+
+# Travel summary agent: compiles final plan and signals termination token
+:TravelSummaryAgent rdf:type agento:LLMAgent ;
+    rdfs:label "travel_summary_agent" ;
+    agento:agentID "travel_summary_agent" ;
+    agento:agentRole "summary" ;
+    :agentType "AssistantAgent (summary/integration)" ;
+    agento:hasAgentConfig :SummaryAgentConfig ;
+    agento:useLanguageModel :GPT4oModel ;
+    :agentPrompt :SummaryPrompt .
+
+#################################################################
+# Language model and agent configs
+#################################################################
+
+:GPT4oModel rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:title "gpt-4o" .
+
+:PlannerAgentConfig rdf:type agento:Config ;
+    rdfs:label "Planner agent config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+:LocalAgentConfig rdf:type agento:Config ;
+    rdfs:label "Local agent config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+:LanguageAgentConfig rdf:type agento:Config ;
+    rdfs:label "Language agent config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+:SummaryAgentConfig rdf:type agento:Config ;
+    rdfs:label "Summary agent config" ;
+    agento:configKey "model" ;
+    agento:configValue "gpt-4o" .
+
+#################################################################
+# Tasks and expected outputs
+#################################################################
+
+:PlannerTask rdf:type agento:Task ;
+    rdfs:label "Planner Task (sketch initial itinerary)" ;
+    :hasExpectedOutput "plan" ;
+    agento:hasPrompt :PlannerPrompt .
+
+:LocalTask rdf:type agento:Task ;
+    rdfs:label "Local Task (add local activities)" ;
+    :hasExpectedOutput "local_notes" ;
+    agento:hasPrompt :LocalPrompt .
+
+:LanguageTask rdf:type agento:Task ;
+    rdfs:label "Language Task (language & communication tips)" ;
+    :hasExpectedOutput "language_notes" ;
+    agento:hasPrompt :LanguagePrompt .
+
+:SummaryTask rdf:type agento:Task ;
+    rdfs:label "Summary Task (compile final plan)" ;
+    :hasExpectedOutput "final_plan" ;
+    agento:hasPrompt :SummaryPrompt .
+
+#################################################################
+# Prompts (preserve full instruction strings and mapping placeholders)
+#################################################################
+
+# Note: prompts contain placeholders referencing the shared TravelState.
+:PlannerPrompt rdf:type agento:Prompt ;
+    rdfs:label "Planner prompt" ;
+    agento:promptInstruction
+        """You are a helpful assistant that can suggest a travel plan for a user based on their request.
+
+Request: {request}""" ;
+    agento:promptInputData "TravelState.request -> {request}" ;
+    agento:promptOutputIndicator "Expected to produce an initial itinerary fragment (field: plan)" ;
+    :hasSourceFramework "original: LangGraph function planner_agent uses llm.invoke with above template" .
+
+:LocalPrompt rdf:type agento:Prompt ;
+    rdfs:label "Local prompt" ;
+    agento:promptInstruction
+        """You are a helpful assistant that can suggest authentic and interesting local activities or places to visit. Given the initial plan, contribute concrete local suggestions.
+
+Plan so far:
+{plan}""" ;
+    agento:promptInputData "TravelState.plan -> {plan}" ;
+    agento:promptOutputIndicator "Expected to produce local suggestions (field: local_notes)" ;
+    :hasSourceFramework "original: LangGraph function local_agent uses llm.invoke with above template" .
+
+:LanguagePrompt rdf:type agento:Prompt ;
+    rdfs:label "Language prompt" ;
+    agento:promptInstruction
+        """You review travel plans and provide feedback on important tips about how best to address language or communication challenges for the destination.
+
+Plan so far:
+{plan}
+
+Local suggestions:
+{local_notes}""" ;
+    agento:promptInputData "TravelState.plan, TravelState.local_notes -> {plan}, {local_notes}" ;
+    agento:promptOutputIndicator "Expected to produce language/communication advice (field: language_notes)" ;
+    :hasSourceFramework "original: LangGraph function language_agent uses llm.invoke with above template" .
+
+:SummaryPrompt rdf:type agento:Prompt ;
+    rdfs:label "Summary prompt" ;
+    agento:promptInstruction
+        """You compile all suggestions and advice from the other agents and provide a detailed final travel plan. Your final response must be the complete plan. When the plan is complete, conclude with TERMINATE.
+
+Initial plan:
+{plan}
+
+Local notes:
+{local_notes}
+
+Language notes:
+{language_notes}""" ;
+    agento:promptInputData "TravelState.plan, TravelState.local_notes, TravelState.language_notes -> {plan}, {local_notes}, {language_notes}" ;
+    agento:promptOutputIndicator "Final complete plan (field: final_plan). When complete, include the literal token: TERMINATE" ;
+    :hasSourceFramework "original: LangGraph function travel_summary_agent uses llm.invoke and instructs model to conclude with TERMINATE" .
+
+#################################################################
+# Schema for shared state (TravelState) and output schema
+#################################################################
+
+:TravelStateSchema rdf:type :Schema ;
+    rdfs:label "TravelState TypedDict schema" ;
+    :hasSchemaDefinition
+        """TypedDict TravelState {
+  request: str
+  plan: str
+  local_notes: str
+  language_notes: str
+  final_plan: str
+}""" .
+
+# The orchestration produces a structured final plan aggregated into TravelState.final_plan.
+:TravelOrchestration :hasOutputSchema :TravelStateSchema .
+
+# Also attach an explicit output schema to the SummaryTask (structured final output)
+:SummaryTask :hasOutputSchema :TravelStateSchema .
+
+#################################################################
+# Misc / provenance
+#################################################################
+
+:ExampleSource rdf:type owl:NamedIndividual ;
+    rdfs:label "Source code provenance" ;
+    dcterms:description
+        "Mapping derived from main.py: four LLM-based agents (planner, local, language, summary) composed sequentially in a StateGraph. LLM configured with ChatOpenAI model 'gpt-4o'. Summary agent must conclude with the token 'TERMINATE' to finish the flow. Shared state is the TravelState TypedDict accumulating the plan and notes." .
+
+#################################################################
+# End of instance data
+#################################################################

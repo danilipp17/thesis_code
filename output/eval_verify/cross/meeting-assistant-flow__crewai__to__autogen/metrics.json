@@ -1,0 +1,15 @@
+{
+  "family": "meeting-assistant-flow",
+  "src": "crewai",
+  "tgt": "autogen",
+  "triple_f1": 0.4854368932038835,
+  "aligned_triple_f1": 0.7378640776699029,
+  "individual_f1": 0.888888888888889,
+  "property_f1": 0.8648648648648648,
+  "literal_overlap": 0.5,
+  "ast_precision": 0.9,
+  "ast_recall": 0.452,
+  "ast_f1": 0.584,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

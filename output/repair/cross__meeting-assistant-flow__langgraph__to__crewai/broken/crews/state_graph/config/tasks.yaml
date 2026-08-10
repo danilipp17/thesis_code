@@ -1,0 +1,4 @@
+task_analyze_meeting:
+  description: f"Analyze the provided meeting transcript and generate a JSON list of {{name, description}} objects.\n\nTranscript:\n{state['transcript']}"
+  expected_output: tasks
+  agent: analyze_meeting

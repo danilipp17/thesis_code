@@ -1,0 +1,349 @@
+# Issues / Assumptions:
+# - The ontology does not have a dedicated property/class to represent "Process.sequential" or other execution semantics; I modelled ordering via WorkflowStep.stepOrder and nextStep links and documented the sequence through the WorkflowPattern. 
+# - The code-level "Flow", kickoff semantics, and runtime flags (e.g., verbose=True) cannot be modeled precisely with the current schema; I preserved inputs/default state and configuration values as literals on Prompts/Config individuals where appropriate.
+# - There is no direct property for "initial input/state" or "flow kickoff" in the schema; I encoded the default request as promptInputData for the planning task and as an Instance resource for reference.
+# - The Orchestration subclass is also a Team (in the schema). The orchestratesTeam property semantics are ambiguous for a self-orchestration mapping; I linked the Orchestration to itself (as the orchestrating team) to remain within existing classes/properties.
+# - The ontology lacks structured config key/value pairing (only generic configKey/configValue datatypes). I used Config individuals to keep explicit config entries (llm and verbose) but did not model framework-specific constructs or code.
+# - No properties exist for marking "end with TERMINATE" semantics except free-text fields; I encoded that requirement in hasExpectedOutput and Prompt.promptOutputIndicator.
+# - No property exists to represent Python source files, decorators, or SDK functions — as requested these implementation details were not modelled.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# Travel Planning agentic system and orchestration
+#################################################################
+
+:TravelPlanningSystem rdf:type :AgenticSystem ;
+    rdfs:label "Travel Planning Agentic System" ;
+    dcterms:description "Agentic system representing the TravelPlanningCrew flow and contained agents/teams." ;
+    :containsOrchestration :TravelPlanningOrchestration ;
+    :containsAgent :planner_agent ,
+                   :local_agent ,
+                   :language_agent ,
+                   :travel_summary_agent ;
+    :containsTeam :TravelPlanningOrchestration .
+
+:TravelPlanningOrchestration rdf:type :Orchestration ;
+    rdfs:label "TravelPlanningCrew Orchestration" ;
+    dcterms:description "Orchestration (crew controller) for the TravelPlanningCrew. Modeled as an Orchestration/Team controlling a sequential workflow." ;
+    :hasAgentMember :planner_agent ,
+                    :local_agent ,
+                    :language_agent ,
+                    :travel_summary_agent ;
+    :hasWorkflowPattern :TravelPlanningWorkflowPattern ;
+    :orchestratesTeam :TravelPlanningOrchestration .
+
+#################################################################
+# Workflow pattern and ordered steps (sequential process)
+#################################################################
+
+:TravelPlanningWorkflowPattern rdf:type agento:WorkflowPattern ;
+    rdfs:label "Travel Planning Sequential Workflow" ;
+    dcterms:description "A sequential workflow pattern (planning -> local -> language -> summary). Execution order encoded with WorkflowStep.stepOrder and nextStep." ;
+    agento:hasWorkflowStep :step_1_planning ,
+                           :step_2_local ,
+                           :step_3_language ,
+                           :step_4_summary .
+
+:step_1_planning rdf:type agento:StartStep ;
+    rdfs:label "Planning Step (Start)" ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agento:hasAssociatedTask :planning_task ;
+    :hasAssociatedAgent :planner_agent ;
+    :nextStep :step_2_local .
+
+:step_2_local rdf:type agento:WorkflowStep ;
+    rdfs:label "Local Suggestions Step" ;
+    agento:stepOrder "2"^^xsd:integer ;
+    agento:hasAssociatedTask :local_task ;
+    :hasAssociatedAgent :local_agent ;
+    :nextStep :step_3_language .
+
+:step_3_language rdf:type agento:WorkflowStep ;
+    rdfs:label "Language Advice Step" ;
+    agento:stepOrder "3"^^xsd:integer ;
+    agento:hasAssociatedTask :language_task ;
+    :hasAssociatedAgent :language_agent ;
+    :nextStep :step_4_summary .
+
+:step_4_summary rdf:type agento:EndStep ;
+    rdfs:label "Summary Step (End)" ;
+    agento:stepOrder "4"^^xsd:integer ;
+    agento:hasAssociatedTask :summary_task ;
+    :hasAssociatedAgent :travel_summary_agent .
+
+#################################################################
+# Agents (LLMAgents) with prompts, roles, goals, and model link
+#################################################################
+
+:planner_agent rdf:type agento:LLMAgent ;
+    rdfs:label "planner_agent (Planner)" ;
+    agento:agentID "planner_agent" ;
+    agento:agentRole "Travel Planner" ;
+    agento:hasAgentGoal :goal_planner ;
+    :agentType "planner_agent" ;
+    :useLanguageModel :gpt_4o ;
+    :hasAgentConfig :cfg_planner_agent ;
+    :agentPrompt :planner_agent_prompt .
+
+:local_agent rdf:type agento:LLMAgent ;
+    rdfs:label "local_agent (Local Guide)" ;
+    agento:agentID "local_agent" ;
+    agento:agentRole "Local Guide" ;
+    agento:hasAgentGoal :goal_local ;
+    :agentType "local_agent" ;
+    :useLanguageModel :gpt_4o ;
+    :hasAgentConfig :cfg_local_agent ;
+    :agentPrompt :local_agent_prompt .
+
+:language_agent rdf:type agento:LLMAgent ;
+    rdfs:label "language_agent (Language Adviser)" ;
+    agento:agentID "language_agent" ;
+    agento:agentRole "Language Adviser" ;
+    agento:hasAgentGoal :goal_language ;
+    :agentType "language_agent" ;
+    :useLanguageModel :gpt_4o ;
+    :hasAgentConfig :cfg_language_agent ;
+    :agentPrompt :language_agent_prompt .
+
+:travel_summary_agent rdf:type agento:LLMAgent ;
+    rdfs:label "travel_summary_agent (Travel Summary Writer)" ;
+    agento:agentID "travel_summary_agent" ;
+    agento:agentRole "Travel Summary Writer" ;
+    agento:hasAgentGoal :goal_summary ;
+    :agentType "travel_summary_agent" ;
+    :useLanguageModel :gpt_4o ;
+    :hasAgentConfig :cfg_summary_agent ;
+    :agentPrompt :summary_agent_prompt .
+
+#################################################################
+# Goals for agents (preserve goal text from agents.yaml)
+#################################################################
+
+:goal_planner rdf:type agento:Goal ;
+    rdfs:label "Planner Goal" ;
+    dcterms:description "Suggest a travel plan for a user based on their request." .
+
+:goal_local rdf:type agento:Goal ;
+    rdfs:label "Local Guide Goal" ;
+    dcterms:description "Suggest authentic and interesting local activities or places to visit." .
+
+:goal_language rdf:type agento:Goal ;
+    rdfs:label "Language Adviser Goal" ;
+    dcterms:description "Review travel plans and contribute language or communication tips." .
+
+:goal_summary rdf:type agento:Goal ;
+    rdfs:label "Summary Writer Goal" ;
+    dcterms:description "Compile every contribution into a detailed, integrated final plan. The final response must be the complete plan." .
+
+#################################################################
+# Prompts for agents (backstory) and tasks (instructions)
+#################################################################
+
+:planner_agent_prompt rdf:type agento:Prompt ;
+    rdfs:label "Planner Agent Backstory/Prompt" ;
+    agento:promptInstruction "You are a helpful assistant that can plan trips." ;
+    agento:promptContext "Role: Travel Planner" ;
+    agento:promptOutputIndicator "Produce a high-level itinerary covering accommodation, transport and the overall day-by-day structure." .
+
+:local_agent_prompt rdf:type agento:Prompt ;
+    rdfs:label "Local Agent Backstory/Prompt" ;
+    agento:promptInstruction "You are a local assistant that can suggest local activities or places to visit and can utilize any context information provided." ;
+    agento:promptContext "Role: Local Guide" ;
+    agento:promptOutputIndicator "Provide concrete local activities and integrate them into the itinerary." .
+
+:language_agent_prompt rdf:type agento:Prompt ;
+    rdfs:label "Language Agent Backstory/Prompt" ;
+    agento:promptInstruction "You provide feedback on important tips about how best to address language or communication challenges for the given destination." ;
+    agento:promptContext "Role: Language Adviser" ;
+    agento:promptOutputIndicator "Deliver notes on important language considerations for the trip." .
+
+:summary_agent_prompt rdf:type agento:Prompt ;
+    rdfs:label "Summary Agent Backstory/Prompt" ;
+    agento:promptInstruction "You take all of the suggestions and advice from the other agents and provide a detailed final travel plan. Your final response must be the complete plan." ;
+    agento:promptOutputIndicator "Final output: Complete integrated travel plan. End the response with TERMINATE." .
+
+#################################################################
+# Tasks with prompts, expected outputs and assigned agents
+#################################################################
+
+:planning_task rdf:type agento:Task ;
+    rdfs:label "planning_task" ;
+    dcterms:description "Suggest a travel plan for the following request: {request}" ;
+    :hasExpectedOutput "A high-level itinerary covering accommodation, transport and the overall day-by-day structure." ;
+    agento:performedByAgent :planner_agent ;
+    agento:taskPrompt :planning_task_prompt .
+
+:planning_task_prompt rdf:type agento:Prompt ;
+    rdfs:label "Planning Task Prompt" ;
+    agento:promptInstruction "Suggest a travel plan for the following request: {request}" ;
+    agento:promptInputData "{request}" ;
+    agento:promptOutputIndicator "A high-level itinerary covering accommodation, transport and the overall day-by-day structure." .
+
+:local_task rdf:type agento:Task ;
+    rdfs:label "local_task" ;
+    dcterms:description "Given the initial plan, suggest authentic and interesting local activities or places to visit." ;
+    :hasExpectedOutput "Concrete local activity suggestions integrated into the itinerary." ;
+    agento:performedByAgent :local_agent ;
+    agento:taskPrompt :local_task_prompt ;
+    agento:dependsOn :planning_task .
+
+:local_task_prompt rdf:type agento:Prompt ;
+    rdfs:label "Local Task Prompt" ;
+    agento:promptInstruction "Given the initial plan, suggest authentic and interesting local activities or places to visit." ;
+    agento:promptOutputIndicator "Concrete local activity suggestions integrated into the itinerary." .
+
+:language_task rdf:type agento:Task ;
+    rdfs:label "language_task" ;
+    dcterms:description "Review the current plan and provide language or communication tips for the destination." ;
+    :hasExpectedOutput "Notes on important language considerations for the trip." ;
+    agento:performedByAgent :language_agent ;
+    agento:taskPrompt :language_task_prompt ;
+    agento:dependsOn :local_task .
+
+:language_task_prompt rdf:type agento:Prompt ;
+    rdfs:label "Language Task Prompt" ;
+    agento:promptInstruction "Review the current plan and provide language or communication tips for the destination." ;
+    agento:promptOutputIndicator "Notes on important language considerations for the trip." .
+
+:summary_task rdf:type agento:Task ;
+    rdfs:label "summary_task" ;
+    dcterms:description "Compile every contribution into a detailed final travel plan." ;
+    :hasExpectedOutput "A complete, integrated travel plan. End the response with TERMINATE." ;
+    agento:performedByAgent :travel_summary_agent ;
+    agento:taskPrompt :summary_task_prompt ;
+    agento:dependsOn :language_task ;
+    agento:producedResource :final_travel_plan ;
+    :hasOutputSchema :summary_task_schema .
+
+:summary_task_prompt rdf:type agento:Prompt ;
+    rdfs:label "Summary Task Prompt" ;
+    agento:promptInstruction "Compile every contribution into a detailed final travel plan. Your final response must be the complete plan." ;
+    agento:promptOutputIndicator "A complete, integrated travel plan. End the response with TERMINATE." .
+
+:summary_task_schema rdf:type :Schema ;
+    rdfs:label "Summary Task Output Schema" ;
+    :hasSchemaDefinition "{ \"type\": \"string\", \"description\": \"Complete travel plan as textual integration of itinerary, local suggestions and language tips.\" }" .
+
+#################################################################
+# Final produced artifact (resource) and default input
+#################################################################
+
+:final_travel_plan rdf:type beam:Resource ;
+    rdfs:label "Final Travel Plan (produced by summary_task)" ;
+    dcterms:description "The integrated travel plan produced by the travel_summary_agent; expected to end with the literal word 'TERMINATE'." .
+
+:default_travel_request rdf:type beam:Instance ;
+    rdfs:label "Default Travel Request" ;
+    dcterms:description "Plan a 10 day trip to Luxembourg." .
+
+#################################################################
+# Language model used by agents
+#################################################################
+
+:gpt_4o rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "Language model identifier used by the agents (llm = 'gpt-4o' in the crew configuration)." .
+
+#################################################################
+# Agent configuration instances capturing LLM and runtime flags
+#################################################################
+
+:cfg_planner_agent rdf:type agento:Config ;
+    rdfs:label "planner_agent config" ;
+    agento:configKey "llm" ;
+    agento:configValue "gpt-4o" ;
+    agento:configKey "verbose" ;
+    agento:configValue "True" ;
+    dcterms:description "Configuration originating from config/agents.yaml and TravelPlanningCrew.agent() instantiation." .
+
+:cfg_local_agent rdf:type agento:Config ;
+    rdfs:label "local_agent config" ;
+    agento:configKey "llm" ;
+    agento:configValue "gpt-4o" ;
+    agento:configKey "verbose" ;
+    agento:configValue "True" .
+
+:cfg_language_agent rdf:type agento:Config ;
+    rdfs:label "language_agent config" ;
+    agento:configKey "llm" ;
+    agento:configValue "gpt-4o" ;
+    agento:configKey "verbose" ;
+    agento:configValue "True" .
+
+:cfg_summary_agent rdf:type agento:Config ;
+    rdfs:label "summary_agent config" ;
+    agento:configKey "llm" ;
+    agento:configValue "gpt-4o" ;
+    agento:configKey "verbose" ;
+    agento:configValue "True" .
+
+#################################################################
+# Additional metadata: mapping to YAML files and code-level notes
+#################################################################
+
+:agents_yaml rdf:type agento:Config ;
+    rdfs:label "agents.yaml (source content snapshot)" ;
+    agento:configKey "source" ;
+    agento:configValue "crews/travel_planning_crew/config/agents.yaml" ;
+    dcterms:description """planner_agent:
+  role: Travel Planner
+  goal: Suggest a travel plan for a user based on their request.
+  backstory: You are a helpful assistant that can plan trips.
+
+local_agent:
+  role: Local Guide
+  goal: Suggest authentic and interesting local activities or places to visit.
+  backstory: You are a local assistant that can suggest local activities or places to visit and can utilize any context information provided.
+
+language_agent:
+  role: Language Adviser
+  goal: Review travel plans and contribute language or communication tips.
+  backstory: You provide feedback on important tips about how best to address language or communication challenges for the given destination.
+
+travel_summary_agent:
+  role: Travel Summary Writer
+  goal: Compile every contribution into a detailed, integrated final plan.
+  backstory: You take all of the suggestions and advice from the other agents and provide a detailed final travel plan. Your final response must be the complete plan.
+""" .
+
+:tasks_yaml rdf:type agento:Config ;
+    rdfs:label "tasks.yaml (source content snapshot)" ;
+    agento:configKey "source" ;
+    agento:configValue "crews/travel_planning_crew/config/tasks.yaml" ;
+    dcterms:description """planning_task:
+  description: Suggest a travel plan for the following request: {request}
+  expected_output: A high-level itinerary covering accommodation, transport and the overall day-by-day structure.
+  agent: planner_agent
+
+local_task:
+  description: Given the initial plan, suggest authentic and interesting local activities or places to visit.
+  expected_output: Concrete local activity suggestions integrated into the itinerary.
+  agent: local_agent
+
+language_task:
+  description: Review the current plan and provide language or communication tips for the destination.
+  expected_output: Notes on important language considerations for the trip.
+  agent: language_agent
+
+summary_task:
+  description: Compile every contribution into a detailed final travel plan.
+  expected_output: A complete, integrated travel plan. End the response with TERMINATE.
+  agent: travel_summary_agent
+""" .
+
+#################################################################
+# Provenance / authoring metadata (light)
+#################################################################
+
+:TravelPlanningSystem dcterms:creator "Dani Lippmann" ;
+    dcterms:description "CrewAI port of an AutoGen travel-planning example: four agents in a sequential crew producing an integrated travel plan." .
+
+# End of instance data.

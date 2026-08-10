@@ -1,0 +1,141 @@
+"""
+Auto-generated LangGraph application: tech_blog
+"""
+
+import dotenv
+from typing import Annotated, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
+dotenv.load_dotenv()
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
+class State(TypedDict):
+    """Graph state."""
+    messages: Annotated[list, add_messages]
+
+model = ChatOpenAI(model="gpt-4o")
+
+
+def _extract_content(resp) -> str:
+    """
+    Robustly extract content from various possible return shapes of ChatOpenAI.
+    """
+    # Direct content attribute
+    if resp is None:
+        return ""
+    if isinstance(resp, str):
+        return resp
+    if hasattr(resp, "content"):
+        try:
+            return resp.content
+        except Exception:
+            pass
+    # Some versions return an object with .generations
+    if hasattr(resp, "generations"):
+        gens = getattr(resp, "generations")
+        try:
+            # gens might be list[list[Generation]]
+            if isinstance(gens, list) and gens:
+                first = gens[0]
+                if isinstance(first, list) and first:
+                    g = first[0]
+                    # Generation may have .text or .message.content
+                    if hasattr(g, "text"):
+                        return g.text
+                    if hasattr(g, "message") and hasattr(g.message, "content"):
+                        return g.message.content
+                else:
+                    g = first
+                    if hasattr(g, "text"):
+                        return g.text
+                    if hasattr(g, "message") and hasattr(g.message, "content"):
+                        return g.message.content
+        except Exception:
+            pass
+    # Some versions return an object with .content or .message
+    if hasattr(resp, "message") and hasattr(resp.message, "content"):
+        return resp.message.content
+    # Fallback to str()
+    try:
+        return str(resp)
+    except Exception:
+        return ""
+
+
+def run_team(state: State) -> dict:
+    """Subgraph node: run_team"""
+    # Extract the task from the incoming state messages (find last HumanMessage)
+    incoming = state.get("messages", [])
+    task_text = ""
+    for m in reversed(incoming):
+        if hasattr(m, "content"):
+            task_text = m.content
+            break
+    if not task_text:
+        task_text = "Please create a tech blog post about Agentic AI Frameworks."
+
+    messages_out = []
+
+    # Researcher agent
+    sys_researcher = SystemMessage(
+        content="You are a Senior Tech Researcher. Your goal is to gather comprehensive information on the requested topic and provide a detailed summary of your findings."
+    )
+    human_researcher = HumanMessage(content=f"Task: {task_text}\nPlease research and provide a comprehensive summary of the topic.")
+    try:
+        resp_research = model([sys_researcher, human_researcher])
+    except TypeError:
+        # some ChatOpenAI variants expect keywords
+        resp_research = model.call_as_llm if hasattr(model, "call_as_llm") else model([sys_researcher, human_researcher])
+    research_text = _extract_content(resp_research)
+    messages_out.append(HumanMessage(content=research_text))
+
+    # Writer agent
+    sys_writer = SystemMessage(
+        content="You are a Tech Blog Writer. Take the research provided by the Researcher and write a clear, engaging 500-word blog post. Output 'WRITTEN' when done."
+    )
+    human_writer = HumanMessage(content=f"Here is the research to use:\n\n{research_text}\n\nPlease write the blog post (approx. 500 words) and when finished output the word WRITTEN on its own line.")
+    try:
+        resp_writer = model([sys_writer, human_writer])
+    except TypeError:
+        resp_writer = model.call_as_llm if hasattr(model, "call_as_llm") else model([sys_writer, human_writer])
+    written_text = _extract_content(resp_writer)
+    messages_out.append(HumanMessage(content=written_text))
+
+    # Editor agent
+    sys_editor = SystemMessage(
+        content="You are a Content Editor. Review the blog post written by the Writer. Fix grammar, improve flow, and output the final polished version. Conclude with 'TERMINATE'."
+    )
+    human_editor = HumanMessage(content=f"Please edit and polish the following blog post. Make it flow better, fix grammar, and provide the final polished version. End the content with the word TERMINATE on its own line.\n\n{written_text}")
+    try:
+        resp_editor = model([sys_editor, human_editor])
+    except TypeError:
+        resp_editor = model.call_as_llm if hasattr(model, "call_as_llm") else model([sys_editor, human_editor])
+    final_text = _extract_content(resp_editor)
+    messages_out.append(HumanMessage(content=final_text))
+
+    return {"messages": messages_out}
+
+
+# Build the graph
+graph = StateGraph(State)
+
+graph.add_node("run_team", run_team)
+
+graph.add_edge(START, "run_team")
+
+# Compile the graph
+app = graph.compile()
+
+
+if __name__ == "__main__":
+    result = app.invoke({"messages": [HumanMessage(content="We need a blog post about Agentic AI Frameworks. Please research, write, and edit.")]})
+    if isinstance(result, dict):
+        for _k, _v in result.items():
+            _s = _v[-1].content if isinstance(_v, list) and _v and hasattr(_v[-1], "content") else _v
+            print(f"=== {_k} ===")
+            print(str(_s)[:800])
+    else:
+        print(result)

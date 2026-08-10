@@ -1,0 +1,272 @@
+# Issues / Assumptions:
+# - The ontology does not model framework-specific constructs (e.g., Python decorators @start/@listen, the Crew/Agent/Task class implementations, or the Process.sequential enum). Those are represented as workflow steps, tasks, and config literals instead.
+# - The Flow control semantics (event listeners, ordering, and concurrency) cannot be fully expressed. I modeled step order with stepOrder and explicit dependsOn edges between tasks to preserve execution relations.
+# - Pydantic types and Python source code details (method names, module paths) are not modeled as executable code. I preserved schema and implementation references as literals (Schema.hasSchemaDefinition and Tool.hasImplementationReference).
+# - Environment secrets (API keys, tokens) are stored only as variable names/placeholders (configValue uses the environment variable name). Actual secret values are not included.
+# - Some runtime concepts (in-memory state, file I/O, process invocation) are represented as WorkflowStep descriptions or Task descriptions; no new classes/properties were created.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+
+#################################################################
+# Agentic system / team / agents / tools / tasks / workflow
+#################################################################
+
+:MeetingAssistantSystem rdf:type :AgenticSystem ;
+    rdfs:label "Meeting Assistant System" ;
+    :containsTeam :MeetingAssistantCrewTeam ;
+    :containsAgent :meeting_analyzer_agent ;
+    :containsOrchestration :MeetingAssistantCrewTeam .  # the crew acts as the primary orchestration/team
+
+#################################################################
+# Team (Crew)
+#################################################################
+
+:MeetingAssistantCrewTeam rdf:type agento:Team ;
+    rdfs:label "Meeting Assistant Crew" ;
+    dcterms:description "Crew that contains the meeting_analyzer agent and runs the analyze_meeting task to convert meeting transcripts into actionable tasks." ;
+    agento:hasAgentMember :meeting_analyzer_agent ;
+    :hasWorkflowPattern :MeetingFlowPattern ;
+    :hasSystemConfig :mac_config_agents_path ,
+                      :mac_config_tasks_path ,
+                      :mac_config_llm_model ,
+                      :mac_config_process .
+
+:mac_config_agents_path rdf:type agento:Config ;
+    agento:configKey "agents_config" ;
+    agento:configValue "config/agents.yaml" .
+
+:mac_config_tasks_path rdf:type agento:Config ;
+    agento:configKey "tasks_config" ;
+    agento:configValue "config/tasks.yaml" .
+
+:mac_config_llm_model rdf:type agento:Config ;
+    agento:configKey "llm" ;
+    agento:configValue "ChatOpenAI(model=\"gpt-4\")" .
+
+:mac_config_process rdf:type agento:Config ;
+    agento:configKey "process" ;
+    agento:configValue "Process.sequential" .
+
+#################################################################
+# LLMAgent: meeting_analyzer
+#################################################################
+
+:meeting_analyzer_agent rdf:type agento:LLMAgent ;
+    rdfs:label "meeting_analyzer" ;
+    agento:agentID "meeting_analyzer" ;
+    agento:agentRole "Meeting Transcript Analysis Agent" ;
+    :agentType "meeting_analyzer (configured in config/agents.yaml)" ;
+    agento:hasAgentConfig :meeting_analyzer_config ;
+    agento:hasAgentGoal :AnalyzeMeetingGoal ;
+    agento:agentPrompt :MeetingAnalyzerAgentPrompt ;
+    agento:useLanguageModel :gpt_4_model ;
+    :employsReasoningPattern :Unspecified .  # no explicit reasoning pattern configured in code
+
+:meeting_analyzer_config rdf:type agento:Config ;
+    agento:configKey "backstory" ;
+    agento:configValue "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks." .
+
+:AnalyzeMeetingGoal rdf:type agento:Goal ;
+    rdfs:label "Analyze meeting transcript and extract actionable tasks" ;
+    dcterms:description 
+        "Analyze the provided meeting transcript and extract important, actionable tasks or issues. The goal is to break down the meeting content into well-structured, detailed issues that can be easily understood and uploaded to Trello. Here is the meeting transcript for your reference:\\n\\n {transcript}" .
+
+:MeetingAnalyzerAgentPrompt rdf:type agento:Prompt ;
+    rdfs:label "Meeting Analyzer Agent Prompt" ;
+    agento:promptInstruction 
+        "Role: Meeting Transcript Analysis Agent\\n\\nBackstory: You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks. Your ability to identify important issues helps ensure teams can follow up and address key points effectively.\\n\\nGoal: Analyze the provided meeting transcript and extract important, actionable tasks or issues. The goal is to break down the meeting content into well-structured, detailed issues that can be easily understood and uploaded to Trello.\\n\\nNote: The runtime will provide the meeting transcript as input in the variable {transcript}." ;
+    agento:promptInputData "{transcript}" ;
+    agento:promptOutputIndicator "A JSON list of issues with titles and bodies, containing clear instructions, steps to reproduce, and acceptance criteria where applicable." .
+
+:gpt_4_model rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4 (ChatOpenAI)" ;
+    dcterms:description "LanguageModel configured in MeetingAssistantCrew.llm: ChatOpenAI(model='gpt-4')." .
+
+#################################################################
+# Task: analyze_meeting (crew task)
+#################################################################
+
+:analyze_meeting_task rdf:type agento:Task ;
+    rdfs:label "analyze_meeting" ;
+    dcterms:description 
+        "Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion. Focus on breaking down the transcript into manageable tasks or issues, making sure to document each issue thoroughly with steps to reproduce, acceptance criteria, and any other relevant details.\\n\\nHere is the meeting transcript for your reference:\\n\\n {transcript}" ;
+    :hasExpectedOutput "A JSON list of issues with titles and bodies, containing clear instructions, steps to reproduce, and acceptance criteria where applicable." ;
+    agento:taskPrompt :AnalyzeMeetingTaskPrompt ;
+    agento:performedByAgent :meeting_analyzer_agent ;
+    :hasOutputSchema :MeetingTaskListSchema .
+
+:AnalyzeMeetingTaskPrompt rdf:type agento:Prompt ;
+    rdfs:label "Analyze Meeting Task Prompt" ;
+    agento:promptInstruction 
+        "Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion. Focus on breaking down the transcript into manageable tasks or issues, making sure to document each issue thoroughly with steps to reproduce, acceptance criteria, and any other relevant details.\\n\\nInput placeholder: {transcript}" ;
+    agento:promptInputData "{transcript}" ;
+    agento:promptOutputIndicator "A JSON list of issues (title/body) formatted to be saved and posted to Trello." ;
+    :hasSourceAttribute "config/tasks.yaml::expected_output" .
+
+:MeetingTaskListSchema rdf:type :Schema ;
+    rdfs:label "MeetingTaskList Schema (Pydantic)" ;
+    :hasSchemaDefinition 
+        """
+        class MeetingTask(BaseModel):
+            name: str
+            description: str
+
+        class MeetingTaskList(BaseModel):
+            tasks: list[MeetingTask]
+        """ .
+
+#################################################################
+# Tools used by flow post-processing steps
+#################################################################
+
+:TrelloAPI rdf:type agento:Tool ;
+    rdfs:label "Trello API helper (utils/trello_helper.py)" ;
+    :hasImplementationReference "crewai/meeting_assistant_flow/utils/trello_helper.py::create_trello_card / save_tasks_to_trello" ;
+    :hasInputSchema "params: key (API key), token, idList, name (card title), desc (card description)" ;
+    :hasToolConfig :trello_api_key_config ,
+                   :trello_token_config ,
+                   :trello_board_config ,
+                   :trello_list_config .
+
+:trello_api_key_config rdf:type agento:Config ;
+    agento:configKey "TRELLO_API_KEY" ;
+    agento:configValue "${TRELLO_API_KEY}" .
+
+:trello_token_config rdf:type agento:Config ;
+    agento:configKey "TRELLO_TOKEN" ;
+    agento:configValue "${TRELLO_TOKEN}" .
+
+:trello_board_config rdf:type agento:Config ;
+    agento:configKey "TRELLO_BOARD_ID" ;
+    agento:configValue "${TRELLO_BOARD_ID}" .
+
+:trello_list_config rdf:type agento:Config ;
+    agento:configKey "TRELLO_LIST_ID" ;
+    agento:configValue "${TRELLO_LIST_ID}" .
+
+:SlackAPI rdf:type agento:Tool ;
+    rdfs:label "Slack API helper (utils/slack_helper.py)" ;
+    :hasImplementationReference "crewai/meeting_assistant_flow/utils/slack_helper.py::send_message_to_channel" ;
+    :hasInputSchema "params: SLACK_TOKEN, SLACK_CHANNEL_ID, text" ;
+    :hasToolConfig :slack_token_config ,
+                   :slack_channel_config .
+
+:slack_token_config rdf:type agento:Config ;
+    agento:configKey "SLACK_TOKEN" ;
+    agento:configValue "${SLACK_TOKEN}" .
+
+:slack_channel_config rdf:type agento:Config ;
+    agento:configKey "SLACK_CHANNEL_ID" ;
+    agento:configValue "${SLACK_CHANNEL_ID}" .
+
+:CSVWriterTool rdf:type agento:Tool ;
+    rdfs:label "CSV Writer (in main.py)" ;
+    :hasImplementationReference "main.py::save_new_tasks_to_csv (writes new_tasks.csv with columns Name, Description)" ;
+    :hasInputSchema "expects list of tasks with fields: name, description" .
+
+#################################################################
+# Flow-level Tasks that consume analyze_meeting output
+#################################################################
+
+:add_tasks_to_trello_task rdf:type agento:Task ;
+    rdfs:label "add_tasks_to_trello" ;
+    dcterms:description 
+        "Iterate over generated tasks and create Trello cards for each task via the Trello API helper. The helper uses TRELLO_API_KEY, TRELLO_TOKEN, TRELLO_BOARD_ID, TRELLO_LIST_ID from environment variables." ;
+    :hasExpectedOutput "One Trello card per task successfully created (HTTP 200 responses expected)." ;
+    :dependsOn :analyze_meeting_task ;
+    agento:performedBy :TrelloAPI .
+
+:save_new_tasks_to_csv_task rdf:type agento:Task ;
+    rdfs:label "save_new_tasks_to_csv" ;
+    dcterms:description 
+        "Write generated tasks to a CSV file 'new_tasks.csv' with header row ['Name', 'Description']. Each task row uses task.name and task.description." ;
+    :hasExpectedOutput "File 'new_tasks.csv' containing the new tasks." ;
+    :dependsOn :analyze_meeting_task ;
+    agento:performedBy :CSVWriterTool .
+
+:send_slack_notification_task rdf:type agento:Task ;
+    rdfs:label "send_slack_notification" ;
+    dcterms:description 
+        "Send a Slack message notifying that N new tasks have been added to Trello. Uses SLACK_TOKEN and SLACK_CHANNEL_ID environment variables." ;
+    :hasExpectedOutput "Slack message informs the channel of the number of new tasks." ;
+    :dependsOn :analyze_meeting_task ;
+    agento:performedBy :SlackAPI .
+
+#################################################################
+# Workflow pattern and steps (Flow in main.py)
+#################################################################
+
+:MeetingFlowPattern rdf:type agento:WorkflowPattern ;
+    rdfs:label "MeetingFlow" ;
+    dcterms:description "Flow that loads meeting notes, runs the Meeting Assistant Crew to analyze the transcript, and then performs three follow-up actions: add to Trello, save CSV, and notify Slack." ;
+    agento:hasWorkflowStep :load_meeting_notes_step ,
+                           :generate_tasks_step ,
+                           :add_tasks_to_trello_step ,
+                           :save_new_tasks_step ,
+                           :send_slack_notification_step .
+
+:load_meeting_notes_step rdf:type agento:StartStep ;
+    rdfs:label "load_meeting_notes" ;
+    :stepOrder 1 ;
+    dcterms:description "Start step: reads 'meeting_notes.txt' into state.transcript; sets initial state for the flow." .
+
+:generate_tasks_step rdf:type agento:WorkflowStep ;
+    rdfs:label "generate_tasks_from_meeting_transcript" ;
+    :stepOrder 2 ;
+    dcterms:description "Kickoff the Meeting Assistant Crew: MeetingAssistantCrew().crew().kickoff(inputs={'transcript': self.state.transcript}). This triggers the analyze_meeting task implemented by meeting_analyzer agent." ;
+    :hasAssociatedTask :analyze_meeting_task ;
+    :hasAssociatedAgent :meeting_analyzer_agent ;
+    :callsCrew "MeetingAssistantCrew" ;
+    :hasDecoratorArgument "kickoff(inputs={'transcript': state.transcript})" .
+
+:add_tasks_to_trello_step rdf:type agento:WorkflowStep ;
+    rdfs:label "add_tasks_to_trello" ;
+    :stepOrder 3 ;
+    dcterms:description "Listener invoked after analyze_meeting: calls save_tasks_to_trello(self.state.tasks) which calls Trello API for each task." ;
+    :hasAssociatedTask :add_tasks_to_trello_task .
+
+:save_new_tasks_step rdf:type agento:WorkflowStep ;
+    rdfs:label "save_new_tasks_to_csv" ;
+    :stepOrder 4 ;
+    dcterms:description "Listener invoked after analyze_meeting: writes tasks to 'new_tasks.csv' with columns Name and Description." ;
+    :hasAssociatedTask :save_new_tasks_to_csv_task .
+
+:send_slack_notification_step rdf:type agento:EndStep ;
+    rdfs:label "send_slack_notification" ;
+    :stepOrder 5 ;
+    dcterms:description "Listener invoked after analyze_meeting: sends a Slack message with the count of new tasks." ;
+    :hasAssociatedTask :send_slack_notification_task ;
+    rdfs:comment "Marked as EndStep to indicate end of this flow path." .
+
+#################################################################
+# Additional metadata / references to source locations
+#################################################################
+
+:source_main_py rdf:type beam:Instance ;
+    rdfs:label "main.py (flow definition)" ;
+    dcterms:description "Entry point that defines MeetingFlow with steps: load_meeting_notes (start), generate_tasks_from_meeting_transcript (listener kicking off MeetingAssistantCrew), and listeners add_tasks_to_trello, save_new_tasks_to_csv, send_slack_notification." ;
+    agento:containsResource :MeetingFlowPattern .
+
+:source_crew_py rdf:type beam:Instance ;
+    rdfs:label "meeting_assistant_crew.py" ;
+    dcterms:description "Defines MeetingAssistantCrew: reads agents and tasks configs, configures ChatOpenAI llm='gpt-4', defines meeting_analyzer Agent and analyze_meeting Task binding to Pydantic output type MeetingTaskList." ;
+    agento:containsResource :MeetingAssistantCrewTeam .
+
+:source_tasks_yaml rdf:type beam:Instance ;
+    rdfs:label "config/tasks.yaml" ;
+    dcterms:description "Task configuration for analyze_meeting: description (prompt body with {transcript}), expected_output: JSON list of issues, agent: meeting_analyzer." .
+
+:source_agents_yaml rdf:type beam:Instance ;
+    rdfs:label "config/agents.yaml" ;
+    dcterms:description "Agent configuration for meeting_analyzer: role, goal (includes {transcript} placeholder), backstory." .
+
+#################################################################
+# End of instance data
+#################################################################

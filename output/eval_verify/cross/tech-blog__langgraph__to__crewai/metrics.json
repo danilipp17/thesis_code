@@ -1,0 +1,15 @@
+{
+  "family": "tech-blog",
+  "src": "langgraph",
+  "tgt": "crewai",
+  "triple_f1": 0.259927797833935,
+  "aligned_triple_f1": 0.5487364620938628,
+  "individual_f1": 0.8666666666666665,
+  "property_f1": 0.8744186046511628,
+  "literal_overlap": 0.3695652173913043,
+  "ast_precision": 0.62,
+  "ast_recall": 0.769,
+  "ast_f1": 0.654,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

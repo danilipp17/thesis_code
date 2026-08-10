@@ -1,0 +1,240 @@
+### FILE: crews/round_robin_group_chat/round_robin_group_chat.py
+```python
+"""
+Auto-generated CrewAI crew: RoundRobinGroupChat
+"""
+
+import dotenv
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
+
+dotenv.load_dotenv()
+from tools.code_analyzer import code_analyzer
+
+import yaml
+from pathlib import Path
+
+
+@CrewBase
+class RoundRobinGroupChat:
+    """RoundRobinGroupChat"""
+
+    # load YAML configs at runtime (so config references work as expected)
+    _base_path = Path(__file__).resolve().parent
+    agents_config_path = _base_path / "config" / "agents.yaml"
+    tasks_config_path = _base_path / "config" / "tasks.yaml"
+
+    def __init__(self):
+        # load YAML files into dictionaries
+        try:
+            with open(self.agents_config_path, "r", encoding="utf-8") as f:
+                self.agents_config = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            self.agents_config = {}
+
+        try:
+            with open(self.tasks_config_path, "r", encoding="utf-8") as f:
+                self.tasks_config = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            self.tasks_config = {}
+
+    @agent
+    def code_reviewer(self) -> Agent:
+        # The Agent constructor expects a dict config; provide parsed YAML entry.
+        cfg = self.agents_config.get("Code_Reviewer", {})
+        return Agent(
+            config=cfg,
+            tools=[code_analyzer()],
+            llm="gpt-4o",
+            reasoning=False,
+            memory=False,
+        )
+
+    @agent
+    def security_auditor(self) -> Agent:
+        cfg = self.agents_config.get("Security_Auditor", {})
+        return Agent(
+            config=cfg,
+            tools=[code_analyzer()],
+            llm="gpt-4o",
+            reasoning=False,
+            memory=False,
+        )
+
+    @agent
+    def review_summarizer(self) -> Agent:
+        cfg = self.agents_config.get("Review_Summarizer", {})
+        return Agent(
+            config=cfg,
+            llm="gpt-4o",
+            reasoning=False,
+            memory=False,
+        )
+
+
+    @crew
+    def crew(self) -> Crew:
+        """Creates the RoundRobinGroupChat"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=False,
+        )
+```
+
+### FILE: main.py
+```python
+"""
+Auto-generated CrewAI Flow: AutoGenFlow
+"""
+
+import dotenv
+from typing import Any, Dict, List, Optional
+import inspect
+import asyncio
+
+from crewai.flow.flow import Flow, listen, router, start
+from pydantic import BaseModel
+
+dotenv.load_dotenv()
+
+
+class AutoGenFlowState(BaseModel):
+    """Flow state — customize fields as needed."""
+    pass
+
+
+class AutoGenFlow(Flow[AutoGenFlowState]):
+
+    @start()
+    def run_team(self):
+        # Instantiate the generated crew and run it with a concrete task.
+        # We attempt several common runner method names on the Crew object so
+        # this works across small API differences in Crew implementations.
+        from crews.round_robin_group_chat.round_robin_group_chat import RoundRobinGroupChat
+
+        code_to_review = """
+def process_user_input(data):
+    result = eval(data)
+    return result
+"""
+        rr = RoundRobinGroupChat()
+        crew_obj = rr.crew()
+
+        task_prompt = f"Review the following code for quality and security:\n{code_to_review}"
+
+        runner_methods = ("run", "kickoff", "start", "execute", "execute_task", "launch")
+        result = None
+        for name in runner_methods:
+            if hasattr(crew_obj, name):
+                method = getattr(crew_obj, name)
+                try:
+                    maybe_result = method(task=task_prompt)
+                except TypeError:
+                    maybe_result = method(task_prompt)
+                # If coroutine, run it to completion
+                if inspect.isawaitable(maybe_result):
+                    try:
+                        maybe_result = asyncio.get_event_loop().run_until_complete(maybe_result)
+                    except RuntimeError:
+                        # no running loop, create one
+                        maybe_result = asyncio.run(maybe_result)
+                result = maybe_result
+                break
+
+        # If no runner method, try calling crew object directly if callable
+        if result is None:
+            if callable(crew_obj):
+                maybe_result = crew_obj(task_prompt)
+                if inspect.isawaitable(maybe_result):
+                    try:
+                        maybe_result = asyncio.get_event_loop().run_until_complete(maybe_result)
+                    except RuntimeError:
+                        maybe_result = asyncio.run(maybe_result)
+                result = maybe_result
+            else:
+                print("Could not find a runnable method on Crew. Exiting.")
+                return
+
+        # Print whatever the crew returned (could be None)
+        print(result)
+
+
+def kickoff():
+    flow = AutoGenFlow()
+    flow.kickoff()
+
+
+if __name__ == "__main__":
+    kickoff()
+```
+
+### FILE: tools/code_analyzer.py
+```python
+"""
+Auto-generated tool: code_analyzer
+Performs static analysis on source code. Checks for syntax errors, undefined variables, unused imports, and common anti-patterns.
+"""
+
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+from typing import Type
+
+# We'll implement the analysis here so the Crew tool is functional at runtime.
+import ast as python_ast
+
+
+class code_analyzerSchema(BaseModel):
+    code: str = Field(description="")
+    language: str = Field(description="")
+
+
+class code_analyzer(BaseTool):
+    name: str = "code_analyzer"
+    description: str = """Performs static analysis on source code. Checks for syntax errors, undefined variables, unused imports, and common anti-patterns."""
+    args_schema: Type[BaseModel] = code_analyzerSchema
+
+    def _run(self, **kwargs) -> str:
+        """
+        Implementation reference: tools.code_analyzer
+
+        Performs a lightweight static analysis using Python's ast module.
+        Returns a human-readable list of issues.
+        """
+        code = kwargs.get("code", "")
+        language = kwargs.get("language", "python")
+        if language.lower() != "python":
+            return f"Unsupported language: {language}"
+
+        issues = []
+        if not code:
+            return "No code provided."
+
+        try:
+            tree = python_ast.parse(code)
+            issues.append("Syntax: OK")
+            for node in python_ast.walk(tree):
+                # Detect bare except clauses
+                if isinstance(node, python_ast.ExceptHandler) and getattr(node, "type", None) is None:
+                    lineno = getattr(node, "lineno", "unknown")
+                    issues.append(
+                        f"Line {lineno}: Bare 'except' clause — should catch specific exceptions."
+                    )
+                # Detect use of eval() calls (common security issue)
+                if isinstance(node, python_ast.Call) and isinstance(node.func, python_ast.Name) and node.func.id == "eval":
+                    lineno = getattr(node, "lineno", "unknown")
+                    issues.append(f"Line {lineno}: Use of eval() detected — potential code injection vulnerability.")
+                # Detect exec() usage
+                if isinstance(node, python_ast.Call) and isinstance(node.func, python_ast.Name) and node.func.id == "exec":
+                    lineno = getattr(node, "lineno", "unknown")
+                    issues.append(f"Line {lineno}: Use of exec() detected — potential code injection vulnerability.")
+                # Detect duplicate imports (simple heuristic)
+                if isinstance(node, python_ast.Import):
+                    # nothing here for now; placeholder for extensibility
+                    pass
+        except SyntaxError as e:
+            issues.append(f"Syntax error at line {e.lineno}: {e.msg}")
+
+        return "\n".join(issues)
+```

@@ -1,0 +1,4 @@
+our_agent:
+  role: our_agent
+  goal: ''
+  backstory: You are my AI assistant, please answer my query to the best of your ability.

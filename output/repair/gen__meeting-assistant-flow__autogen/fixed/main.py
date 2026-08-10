@@ -1,0 +1,99 @@
+"""
+Auto-generated AutoGen application: meeting_assistant_flow
+"""
+
+import asyncio
+import dotenv
+import csv
+import json
+from typing import Any, Dict, List, Optional
+
+dotenv.load_dotenv()
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+from autogen_core.tools import FunctionTool
+from tools import save_tasks_to_trello, send_message_to_channel
+
+model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+# -- Tools --
+save_tasks_to_trello_tool = FunctionTool(
+    save_tasks_to_trello,
+    description="Push each task to a Trello board (stub).",
+)
+send_message_to_channel_tool = FunctionTool(
+    send_message_to_channel,
+    description="Post a message to a Slack channel (stub).",
+)
+
+# -- Agents --
+meeting_analyzer = AssistantAgent(
+    name="meeting_analyzer",
+    model_client=model_client,
+    system_message=(
+        "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks. Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion. Return the result as a JSON list of {name: str, description: str} objects."
+    ),
+)
+
+# -- Team --
+
+team = RoundRobinGroupChat(
+    participants=[meeting_analyzer],
+    max_turns=1,
+)
+
+
+async def main():
+    # Try to load a meeting transcript from file; if missing, use a short fallback.
+    try:
+        with open("meeting_notes.txt", "r", encoding="utf-8") as f:
+            transcript = f.read()
+    except FileNotFoundError:
+        transcript = (
+            "Attendees discussed improving the onboarding process. "
+            "Decide ownership for the new onboarding checklist and set a deadline. "
+            "Also discussed quarterly goals and scheduling a follow-up meeting."
+        )
+
+    task_prompt = (
+        "Analyze the following meeting transcript and extract actionable tasks.\n\n"
+        f"Transcript:\n{transcript}"
+    )
+
+    # Run the team and stream output to the console, collecting the final result.
+    result = await Console(team.run_stream(task=task_prompt))
+
+    # Extract the last assistant message content and attempt to parse as JSON.
+    last = ""
+    try:
+        last = result.messages[-1].content
+    except Exception:
+        last = ""
+
+    try:
+        tasks = json.loads(last)
+        if not isinstance(tasks, list):
+            tasks = []
+    except Exception:
+        tasks = []
+
+    # Side effects: save to Trello (stub), write CSV, and send Slack notification (stub).
+    save_tasks_to_trello(tasks)
+    with open("new_tasks.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["Name", "Description"])
+        for t in tasks:
+            w.writerow([t.get("name", ""), t.get("description", "")])
+
+    send_message_to_channel(f"{len(tasks)} New tasks have been added to Trello!")
+
+    await model_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

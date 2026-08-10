@@ -1,0 +1,282 @@
+# Issues / Assumptions:
+# - The ontology does not have a dedicated class for framework-specific constructs like "SelectorGroupChat" or the SDK runtime/loop. These are modeled here as an Orchestration and AgenticSystem with hasSourceFramework literals.
+# - Routing/selection logic (how the SelectorGroupChat chooses which agent to call each turn) is a framework behavior not expressible with existing properties; we record its existence via labels and sequence of workflow steps but cannot encode the selection algorithm or turn routing policy.
+# - The code's TextMentionTermination (trigger on an agent emitting "TERMINATE") is represented using EventBasedTermination with hasTriggerExpression. There is no dedicated TextMentionTermination class in the ontology.
+# - Streaming/asynchronous behavior, UI Console interaction, model client lifecycle (open/close), and SDK-specific function names are implementation details and are not modeled; instead we capture their semantic intent (task input, orchestration, termination trigger, model used).
+# - Some runtime parameters (e.g., model client configuration beyond model name) and ephemeral runtime state (conversation history, per-turn selections) cannot be modeled with the existing schema and therefore are omitted.
+# - No new classes or properties were introduced; missing expressive concepts are described above.
+
+@prefix : <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# Instance data describing the "Travel Planning — AutoGen v0.4" system
+#################################################################
+
+### Language model resource used by agents
+:gpt4o_model
+    a agento:LanguageModel , beam:StatisticalModel ;
+    dcterms:title "gpt-4o" ;
+    dcterms:description "OpenAI chat-completion model used as the LLM back-end for all agents." ;
+    dcterms:reference "OpenAI gpt-4o (model identifier: gpt-4o)" .
+
+### The overall agentic system
+:TravelPlannerSystem
+    a :AgenticSystem ;
+    dcterms:title "Travel Planning — AutoGen v0.4 System" ;
+    dcterms:description "Agentic system implementing a SelectorGroupChat orchestration with four assistant agents collaborating to plan travel." ;
+    :hasSourceFramework "AutoGen AgentChat / SelectorGroupChat (SelectorGroupChat behavior and run_stream invocation captured as orchestration semantics)" ;
+    :containsOrchestration :selector_orchestration ;
+    :containsAgent :planner_agent , :local_agent , :language_agent , :travel_summary_agent ;
+    :containsTeam :travel_planning_team .
+
+### Orchestration (represents the SelectorGroupChat controller)
+:selector_orchestration
+    a :Orchestration ;
+    dcterms:title "SelectorGroupChat Orchestration" ;
+    dcterms:description "Orchestration that routes conversation turns to the most appropriate agent participant (SelectorGroupChat semantics)." ;
+    :orchestratesTeam :travel_planning_team ;
+    dcterms:reference "SelectorGroupChat (AutoGen AgentChat)" .
+
+### Team coordinated by the orchestration
+:travel_planning_team
+    a agento:Team ;
+    dcterms:title "Travel Planning Team" ;
+    dcterms:description "Team composed of four assistant agents (planner, local, language, summary) coordinated by the selector orchestration." ;
+    :hasWorkflowPattern :travel_planning_pattern ;
+    :employsCoordinationPattern :SelectorBased ;
+    :hasTerminationCondition :terminate_on_keyword ;
+    agento:hasAgentMember :planner_agent , :local_agent , :language_agent , :travel_summary_agent .
+
+### Termination condition: when an agent emits the keyword "TERMINATE"
+:terminate_on_keyword
+    a :EventBasedTermination ;
+    dcterms:description "Termination triggered when an agent emits the literal keyword 'TERMINATE' in its response." ;
+    :hasTriggerExpression "TERMINATE" .
+
+#################################################################
+# Agents (LLM agents) and their prompts / metadata
+#################################################################
+
+### Planner agent
+:planner_agent
+    a agento:LLMAgent ;
+    dcterms:title "planner_agent" ;
+    agento:agentID "planner_agent" ;
+    agento:agentType "AssistantAgent" ;
+    agento:agentRole "planner" ;
+    dcterms:description "A helpful assistant that can plan trips." ;
+    agento:agentPrompt :planner_agent_prompt ;
+    agento:useLanguageModel :gpt4o_model ;
+    agento:agentResourceUsage :gpt4o_model .
+
+:planner_agent_prompt
+    a agento:Prompt ;
+    agento:promptInstruction
+        "You are a helpful assistant that can suggest a travel plan for a user based on their request." .
+
+### Local agent
+:local_agent
+    a agento:LLMAgent ;
+    dcterms:title "local_agent" ;
+    agento:agentID "local_agent" ;
+    agento:agentType "AssistantAgent" ;
+    agento:agentRole "local" ;
+    dcterms:description "A local assistant that can suggest local activities or places to visit." ;
+    agento:agentPrompt :local_agent_prompt ;
+    agento:useLanguageModel :gpt4o_model ;
+    agento:agentResourceUsage :gpt4o_model .
+
+:local_agent_prompt
+    a agento:Prompt ;
+    agento:promptInstruction
+        "You are a helpful assistant that can suggest authentic and interesting local activities or places to visit for a user and can utilize any context information provided." .
+
+### Language agent
+:language_agent
+    a agento:LLMAgent ;
+    dcterms:title "language_agent" ;
+    agento:agentID "language_agent" ;
+    agento:agentType "AssistantAgent" ;
+    agento:agentRole "language reviewer" ;
+    dcterms:description "A helpful assistant that can provide language tips for a given destination." ;
+    agento:agentPrompt :language_agent_prompt ;
+    agento:useLanguageModel :gpt4o_model ;
+    agento:agentResourceUsage :gpt4o_model .
+
+:language_agent_prompt
+    a agento:Prompt ;
+    agento:promptInstruction
+        "You are a helpful assistant that can review travel plans, providing feedback on important/critical tips about how best to address language or communication challenges for the given destination. If the plan already includes language tips, you can mention that the plan is satisfactory, with rationale." .
+
+### Travel summary agent (also responsible for emitting TERMINATE)
+:travel_summary_agent
+    a agento:LLMAgent ;
+    dcterms:title "travel_summary_agent" ;
+    agento:agentID "travel_summary_agent" ;
+    agento:agentType "AssistantAgent" ;
+    agento:agentRole "summary" ;
+    dcterms:description "An assistant that can summarize the travel plan." ;
+    agento:agentPrompt :travel_summary_agent_prompt ;
+    agento:useLanguageModel :gpt4o_model ;
+    agento:agentResourceUsage :gpt4o_model .
+
+:travel_summary_agent_prompt
+    a agento:Prompt ;
+    agento:promptInstruction
+        "You are a helpful assistant that can take in all of the suggestions and advice from the other agents and provide a detailed final travel plan. You must ensure that the final plan is integrated and complete. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN. When the plan is complete and all perspectives are integrated, you can respond with TERMINATE." .
+
+#################################################################
+# Workflow pattern, steps, and tasks
+#################################################################
+
+:travel_planning_pattern
+    a agento:WorkflowPattern ;
+    dcterms:title "Travel Planning Workflow Pattern" ;
+    dcterms:description "A simple conversational workflow where an initial user request is routed among specialist agents and finalized by the summary agent, which signals termination." ;
+    :hasWorkflowStep :start_step , :planner_step , :local_step , :language_step , :summary_step , :end_step .
+
+### Start step — initial user task
+:start_step
+    a agento:StartStep ;
+    dcterms:title "Start: Receive user request" ;
+    agento:hasAssociatedTask :initial_user_task ;
+    agento:stepOrder 1 ;
+    :nextStep :planner_step .
+
+:initial_user_task
+    a agento:Task ;
+    dcterms:title "Initial user request" ;
+    agento:taskPrompt :initial_user_prompt ;
+    dcterms:description "The task provided to the group chat at run-time: a user request to plan a trip." .
+
+:initial_user_prompt
+    a agento:Prompt ;
+    agento:promptInstruction "Plan a 10 day trip to Luxembourg." ;
+    agento:promptInputData "Plan a 10 day trip to Luxembourg." .
+
+### Planner step
+:planner_step
+    a agento:WorkflowStep ;
+    dcterms:title "Planner agent step" ;
+    agento:hasAssociatedAgent :planner_agent ;
+    agento:hasAssociatedTask :planner_task ;
+    agento:stepOrder 2 ;
+    :nextStep :local_step .
+
+:planner_task
+    a agento:Task ;
+    dcterms:title "Planner role task" ;
+    dcterms:description "Planner agent produces an itinerary and high-level plan." ;
+    agento:taskPrompt :planner_task_prompt ;
+    agento:performedByAgent :planner_agent .
+
+:planner_task_prompt
+    a agento:Prompt ;
+    agento:promptInstruction "Produce a travel itinerary and overall travel plan based on the user's request and any available context." .
+
+### Local agent step
+:local_step
+    a agento:WorkflowStep ;
+    dcterms:title "Local agent step" ;
+    agento:hasAssociatedAgent :local_agent ;
+    agento:hasAssociatedTask :local_task ;
+    agento:stepOrder 3 ;
+    :nextStep :language_step .
+
+:local_task
+    a agento:Task ;
+    dcterms:title "Local role task" ;
+    dcterms:description "Local agent suggests authentic activities or places to visit relevant to the itinerary." ;
+    agento:taskPrompt :local_task_prompt ;
+    agento:performedByAgent :local_agent .
+
+:local_task_prompt
+    a agento:Prompt ;
+    agento:promptInstruction "Suggest authentic and interesting local activities or places to visit for the user's itinerary and destination." .
+
+### Language agent step
+:language_step
+    a agento:WorkflowStep ;
+    dcterms:title "Language agent step" ;
+    agento:hasAssociatedAgent :language_agent ;
+    agento:hasAssociatedTask :language_task ;
+    agento:stepOrder 4 ;
+    :nextStep :summary_step .
+
+:language_task
+    a agento:Task ;
+    dcterms:title "Language role task" ;
+    dcterms:description "Language agent reviews plan for communication/language tips, noting issues or asserting adequacy." ;
+    agento:taskPrompt :language_task_prompt ;
+    agento:performedByAgent :language_agent .
+
+:language_task_prompt
+    a agento:Prompt ;
+    agento:promptInstruction "Review the plan and provide language tips or communication advice; if already included, state that the plan is satisfactory with rationale." .
+
+### Summary step (final) — travel_summary_agent produces final plan and triggers termination
+:summary_step
+    a agento:WorkflowStep ;
+    dcterms:title "Summary agent step (finalizer)" ;
+    agento:hasAssociatedAgent :travel_summary_agent ;
+    agento:hasAssociatedTask :summary_task ;
+    agento:stepOrder 5 ;
+    :nextStep :end_step .
+
+:summary_task
+    a agento:Task ;
+    dcterms:title "Summary / finalize task" ;
+    dcterms:description "Integrate contributions from other agents into a complete travel plan. When complete, signal termination by emitting the literal 'TERMINATE'." ;
+    agento:taskPrompt :summary_task_prompt ;
+    agento:performedByAgent :travel_summary_agent .
+
+:summary_task_prompt
+    a agento:Prompt ;
+    agento:promptInstruction "Integrate suggestions and produce a detailed final travel plan. Ensure completeness. When the plan is complete, respond with TERMINATE." ;
+    agento:promptOutputIndicator "A complete integrated travel plan; final message should include the literal word TERMINATE to signal orchestration termination." .
+
+### End step
+:end_step
+    a agento:EndStep ;
+    dcterms:title "End (termination)" ;
+    dcterms:description "Terminal workflow step reached after the summary agent emits TERMINATE." ;
+    agento:stepOrder 6 .
+
+#################################################################
+# Links between tasks, agents, and resources
+#################################################################
+
+# Agents use the shared language model resource
+:planner_agent agento:agentResourceUsage :gpt4o_model .
+:local_agent agento:agentResourceUsage :gpt4o_model .
+:language_agent agento:agentResourceUsage :gpt4o_model .
+:travel_summary_agent agento:agentResourceUsage :gpt4o_model .
+
+# High-level sequencing represented with nextStep properties (workflow order)
+:start_step :nextStep :planner_step .
+:planner_step :nextStep :local_step .
+:local_step :nextStep :language_step .
+:language_step :nextStep :summary_step .
+:summary_step :nextStep :end_step .
+
+#################################################################
+# Misc metadata linking orchestration to team and system
+#################################################################
+
+# The orchestration contains a mapping (conceptual) to the team it orchestrates
+:selector_orchestration :orchestratesTeam :travel_planning_team .
+
+# The system contains the orchestration and the team (already set above)
+# (Redundant containment statements repeated for clarity)
+:TravelPlannerSystem :containsOrchestration :selector_orchestration ;
+                     :containsTeam :travel_planning_team .
+
+# End of instance data

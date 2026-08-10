@@ -1,0 +1,15 @@
+{
+  "family": "maths",
+  "src": "crewai",
+  "tgt": "langgraph",
+  "triple_f1": 0.38036809815950917,
+  "aligned_triple_f1": 0.6257668711656442,
+  "individual_f1": 0.8372093023255814,
+  "property_f1": 0.847457627118644,
+  "literal_overlap": 0.5333333333333333,
+  "ast_precision": 0.502,
+  "ast_recall": 0.588,
+  "ast_f1": 0.522,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

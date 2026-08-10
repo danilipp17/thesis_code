@@ -1,0 +1,9 @@
+code_reviewer:
+  role: code_reviewer
+  goal: Review the code for correctness, readability, and best practices.
+security_auditor:
+  role: security_auditor
+  goal: Audit the code for security vulnerabilities with CWE classifications.
+review_summarizer:
+  role: review_summarizer
+  goal: Synthesize review and audit findings into a structured report.

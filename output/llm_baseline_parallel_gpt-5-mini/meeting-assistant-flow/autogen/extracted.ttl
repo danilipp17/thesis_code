@@ -1,0 +1,192 @@
+# Issues / Assumptions:
+# - The ontology does not model framework/runtime-specific constructs (async/await, Console streaming, Python function definitions). Those implementation details are not represented; only their semantic intent is recorded.
+# - Streaming behavior (Console, run_stream) and interactive I/O are not modeled because there are no UI/interaction classes/properties in the schema. Recorded as notes on the Task/Config where relevant.
+# - Side-effect implementations (Trello API calls, Slack posts) and their exact SDK calls cannot be represented; Tool individuals store implementation references as literals. The ontology lacks properties to model API endpoints, authentication, or exact code; those are stored as strings.
+# - The concrete file-system artifact (meeting_notes.txt) is modeled as a beam:Instance resource, but transient runtime details (file encoding, read timing) are not captured.
+# - There is no explicit class/property to represent the "RoundRobinGroupChat" framework concept. It is represented as an Orchestration (agentoscin:Orchestration / agento:Team) with a coordination pattern set to the existing RoundRobin individual and a TurnLimitTermination attached.
+# - The AssistantAgent type (framework-level class) is not present in the ontology. The agent's framework type is preserved as a literal using agentoscin:agentType.
+# - Console output/result parsing (JSON extraction from the last message) is represented in the Task expected-output description; parsing logic is not modeled.
+# - No new classes or properties were added; all modeling uses only classes and properties defined in the provided ontologies.
+
+@prefix ex: <http://example.org/meeting-assistant#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@base <http://example.org/meeting-assistant#> .
+
+########################################################################
+# Agentic system
+########################################################################
+
+ex:meeting_assistant_system
+    a agentoscin:AgenticSystem ;
+    rdfs:label "meeting-assistant (AutoGen port of CrewAI Flow)" ;
+    agentoscin:hasSourceFramework "autogen_agentchat (AutoGen v0.4 port of CrewAI Flow); original example: examples/parallel/meeting-assistant-flow/crewai" ;
+    agentoscin:containsAgent ex:meeting_analyzer ;
+    agentoscin:containsTeam ex:rr_meeting_team ;
+    dcterms:description "Top-level Agentic System that runs a single assistant agent (meeting_analyzer) inside a RoundRobin group-chat style team with max_turns=1, reading a meeting transcript and producing Trello entries and a CSV." .
+
+########################################################################
+# Language model used by the agent
+########################################################################
+
+ex:gpt4o_model
+    a agento:LanguageModel ;
+    rdfs:label "gpt-4o (OpenAI ChatCompletion client)" ;
+    dcterms:description "Language model used by the meeting_analyzer agent. Instantiated in code as OpenAIChatCompletionClient(model='gpt-4o')." .
+
+########################################################################
+# Agent (LLM)
+########################################################################
+
+ex:meeting_analyzer
+    a agento:LLMAgent ;
+    rdfs:label "meeting_analyzer" ;
+    agento:agentID "meeting_analyzer" ;
+    agento:agentRole "assistant" ;
+    agentoscin:agentType "AssistantAgent" ;
+    agento:useLanguageModel ex:gpt4o_model ;
+    agento:hasAgentConfig ex:meeting_analyzer_config ;
+    agento:agentPrompt ex:meeting_analyzer_system_prompt ;
+    dcterms:description "An assistant-style LLM agent configured to analyze meeting transcripts and return a JSON list of actionable tasks." .
+
+ex:meeting_analyzer_config
+    a agento:Config ;
+    rdfs:label "meeting_analyzer config" ;
+    agento:configKey "model_client" ;
+    agento:configValue "OpenAIChatCompletionClient(model='gpt-4o'); client is closed at end of main() via model_client.close()" ;
+    dcterms:description "Configuration entry capturing which model client is used by the agent. Framework-level runtime configuration (timeout, temperature) are not available in the source and therefore not recorded." .
+
+ex:meeting_analyzer_system_prompt
+    a agento:Prompt ;
+    rdfs:label "meeting_analyzer system message" ;
+    agento:promptInstruction
+        "You are an expert in analyzing meeting transcripts and summarizing the discussions into actionable tasks. Your ability to identify important issues helps ensure teams can follow up and address key points effectively. Analyze the provided meeting transcript and generate a set of detailed, well-organized issues based on the discussion. Return the result as a JSON list of {\"name\": str, \"description\": str} objects." ;
+    agentoscin:hasSourceAttribute "system_message (passed to AssistantAgent(system_message=...))" ;
+    dcterms:description "System-level instruction provided to the LLM agent to guide its behavior." .
+
+########################################################################
+# Team / Orchestration (RoundRobinGroupChat mapping)
+########################################################################
+
+ex:rr_meeting_team
+    a agento:Team , agentoscin:Orchestration ;
+    rdfs:label "RoundRobinGroupChat (meeting team)" ;
+    agento:hasAgentMember ex:meeting_analyzer ;
+    agentoscin:employsCoordinationPattern agentoscin:RoundRobin ;
+    agentoscin:hasTerminationCondition ex:turn_limit_termination ;
+    agento:hasWorkflowPattern ex:meeting_workflow_pattern ;
+    agento:hasSystemConfig ex:rr_team_config ;
+    dcterms:description "Team representing the RoundRobinGroupChat used by the AutoGen mapping. It contains the single meeting_analyzer agent and is constrained to a single turn (max_turns=1) to emulate the original Process.sequential behavior." .
+
+ex:rr_team_config
+    a agento:Config ;
+    rdfs:label "rr team config" ;
+    agento:configKey "max_turns" ;
+    agento:configValue "1" ;
+    dcterms:description "Team-level configuration preserved from the source: RoundRobinGroupChat(participants=[meeting_analyzer], max_turns=1)." .
+
+ex:turn_limit_termination
+    a agentoscin:TurnLimitTermination ;
+    rdfs:label "TurnLimitTermination(1)" ;
+    agentoscin:hasMaxTurns "1"^^xsd:integer ;
+    dcterms:description "Termination condition indicating that the team finishes after one turn (max_turns=1), capturing the RoundRobinGroupChat(max_turns=1) runtime parameter." .
+
+########################################################################
+# Workflow pattern and step mapping the single-task crew -> one workflow step
+########################################################################
+
+ex:meeting_workflow_pattern
+    a agento:WorkflowPattern ;
+    rdfs:label "meeting analysis workflow pattern" ;
+    agento:hasWorkflowStep ex:step_analyze_meeting ;
+    dcterms:description "Workflow pattern containing a single step to analyze the meeting transcript." .
+
+ex:step_analyze_meeting
+    a agento:WorkflowStep ;
+    rdfs:label "analyze meeting step" ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agento:hasAssociatedTask ex:task_analyze_transcript ;
+    agentoscin:hasAssociatedAgent ex:meeting_analyzer ;
+    dcterms:description "Workflow step that triggers the meeting analysis task and is executed by meeting_analyzer. This step corresponds to the CrewAI Flow single task that is executed by the assistant." .
+
+########################################################################
+# Task: Analyze meeting transcript
+########################################################################
+
+ex:task_analyze_transcript
+    a agento:Task ;
+    rdfs:label "analyze meeting transcript" ;
+    agento:taskPrompt ex:task_analyze_prompt ;
+    agento:performedByAgent ex:meeting_analyzer ;
+    agentoscin:hasExpectedOutput "JSON list of {\"name\": str, \"description\": str} (as text produced by the agent). The program extracts the last message and attempts json.loads(last) to parse this." ;
+    agento:producedResource ex:trello_resource , ex:csv_resource ;
+    agento:requiresResource ex:meeting_transcript ;
+    agentoscin:taskToolUsage ex:TrelloTool , ex:SlackTool ;
+    dcterms:description "Task invoked by the team to analyze the provided meeting transcript and generate actionable tasks. Side-effects: push each task to Trello and write a CSV, then send a Slack message summarizing the count." .
+
+ex:task_analyze_prompt
+    a agento:Prompt ;
+    rdfs:label "task prompt: analyze transcript" ;
+    agento:promptInstruction
+        "Analyze the following meeting transcript and extract actionable tasks.\n\nTranscript:\n{transcript_content}" ;
+    agento:promptInputData "transcript_content is read from meeting_notes.txt at runtime and provided inline to the agent input" ;
+    agento:promptOutputIndicator "Expect a JSON list of {\"name\": str, \"description\": str} objects as the agent response; the runner parses the last message and applies json.loads()" ;
+    dcterms:description "Task-level instruction given to meeting_analyzer during team.run_stream. The code provided the transcript contents read from meeting_notes.txt as the input." .
+
+########################################################################
+# Resources (input transcript and produced side-effect artifacts)
+########################################################################
+
+ex:meeting_transcript
+    a beam:Instance ;
+    rdfs:label "meeting_notes.txt (transcript)" ;
+    dcterms:description "Meeting transcript read from meeting_notes.txt (opened in main: with open('meeting_notes.txt','r') as f: transcript = f.read()). Modeled as an input resource." .
+
+ex:trello_resource
+    a beam:Resource ;
+    rdfs:label "Trello board entries (generated tasks)" ;
+    dcterms:description "Resource representing Trello side-effect: each extracted task is pushed to Trello via save_tasks_to_trello(tasks) (stubbed). The ontology records that this task produces Trello entries." .
+
+ex:csv_resource
+    a beam:Resource ;
+    rdfs:label "new_tasks.csv" ;
+    dcterms:description "CSV file created by the system (headers: Name, Description) and populated with parsed tasks. Implementation detail: code opens 'new_tasks.csv' and writes rows for each task." .
+
+########################################################################
+# Tools used for side effects (stubs)
+########################################################################
+
+ex:TrelloTool
+    a agento:Tool ;
+    rdfs:label "Trello push helper (stub)" ;
+    agentoscin:hasImplementationReference "tools.save_tasks_to_trello(tasks): stub function printing '[Trello] {name}: {description}'" ;
+    dcterms:description "Tool representing the Trello side-effect helper used by the task. Exact API and credentials are not represented in the ontology." .
+
+ex:SlackTool
+    a agento:Tool ;
+    rdfs:label "Slack message helper (stub)" ;
+    agentoscin:hasImplementationReference "tools.send_message_to_channel(message): stub function printing '[Slack] {message}'" ;
+    dcterms:description "Tool representing the Slack notification helper used by the task." .
+
+########################################################################
+# Additional notes and mappings preserved as config / literal annotations
+########################################################################
+
+ex:result_parsing_note
+    a agento:Config ;
+    rdfs:label "result parsing note" ;
+    agento:configKey "result_parsing" ;
+    agento:configValue "After Console team.run_stream returns a stream result, code inspects result.messages[-1].content and runs json.loads(last). If parsing fails, tasks=[] is used." ;
+    dcterms:description "Important detail about how the agent output is interpreted and converted to structured tasks." .
+
+ex:console_run_note
+    a agento:Config ;
+    rdfs:label "console run note" ;
+    agento:configKey "execution_mode" ;
+    agento:configValue "main() uses Console(team.run_stream(...)) to run the team with streaming output; this represents an interactive/streamed run that is not expressible as a separate ontology class." ;
+    dcterms:description "Records the use of Console for stream consumption and that the actual run is asynchronous (async main and asyncio.run(main()))." .

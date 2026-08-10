@@ -1,0 +1,15 @@
+{
+  "family": "meeting-assistant-flow",
+  "src": "langgraph",
+  "tgt": "autogen",
+  "triple_f1": 0.5294117647058822,
+  "aligned_triple_f1": 0.7647058823529411,
+  "individual_f1": 0.888888888888889,
+  "property_f1": 0.8493150684931507,
+  "literal_overlap": 0.5384615384615384,
+  "ast_precision": 0.9,
+  "ast_recall": 0.452,
+  "ast_f1": 0.584,
+  "parse_rate": 1.0,
+  "import_rate": 1.0
+}

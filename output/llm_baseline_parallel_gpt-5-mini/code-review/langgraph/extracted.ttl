@@ -1,0 +1,248 @@
+# Issues / Assumptions:
+# - The source framework constructs (StateGraph, LangGraph nodes, TypedDict state mutability, and the application's Python code) are implementation details and are not modeled as code — only their semantic equivalents are represented (agents, tasks, tools, prompts, resources, workflow).
+# - The ontology does not include direct constructs for "state typed structure semantics" (e.g., operators on TypedDict fields, message accumulation semantics). I represented the state schema as a Schema with a textual definition (agentoscin:Schema / hasSchemaDefinition) but the ontology lacks native typed-data-structure constructs or operators; round-trip to exact executable TypedDict is therefore an approximation.
+# - There is no direct property to encode synchronous vs asynchronous invocation, invocation order beyond workflow step ordering; I used agento:nextStep and agento:stepOrder to preserve the linear sequence.
+# - The code_analyzer is an implementation helper (plain Python). The ontology models it as a Tool with hasImplementationReference containing the implementation description. The ontology does not have a property to represent "called inline vs LLM tool-call"; I used agentoscin:taskToolUsage to indicate the task uses the tool.
+# - The ontology contains no property for "LLM invocation parameters" (e.g., model kwargs, environment variables). I included model identifier in the LanguageModel individual description. If more granular LLM params are required, new properties would be needed.
+# - Reasoning pattern used by agents is not explicitly specified in code; I set employsReasoningPattern to agentoscin:Unspecified and preserved the full prompt text so reasoning behavior can be reconstructed from prompts.
+
+@prefix : <http://example.org/code-review-langgraph#> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix agentoscin: <http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+###############################################################################
+# Agentic system and orchestration
+###############################################################################
+
+:CodeReviewSystem rdf:type agentoscin:AgenticSystem ;
+    agentoscin:containsOrchestration :CodeReviewOrchestration ;
+    agentoscin:containsAgent :CodeReviewerAgent ,
+                             :SecurityAuditorAgent ,
+                             :ReviewSummarizerAgent ;
+    agentoscin:containsTeam :CodeReviewOrchestration ;
+    agentoscin:hasSourceFramework "LangGraph; LangChain (ChatOpenAI used via LangChain adapter)" ;
+    dcterms:description """LangGraph port of the AutoGen code-review example.
+StateGraph with three LLM agent nodes executed in linear sequence:
+  1) code_reviewer
+  2) security_auditor
+  3) review_summarizer
+A plain-Python static analyzer (tools.code_analyzer) is used inline within agent nodes
+and its textual output is provided as context inside prompts.""" .
+
+:CodeReviewOrchestration rdf:type agentoscin:Orchestration ;
+    rdfs:label "Code Review Orchestration" ;
+    agento:hasAgentMember :CodeReviewerAgent ,
+                          :SecurityAuditorAgent ,
+                          :ReviewSummarizerAgent ;
+    agento:hasWorkflowPattern :CodeReviewWorkflow ;
+    agento:hasTeamGoal :ProduceCodeReviewGoal ;
+    agentoscin:hasOutputSchema :StateSchema .
+
+:ProduceCodeReviewGoal rdf:type agento:Goal ;
+    rdfs:label "Produce code review report" ;
+    dcterms:description """Produce a structured code review report (summary) and a security audit for the provided source code.
+Verdict should be either APPROVED if no critical/major issues, otherwise REQUEST CHANGES.
+Report should include a summary, critical count, and actionable items.""" .
+
+###############################################################################
+# Workflow pattern and steps (linear sequence)
+###############################################################################
+
+:CodeReviewWorkflow rdf:type agento:WorkflowPattern ;
+    rdfs:label "Code Review Linear Workflow" ;
+    agento:hasWorkflowStep :Step1_CodeReviewer ,
+                           :Step2_SecurityAuditor ,
+                           :Step3_ReviewSummarizer .
+
+:Step1_CodeReviewer rdf:type agento:StartStep ;
+    rdfs:label "Step 1 — Code Reviewer" ;
+    agento:hasAssociatedTask :Task_CodeReview ;
+    agentoscin:hasAssociatedAgent :CodeReviewerAgent ;
+    agento:stepOrder "1"^^xsd:integer ;
+    agento:nextStep :Step2_SecurityAuditor .
+
+:Step2_SecurityAuditor rdf:type agento:WorkflowStep ;
+    rdfs:label "Step 2 — Security Auditor" ;
+    agento:hasAssociatedTask :Task_SecurityAudit ;
+    agentoscin:hasAssociatedAgent :SecurityAuditorAgent ;
+    agento:stepOrder "2"^^xsd:integer ;
+    agento:nextStep :Step3_ReviewSummarizer .
+
+:Step3_ReviewSummarizer rdf:type agento:EndStep ;
+    rdfs:label "Step 3 — Review Summarizer" ;
+    agento:hasAssociatedTask :Task_Summary ;
+    agentoscin:hasAssociatedAgent :ReviewSummarizerAgent ;
+    agento:stepOrder "3"^^xsd:integer .
+
+###############################################################################
+# Tasks and their relations to agents, prompts, tools, and resources
+###############################################################################
+
+:Task_CodeReview rdf:type agento:Task ;
+    rdfs:label "Task: Code Review" ;
+    dcterms:description "Review the code for correctness, readability, and best practices." ;
+    agento:performedByAgent :CodeReviewerAgent ;
+    agento:taskPrompt :Prompt_CodeReview ;
+    agentoscin:taskToolUsage :CodeAnalyzerTool ;
+    agento:requiresResource :SourceCodeResource ;
+    agento:producedResource :ReviewResource ;
+    agentoscin:hasExpectedOutput "Text: reviewer analysis including identified bugs, code smells, naming issues, and recommended improvements." .
+
+:Task_SecurityAudit rdf:type agento:Task ;
+    rdfs:label "Task: Security Audit" ;
+    dcterms:description "Audit the code for OWASP Top 10 issues, hardcoded secrets, injection attacks, and missing input validation. Provide CWE classifications." ;
+    agento:performedByAgent :SecurityAuditorAgent ;
+    agento:taskPrompt :Prompt_SecurityAudit ;
+    agentoscin:taskToolUsage :CodeAnalyzerTool ;
+    agento:requiresResource :SourceCodeResource ;
+    agento:producedResource :AuditResource ;
+    agentoscin:hasExpectedOutput "Text: security audit findings with CWE classifications and specific vulnerable code locations." .
+
+:Task_Summary rdf:type agento:Task ;
+    rdfs:label "Task: Review Summarization" ;
+    dcterms:description "Synthesize review and audit findings into a structured report with verdict, counts, and action items." ;
+    agento:performedByAgent :ReviewSummarizerAgent ;
+    agento:taskPrompt :Prompt_Summarizer ;
+    agento:requiresResource :ReviewResource , :AuditResource ;
+    agento:producedResource :SummaryResource ;
+    agentoscin:hasExpectedOutput "Structured report containing: verdict (APPROVED or REQUEST CHANGES), summary, critical issue count, and actionable items." .
+
+###############################################################################
+# LLMAgents, Language Model, capabilities and tool
+###############################################################################
+
+:LM_gpt4o rdf:type agento:LanguageModel ;
+    rdfs:label "gpt-4o" ;
+    dcterms:description "ChatOpenAI model 'gpt-4o' as invoked by ChatOpenAI(model='gpt-4o') in the original code; used as the language model backend for agents." .
+
+:CodeReviewerAgent rdf:type agento:LLMAgent ;
+    rdfs:label "LLM Agent — code_reviewer" ;
+    agento:agentID "code_reviewer" ;
+    agento:agentRole "code reviewer" ;
+    agento:useLanguageModel :LM_gpt4o ;
+    agentoscin:agentType "assistant" ;
+    agentoscin:employsReasoningPattern agentoscin:Unspecified ;
+    dcterms:description "Agent that reviews code for correctness, readability, and best practices. Uses the static analyzer output as context in the prompt." ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean .
+
+:SecurityAuditorAgent rdf:type agento:LLMAgent ;
+    rdfs:label "LLM Agent — security_auditor" ;
+    agento:agentID "security_auditor" ;
+    agento:agentRole "security auditor" ;
+    agento:useLanguageModel :LM_gpt4o ;
+    agentoscin:agentType "assistant" ;
+    agentoscin:employsReasoningPattern agentoscin:Unspecified ;
+    dcterms:description "Agent that audits code for security vulnerabilities and maps findings to CWE classifications." ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean .
+
+:ReviewSummarizerAgent rdf:type agento:LLMAgent ;
+    rdfs:label "LLM Agent — review_summarizer" ;
+    agento:agentID "review_summarizer" ;
+    agento:agentRole "review summarizer / technical lead" ;
+    agento:useLanguageModel :LM_gpt4o ;
+    agentoscin:agentType "assistant" ;
+    agentoscin:employsReasoningPattern agentoscin:Unspecified ;
+    dcterms:description "Agent that synthesizes review and audit outputs into a structured report and verdict." ;
+    agentoscin:hasReasoningEnabled "false"^^xsd:boolean .
+
+:CodeAnalyzerTool rdf:type agento:Tool ;
+    rdfs:label "Tool: code_analyzer" ;
+    dcterms:description "Plain-Python static-analyzer helper. Performs static analysis using Python ast.parse, checks for syntax errors and reports bare except clauses. Called inline from agent nodes and its textual analysis is included in prompts." ;
+    agentoscin:hasImplementationReference "tools.code_analyzer: static analyzer; parses code AST and reports Syntax: OK or syntax errors; detects bare 'except' handlers and reports line numbers." ;
+    agento:hasCapability :Capability_SyntaxCheck .
+
+:Capability_SyntaxCheck rdf:type agento:Capability ;
+    rdfs:label "Capability: Syntax and anti-pattern analysis" ;
+    dcterms:description "Checks for syntax errors and common anti-patterns (e.g., bare except), producing a textual analysis summary for inclusion in prompts." .
+
+###############################################################################
+# Prompts (preserve full prompt text and input placeholders)
+###############################################################################
+
+:Prompt_CodeReview rdf:type agento:Prompt ;
+    rdfs:label "Prompt for code_reviewer" ;
+    agento:promptInstruction """You are a senior software engineer with 15 years of experience in code review. Review the following code for correctness, readability, and best practices. Identify bugs, code smells, naming issues, and suggest improvements.""" ;
+    agento:promptContext "Analyzer output will be appended and the target code is provided in the input." ;
+    agento:promptInputData """Code:
+def process_user_input(data):
+    result = eval(data)
+    return result
+""" ;
+    agento:promptOutputIndicator "review" .
+
+:Prompt_SecurityAudit rdf:type agento:Prompt ;
+    rdfs:label "Prompt for security_auditor" ;
+    agento:promptInstruction """You are a certified security professional specializing in application security. Audit the following code for OWASP Top 10 issues, hardcoded secrets, injection attacks, and missing input validation. Provide CWE classifications.""" ;
+    agento:promptContext "Analyzer output will be appended and the target code is provided in the input." ;
+    agento:promptInputData """Code:
+def process_user_input(data):
+    result = eval(data)
+    return result
+""" ;
+    agento:promptOutputIndicator "audit (with CWE classifications)" .
+
+:Prompt_Summarizer rdf:type agento:Prompt ;
+    rdfs:label "Prompt for review_summarizer" ;
+    agento:promptInstruction """You are a technical lead. Synthesize the following review and audit findings into a structured report. Provide a verdict of APPROVED if no critical or major issues, otherwise REQUEST CHANGES. Include a summary, critical count, and action items.""" ;
+    agento:promptInputData "Review: <review text>\n\nAudit: <audit text>" ;
+    agento:promptOutputIndicator "structured report: verdict, summary, critical count, action items" .
+
+###############################################################################
+# Resources (code and outputs)
+###############################################################################
+
+:SourceCodeResource rdf:type beam:Resource ;
+    rdfs:label "Source code to review (CODE_TO_REVIEW)" ;
+    dcterms:description """def process_user_input(data):
+    result = eval(data)
+    return result
+""" .
+
+:ReviewResource rdf:type beam:Resource ;
+    rdfs:label "Reviewer output (review text)" ;
+    dcterms:description "Text output produced by the code_reviewer agent containing identified issues and suggested improvements." .
+
+:AuditResource rdf:type beam:Resource ;
+    rdfs:label "Security audit output (audit text)" ;
+    dcterms:description "Text output produced by the security_auditor agent containing security findings and CWE classifications." .
+
+:SummaryResource rdf:type beam:Resource ;
+    rdfs:label "Summary report (structured summary)" ;
+    dcterms:description "Structured report produced by the review_summarizer agent: verdict (APPROVED or REQUEST CHANGES), summary, critical count, and action items." .
+
+###############################################################################
+# Schema describing the state structure (TypedDict approximation)
+###############################################################################
+
+:StateSchema rdf:type agentoscin:Schema ;
+    rdfs:label "Execution state schema (approximation of CodeReviewState TypedDict)" ;
+    agentoscin:hasSchemaDefinition """Typed state fields used across the workflow (LangGraph State):
+- messages: Sequence[BaseMessage] (accumulating chat messages; original code used operator.add as reducer)
+- code: the source code string to be reviewed (initial input is CODE_TO_REVIEW)
+- review: textual reviewer output (populated by code_reviewer)
+- audit: textual auditor output (populated by security_auditor)
+- summary: final structured report (populated by review_summarizer)
+Note: operator.add merging semantics and message BaseMessage types are described here as plain text; precise typed-structure and runtime accumulation semantics are implementation-level details.""" .
+
+###############################################################################
+# Links between tasks, tools, and resources (explicit)
+###############################################################################
+
+# Indicate that the code analyzer binds to the source code resource when used by tasks
+:Task_CodeReview agentoscin:taskToolUsage :CodeAnalyzerTool .
+:Task_SecurityAudit agentoscin:taskToolUsage :CodeAnalyzerTool .
+
+# The producedResource edges already appear on tasks above; repeat as explicit triples (allowed)
+:Task_CodeReview agento:producedResource :ReviewResource .
+:Task_SecurityAudit agento:producedResource :AuditResource .
+:Task_Summary agento:producedResource :SummaryResource .
+
+###############################################################################
+# End of instance document
+###############################################################################
