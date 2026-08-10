@@ -201,10 +201,6 @@ dcterms:license rdf:type owl:AnnotationProperty .
                rdfs:label "task tool usage" .
 
 
-###  http://www.w3id.org/agentic-ai/onto#agentToolUsage
-agento:agentToolUsage rdfs:range agento:Tool .
-
-
 #################################################################
 #    Data properties
 #################################################################
@@ -213,6 +209,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :agentType rdf:type owl:DatatypeProperty ;
            rdfs:domain agento:LLMAgent ;
            rdfs:range xsd:string ;
+           rdfs:comment "Framework-specific classification of an agent's role in the system. Values: \"GeneralPurpose\", \"UserProxy\", \"Manager\"." ;
            rdfs:label "agent type" .
 
 
@@ -236,6 +233,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasCheckpointPosition rdf:type owl:DatatypeProperty ;
                        rdfs:domain :HumanCheckpoint ;
                        rdfs:range xsd:string ;
+                       rdfs:comment "Point in the execution of a task at which the human checkpoint is applied (e.g. \"AfterExecution\")." ;
                        rdfs:label "has checkpoint position" .
 
 
@@ -243,6 +241,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasCheckpointType rdf:type owl:DatatypeProperty ;
                    rdfs:domain :HumanCheckpoint ;
                    rdfs:range xsd:string ;
+                   rdfs:comment "Kind of human interaction requested at a checkpoint. Values: \"Approval\", \"Review\", \"InputRequest\"." ;
                    rdfs:label "has checkpoint type" .
 
 
@@ -258,6 +257,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasDelegationStrategy rdf:type owl:DatatypeProperty ;
                        rdfs:domain agento:Task ;
                        rdfs:range xsd:string ;
+                       rdfs:comment "Strategy by which a task may be handed over to another agent instead of being executed by its assigned agent." ;
                        rdfs:label "has delegation strategy" .
 
 
@@ -265,6 +265,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasDependencyType rdf:type owl:DatatypeProperty ;
                    rdfs:domain agento:Task ;
                    rdfs:range xsd:string ;
+                   rdfs:comment "Nature of the dependency between two tasks. Values: \"Sequential\" (ordering imposed by the workflow) and \"ContextProviding\" (the predecessor supplies context to the successor)." ;
                    rdfs:label "has dependency type" .
 
 
@@ -272,6 +273,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasDirectiveFunction rdf:type owl:DatatypeProperty ;
                       rdfs:domain agento:Prompt ;
                       rdfs:range xsd:string ;
+                      rdfs:comment "Role that a prompt plays for its agent. Values: \"ModelDirective\" (instructs the underlying model), \"OrchestratorDirective\" (describes the agent to a coordinating agent), \"DualDirective\" (serves both purposes)." ;
                       rdfs:label "has directive function" .
 
 
@@ -279,6 +281,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasEdgeMapping rdf:type owl:DatatypeProperty ;
                 rdfs:domain agento:WorkflowStep ;
                 rdfs:range xsd:string ;
+                rdfs:comment "JSON object mapping the return labels of a conditional step to the names of the target steps (e.g. LangGraph add_conditional_edges path map). Preserves branch targets that cannot be reconstructed from nextStep edges alone." ;
                 rdfs:label "has edge mapping" .
 
 
@@ -286,6 +289,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasExpectedOutput rdf:type owl:DatatypeProperty ;
                    rdfs:domain agento:Task ;
                    rdfs:range xsd:string ;
+                   rdfs:comment "Natural-language description of the output a task is expected to produce." ;
                    rdfs:label "has expected output" .
 
 
@@ -293,6 +297,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasGuardrailType rdf:type owl:DatatypeProperty ;
                   rdfs:domain :Guardrail ;
                   rdfs:range xsd:string ;
+                  rdfs:comment "How a guardrail is implemented. Values: \"FunctionBased\" (a validation callable) and \"LLMBased\" (a natural-language validation prompt)." ;
                   rdfs:label "has guardrail type" .
 
 
@@ -300,6 +305,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasImplementationReference rdf:type owl:DatatypeProperty ;
                             rdfs:domain agento:Tool ;
                             rdfs:range xsd:string ;
+                            rdfs:comment "Reference to the implementation of a tool, typically a module path or an \"external:<name>\" marker for imported tools that were not found in the parsed sources." ;
                             rdfs:label "has implementation reference" .
 
 
@@ -307,6 +313,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasInputSchema rdf:type owl:DatatypeProperty ;
                 rdfs:domain agento:Tool ;
                 rdfs:range xsd:string ;
+                rdfs:comment "Serialized JSON Schema describing the arguments accepted by a tool." ;
                 rdfs:label "has input schema" .
 
 
@@ -314,6 +321,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasMaxReasoningAttempts rdf:type owl:DatatypeProperty ;
                          rdfs:domain agento:LLMAgent ;
                          rdfs:range xsd:integer ;
+                         rdfs:comment "Upper bound on the number of reasoning attempts an agent may perform before giving up." ;
                          rdfs:label "has max reasoning attempts" .
 
 
@@ -321,6 +329,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasMaxRetries rdf:type owl:DatatypeProperty ;
                rdfs:domain :Guardrail ;
                rdfs:range xsd:integer ;
+               rdfs:comment "Number of times a task may be retried when its guardrail rejects the output." ;
                rdfs:label "has max retries" .
 
 
@@ -328,6 +337,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasMaxTurns rdf:type owl:DatatypeProperty ;
              rdfs:domain :TurnLimitTermination ;
              rdfs:range xsd:integer ;
+             rdfs:comment "Maximum number of conversational turns after which execution terminates." ;
              rdfs:label "has max turns" .
 
 
@@ -335,6 +345,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasMemoryScope rdf:type owl:DatatypeProperty ;
                 rdfs:domain :MemoryBinding ;
                 rdfs:range xsd:string ;
+                rdfs:comment "Visibility of a memory binding. Values: \"AgentPrivate\" (memory owned by a single agent) and \"GroupShared\" (memory shared across a team)." ;
                 rdfs:label "has memory scope" .
 
 
@@ -342,6 +353,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasOperator rdf:type owl:DatatypeProperty ;
              rdfs:domain :CompositeTermination ;
              rdfs:range xsd:string ;
+             rdfs:comment "Logical operator combining the sub-conditions of a composite termination condition. Values: \"OR\", \"AND\"." ;
              rdfs:label "has operator" .
 
 
@@ -349,6 +361,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasPersistenceScope rdf:type owl:DatatypeProperty ;
                      rdfs:domain agento:Memory ;
                      rdfs:range xsd:string ;
+                     rdfs:comment "Lifetime of a memory. Values: \"ExecutionScoped\" (discarded after the run) and \"Persistent\" (retained across runs)." ;
                      rdfs:label "has persistence scope" .
 
 
@@ -356,6 +369,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasReasoningEnabled rdf:type owl:DatatypeProperty ;
                      rdfs:domain agento:LLMAgent ;
                      rdfs:range xsd:boolean ;
+                     rdfs:comment "Whether explicit reasoning is enabled for an agent." ;
                      rdfs:label "has reasoning enabled" .
 
 
@@ -363,6 +377,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasReasoningOrigin rdf:type owl:DatatypeProperty ;
                     rdfs:domain agento:LLMAgent ;
                     rdfs:range xsd:string ;
+                    rdfs:comment "Where an agent's reasoning capability comes from. Values: \"FrameworkManaged\" (the framework adds a reasoning loop) and \"ModelNative\" (the underlying model reasons on its own)." ;
                     rdfs:label "has reasoning origin" .
 
 
@@ -370,6 +385,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasRoutingLogic rdf:type owl:DatatypeProperty ;
                  rdfs:domain :ConditionalStep ;
                  rdfs:range xsd:string ;
+                 rdfs:comment "Serialized body of the routing function that decides which branch a conditional step takes." ;
                  rdfs:label "has routing logic" .
 
 
@@ -377,6 +393,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasSchemaDefinition rdf:type owl:DatatypeProperty ;
                      rdfs:domain :Schema ;
                      rdfs:range xsd:string ;
+                     rdfs:comment "Serialized definition of a structured-output schema, expressed as JSON Schema." ;
                      rdfs:label "has schema definition" .
 
 
@@ -384,6 +401,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasSourceAttribute rdf:type owl:DatatypeProperty ;
                     rdfs:domain agento:Prompt ;
                     rdfs:range xsd:string ;
+                    rdfs:comment "Framework attribute(s) the annotated element was derived from (e.g. \"role, goal, backstory\", \"system_message\", \"output_pydantic\"). Enables faithful regeneration of source code from the ontology." ;
                     rdfs:label "has source attribute" .
 
 
@@ -391,6 +409,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasSourceFramework rdf:type owl:DatatypeProperty ;
                     rdfs:domain :AgenticSystem ;
                     rdfs:range xsd:string ;
+                    rdfs:comment "Framework the agentic system was extracted from (e.g. \"CrewAI\", \"AutoGen\", \"LangGraph\")." ;
                     rdfs:label "has source framework" .
 
 
@@ -398,6 +417,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasTriggerExpression rdf:type owl:DatatypeProperty ;
                       rdfs:domain :EventBasedTermination ;
                       rdfs:range xsd:string ;
+                      rdfs:comment "Expression or text whose occurrence triggers an event-based termination condition (e.g. a stop keyword in an agent message)." ;
                       rdfs:label "has trigger expression" .
 
 
@@ -405,6 +425,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :hasValidationLogic rdf:type owl:DatatypeProperty ;
                     rdfs:domain :Guardrail ;
                     rdfs:range xsd:string ;
+                    rdfs:comment "Validation performed by a guardrail: the name of the validation function, or the validation prompt for LLM-based guardrails." ;
                     rdfs:label "has validation logic" .
 
 
@@ -412,6 +433,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 :isMandatory rdf:type owl:DatatypeProperty ;
              rdfs:domain :HumanCheckpoint ;
              rdfs:range xsd:boolean ;
+             rdfs:comment "Whether the human checkpoint must be passed, i.e. execution cannot continue without human input." ;
              rdfs:label "is mandatory" .
 
 
@@ -429,6 +451,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ChainOfThought
 :ChainOfThought rdf:type owl:Class ;
                 rdfs:subClassOf :ReasoningPattern ;
+                rdfs:comment "Reasoning pattern in which an agent produces explicit intermediate reasoning steps before answering." ;
                 rdfs:label "Chain of Thought" .
 
 
@@ -455,6 +478,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/EventBasedTermination
 :EventBasedTermination rdf:type owl:Class ;
                        rdfs:subClassOf :TerminationCondition ;
+                       rdfs:comment "Termination condition that fires when a designated event occurs, e.g. a stop expression appearing in an agent message." ;
                        rdfs:label "Event Based Termination" .
 
 
@@ -486,6 +510,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReAct
 :ReAct rdf:type owl:Class ;
        rdfs:subClassOf :ReasoningPattern ;
+       rdfs:comment "Reasoning pattern interleaving reasoning steps with tool calls and observations (Reason + Act)." ;
        rdfs:label "ReAct" .
 
 
@@ -498,12 +523,14 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReflectionLoop
 :ReflectionLoop rdf:type owl:Class ;
                 rdfs:subClassOf :ReasoningPattern ;
+                rdfs:comment "Reasoning pattern in which an agent iteratively critiques and revises its own output." ;
                 rdfs:label "Reflection Loop" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoutingTermination
 :RoutingTermination rdf:type owl:Class ;
                     rdfs:subClassOf :TerminationCondition ;
+                    rdfs:comment "Termination condition under which execution ends because the routing logic reaches a terminal branch." ;
                     rdfs:label "Routing Termination" .
 
 
@@ -516,6 +543,7 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TaskCompletionTermination
 :TaskCompletionTermination rdf:type owl:Class ;
                            rdfs:subClassOf :TerminationCondition ;
+                           rdfs:comment "Termination condition satisfied when the assigned task is completed." ;
                            rdfs:label "Task Completion Termination" .
 
 
@@ -528,18 +556,21 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TreeOfThoughts
 :TreeOfThoughts rdf:type owl:Class ;
                 rdfs:subClassOf :ReasoningPattern ;
+                rdfs:comment "Reasoning pattern that explores several alternative reasoning branches and selects among them." ;
                 rdfs:label "Tree of Thoughts" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/TurnLimitTermination
 :TurnLimitTermination rdf:type owl:Class ;
                       rdfs:subClassOf :TerminationCondition ;
+                      rdfs:comment "Termination condition that ends execution once a maximum number of turns is reached." ;
                       rdfs:label "Turn Limit Termination" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Unspecified
 :Unspecified rdf:type owl:Class ;
              rdfs:subClassOf :ReasoningPattern ;
+             rdfs:comment "Placeholder reasoning pattern used when the source system does not state which reasoning strategy an agent follows." ;
              rdfs:label "Unspecified" .
 
 
@@ -550,48 +581,56 @@ agento:agentToolUsage rdfs:range agento:Tool .
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Custom
 :Custom rdf:type owl:NamedIndividual ,
                  :CoordinationPattern ;
+        rdfs:comment "Coordination pattern that does not match any of the predefined patterns, e.g. a framework-specific or hand-written control flow." ;
         rdfs:label "Custom" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Hierarchical
 :Hierarchical rdf:type owl:NamedIndividual ,
                        :CoordinationPattern ;
+              rdfs:comment "Coordination pattern in which a manager agent delegates work to subordinate agents and integrates their results." ;
               rdfs:label "Hierarchical" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Network
 :Network rdf:type owl:NamedIndividual ,
                   :CoordinationPattern ;
+         rdfs:comment "Coordination pattern in which agents communicate peer-to-peer along a graph of connections without a central coordinator." ;
          rdfs:label "Network" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/ReActLoop
 :ReActLoop rdf:type owl:NamedIndividual ,
                     :CoordinationPattern ;
+           rdfs:comment "Coordination pattern in which a single agent cycles between reasoning and tool execution until it produces a final answer." ;
            rdfs:label "ReAct Loop" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/RoundRobin
 :RoundRobin rdf:type owl:NamedIndividual ,
                      :CoordinationPattern ;
+            rdfs:comment "Coordination pattern in which agents take turns in a fixed cyclic order." ;
             rdfs:label "Round Robin" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/SelectorBased
 :SelectorBased rdf:type owl:NamedIndividual ,
                         :CoordinationPattern ;
+               rdfs:comment "Coordination pattern in which a selector — typically a model — chooses which agent speaks next at each turn." ;
                rdfs:label "Selector Based" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Sequential
 :Sequential rdf:type owl:NamedIndividual ,
                      :CoordinationPattern ;
+            rdfs:comment "Coordination pattern in which agents act one after another in a fixed order, each consuming the previous output." ;
             rdfs:label "Sequential" .
 
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/Swarm
 :Swarm rdf:type owl:NamedIndividual ,
                 :CoordinationPattern ;
+       rdfs:comment "Coordination pattern in which agents hand off control to one another dynamically, based on which agent is best suited to continue." ;
        rdfs:label "Swarm" .
 
 
