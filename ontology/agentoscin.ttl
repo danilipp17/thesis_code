@@ -202,8 +202,7 @@ dcterms:license rdf:type owl:AnnotationProperty .
 
 
 ###  http://www.w3id.org/agentic-ai/onto#agentToolUsage
-agento:agentToolUsage rdfs:domain agento:LLMAgent ;
-                      rdfs:range agento:Tool .
+agento:agentToolUsage rdfs:range agento:Tool .
 
 
 #################################################################
