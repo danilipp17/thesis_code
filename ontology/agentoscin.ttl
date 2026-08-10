@@ -17,8 +17,16 @@
                                                                         dc:creator "Dani Lippmann" ;
                                                                         dc:description "Extension of agentO adding agentic-system orchestration, coordination & reasoning patterns, memory bindings, guardrails, human checkpoints, termination conditions, schemas, and framework-mapping properties."@en ;
                                                                         dc:title "AgentOSCIn — Extension of the Agentic AI Ontology" ;
-                                                                        rdfs:label "AgentOSCIN Ontology" ;
-                                                                        owl:versionInfo 0.1 .
+                                                                        dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+                                                                        rdfs:label "AgentOSCIN Ontology" .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
+
 
 #################################################################
 #    Object Properties
@@ -115,6 +123,12 @@
 
 ###  http://www.semanticweb.org/danilippmann/ontologies/2026/3/agentoscin/hasMemoryBinding
 :hasMemoryBinding rdf:type owl:ObjectProperty ;
+                  rdfs:domain [ rdf:type owl:Class ;
+                                owl:unionOf ( :AgenticSystem
+                                              agento:LLMAgent
+                                              agento:Team
+                                            )
+                              ] ;
                   rdfs:range :MemoryBinding ;
                   rdfs:comment "Associates a subject (agent, team, system) with a memory binding." ;
                   rdfs:label "has memory binding" .
@@ -185,6 +199,11 @@
                rdfs:range agento:Tool ;
                rdfs:comment "A tool used in the execution of a task." ;
                rdfs:label "task tool usage" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#agentToolUsage
+agento:agentToolUsage rdfs:domain agento:LLMAgent ;
+                      rdfs:range agento:Tool .
 
 
 #################################################################
