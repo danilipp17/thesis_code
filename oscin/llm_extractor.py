@@ -7,7 +7,7 @@ Uses an LLM (via the Anthropic or OpenAI API) to extract ontology
 individuals directly from source code, as a comparison baseline to
 the AST-based extraction pipeline.
 
-The approach follows the methodology from AgentO (Siala et al.):
+The approach follows the methodology from AgentO:
 send the ontology schema + source code to an LLM and ask it to
 produce populated Turtle output.
 

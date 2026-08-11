@@ -11,9 +11,6 @@ evaluation/
 │   └── roundtrip.py      source → TTL → source  (same-fw or cross-fw)
 ├── metrics/              ← every metric exports NAME, compute, row, summarize_markdown
 ├── fixtures/             ← hand-authored ground-truth TTLs
-├── mappings/             ← CrewAI↔LangGraph canonical rule set
-├── reporting.py          ← shared report renderer
-└── benchmark.py          ← aggregator, driven by --pipeline flag
 ```
 
 ## Pipeline matrix
