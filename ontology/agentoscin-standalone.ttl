@@ -1,0 +1,1314 @@
+@prefix : <https://w3id.org/agentoscin#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix beam: <http://w3id.org/beam/core#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix agento: <http://www.w3id.org/agentic-ai/onto#> .
+@prefix p-plan: <http://purl.org/net/p-plan#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <https://w3id.org/agentoscin#> .
+
+<https://w3id.org/agentoscin> rdf:type owl:Ontology ;
+                               dc:creator "Dani Lippmann" ;
+                               dc:description """Self-contained serialisation of AgentOSCIN: the AgentOSCIN extension together with all axioms of the imported Agentic AI Ontology (agentO), asserted directly instead of via owl:imports.
+
+AgentOSCIN adds agentic-system orchestration, coordination & reasoning patterns, memory bindings, guardrails, human checkpoints, termination conditions, schemas, and framework-mapping properties. agentO terms keep their original IRIs under http://www.w3id.org/agentic-ai/onto#."""@en ;
+                               dc:title "AgentOSCIN — Extension of the Agentic AI Ontology" ;
+                               dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+                               vann:preferredNamespacePrefix "agentoscin" ;
+                               rdfs:comment "Contains every class, property and individual of AgentOSCIN and of agentO (http://www.w3id.org/agentic-ai/onto) in a single file, without owl:imports." ;
+                               rdfs:label "AgentOSCIN Ontology" ;
+                               owl:versionInfo "1.0 (merged with agentO 0.2)" .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/elements/1.1/contributor
+dc:contributor rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/creator
+dc:creator rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/description
+dc:description rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/rights
+dc:rights rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/elements/1.1/title
+dc:title rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
+
+
+###  http://purl.org/vocab/vann/preferredNamespacePrefix
+vann:preferredNamespacePrefix rdf:type owl:AnnotationProperty .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://w3id.org/beam/core#participatedIn
+beam:participatedIn rdf:type owl:ObjectProperty ;
+                    rdfs:domain prov:Agent ;
+                    rdfs:range agento:Task ;
+                    rdfs:comment "Indicates that an agent participated in an activity." ;
+                    rdfs:label "participated in" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#agentPrompt
+agento:agentPrompt rdf:type owl:ObjectProperty ;
+                   rdfs:subPropertyOf agento:hasPrompt ;
+                   rdfs:domain agento:LLMAgent ;
+                   rdfs:range agento:Prompt ;
+                   rdfs:comment "Prompt used by the agent to perform independently of its tasks." ;
+                   rdfs:label "agent prompt" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#agentResourceUsage
+agento:agentResourceUsage rdf:type owl:ObjectProperty ;
+                          rdfs:subPropertyOf agento:resourceUsage ;
+                          rdfs:domain agento:LLMAgent ;
+                          rdfs:range beam:Resource ;
+                          rdfs:comment "Agent directly uses or consumes a resource." ;
+                          rdfs:label "agent resource usage" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#agentToolUsage
+agento:agentToolUsage rdf:type owl:ObjectProperty ;
+                      rdfs:subPropertyOf agento:toolUsage ;
+                      rdfs:comment "Agent directly uses a tool to perform tasks or access resources." ;
+                      rdfs:label "agent tool usage" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#containsResource
+agento:containsResource rdf:type owl:ObjectProperty ;
+                        rdfs:domain agento:Environment ;
+                        rdfs:range beam:Resource ;
+                        rdfs:comment "Relates an Environment into resources." ;
+                        rdfs:label "contains resource" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#contributesToGoal
+agento:contributesToGoal rdf:type owl:ObjectProperty ;
+                         rdfs:domain agento:Objective ;
+                         rdfs:range agento:Goal ;
+                         rdfs:comment "Relates a objective to the goal it helps achieve." ;
+                         rdfs:label "contributes to goal" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#contributesToObjective
+agento:contributesToObjective rdf:type owl:ObjectProperty ;
+                              rdfs:domain agento:Task ;
+                              rdfs:range agento:Objective ;
+                              rdfs:comment "task contributes to objective" ;
+                              rdfs:label "contributes to objective" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasAgentCapability
+agento:hasAgentCapability rdf:type owl:ObjectProperty ;
+                          rdfs:subPropertyOf agento:hasCapability ;
+                          rdfs:domain agento:LLMAgent ;
+                          rdfs:range agento:Capability ;
+                          rdfs:comment "Capability that can be performed by agent" ;
+                          rdfs:label "has agent capability" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasAgentConfig
+agento:hasAgentConfig rdf:type owl:ObjectProperty ;
+                      rdfs:subPropertyOf agento:hasConfig ;
+                      rdfs:domain agento:LLMAgent ;
+                      rdfs:range agento:Config ;
+                      rdfs:comment "Configuration settings specific to an LLM agent." ;
+                      rdfs:label "has agent config" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasAgentGoal
+agento:hasAgentGoal rdf:type owl:ObjectProperty ;
+                    rdfs:subPropertyOf agento:hasGoal ;
+                    rdfs:domain agento:LLMAgent ;
+                    rdfs:range agento:Goal ;
+                    rdfs:comment "Goal assigned to an LLM agent." ;
+                    rdfs:label "has agent goal" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasAgentMember
+agento:hasAgentMember rdf:type owl:ObjectProperty ;
+                      rdfs:domain agento:Team ;
+                      rdfs:range agento:LLMAgent ;
+                      rdfs:comment "Links a team to its participating agents." ;
+                      rdfs:label "has agent member" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasAssociatedTask
+agento:hasAssociatedTask rdf:type owl:ObjectProperty ;
+                         rdfs:domain agento:WorkflowStep ;
+                         rdfs:range agento:Task ;
+                         rdfs:comment "Links a workflow step to the task it corresponds to." ;
+                         rdfs:label "has associated task" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasCapability
+agento:hasCapability rdf:type owl:ObjectProperty ;
+                     rdfs:domain agento:Tool ;
+                     rdfs:range agento:Capability ;
+                     rdfs:comment "Capability that can berforme by agent" ;
+                     rdfs:label "has capability" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasConfig
+agento:hasConfig rdf:type owl:ObjectProperty ;
+                 rdfs:range agento:Config ;
+                 rdfs:comment "Configuration settings for various components." ;
+                 rdfs:label "has config" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasEnvironmentConfig
+agento:hasEnvironmentConfig rdf:type owl:ObjectProperty ;
+                            rdfs:subPropertyOf agento:hasConfig ;
+                            rdfs:domain agento:Environment ;
+                            rdfs:range agento:Config ;
+                            rdfs:comment "Configuration settings specific to an Environment." ;
+                            rdfs:label "has environment config" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasGoal
+agento:hasGoal rdf:type owl:ObjectProperty ;
+               rdfs:domain [ rdf:type owl:Class ;
+                             owl:unionOf ( agento:LLMAgent
+                                           agento:Team
+                                         )
+                           ] ;
+               rdfs:range agento:Goal ;
+               rdfs:comment "Relates an agent or team to its goals." ;
+               rdfs:label "has goal" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasKnowledge
+agento:hasKnowledge rdf:type owl:ObjectProperty ;
+                    rdfs:domain agento:LLMAgent ;
+                    rdfs:range agento:KnowledgeBase ;
+                    rdfs:comment "Relates an agent to its knowledge base." ;
+                    rdfs:label "has knowledge base" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasObjective
+agento:hasObjective rdf:type owl:ObjectProperty ;
+                    rdfs:domain [ rdf:type owl:Class ;
+                                  owl:unionOf ( agento:LLMAgent
+                                                agento:Team
+                                              )
+                                ] ;
+                    rdfs:range agento:Objective ;
+                    rdfs:comment "Objective of a Team or an Agent" ;
+                    rdfs:label "has objective" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasPrompt
+agento:hasPrompt rdf:type owl:ObjectProperty ;
+                 rdfs:domain [ rdf:type owl:Class ;
+                               owl:unionOf ( agento:LLMAgent
+                                             agento:Task
+                                           )
+                             ] ;
+                 rdfs:range agento:Prompt ;
+                 rdfs:comment "Associates prompts with agents or tasks." ;
+                 rdfs:label "has prompt" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasRelatedPattern
+agento:hasRelatedPattern rdf:type owl:ObjectProperty ;
+                         rdfs:domain agento:WorkflowPattern ;
+                         rdfs:range agento:WorkflowPattern ;
+                         rdfs:comment "Indicates a relationship between workflow patterns." ;
+                         rdfs:label "has related pattern" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasSubPattern
+agento:hasSubPattern rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf agento:hasRelatedPattern ;
+                     rdfs:comment "Indicates a sub-pattern that is part of a larger workflow pattern." ;
+                     rdfs:label "has sub pattern" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasSystemConfig
+agento:hasSystemConfig rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf agento:hasConfig ;
+                       rdfs:domain agento:Team ;
+                       rdfs:range agento:Config ;
+                       rdfs:comment "Configuration settings specific to a Team system." ;
+                       rdfs:label "has system config" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasTeamGoal
+agento:hasTeamGoal rdf:type owl:ObjectProperty ;
+                   rdfs:subPropertyOf agento:hasGoal ;
+                   rdfs:domain agento:Team ;
+                   rdfs:range agento:Goal ;
+                   rdfs:comment "Goal assigned to a Team." ;
+                   rdfs:label "has team goal" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasToolConfig
+agento:hasToolConfig rdf:type owl:ObjectProperty ;
+                     rdfs:subPropertyOf agento:hasConfig ;
+                     rdfs:domain agento:Tool ;
+                     rdfs:range agento:Config ;
+                     rdfs:comment "Configuration settings specific to a Tool." ;
+                     rdfs:label "has tool config" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasWorkflowPattern
+agento:hasWorkflowPattern rdf:type owl:ObjectProperty ;
+                          rdfs:domain agento:Team ;
+                          rdfs:range agento:WorkflowPattern ;
+                          rdfs:comment "Relates a team to the workflow pattern it follows." ;
+                          rdfs:label "has workflow pattern" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#hasWorkflowStep
+agento:hasWorkflowStep rdf:type owl:ObjectProperty ;
+                       rdfs:domain agento:WorkflowPattern ;
+                       rdfs:range agento:WorkflowStep ;
+                       rdfs:comment "Specifies a step that is part of a workflow pattern." ;
+                       rdfs:label "has workflow step" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#humanParticipatedIn
+agento:humanParticipatedIn rdf:type owl:ObjectProperty ;
+                           rdfs:subPropertyOf beam:participatedIn ;
+                           rdfs:domain agento:HumanAgent ;
+                           rdfs:range agento:Task ;
+                           rdfs:comment "Indicates that a human agent participated in a task." ;
+                           rdfs:label "human participated in" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#interactsWith
+agento:interactsWith rdf:type owl:ObjectProperty ;
+                     rdfs:domain agento:LLMAgent ;
+                     rdfs:range agento:LLMAgent ;
+                     rdfs:comment "Relates an agent to other agents it interacts with." ;
+                     rdfs:label "interacts with" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#nextPattern
+agento:nextPattern rdf:type owl:ObjectProperty ;
+                   rdfs:subPropertyOf agento:hasRelatedPattern ;
+                   rdfs:comment "Defines the next workflow pattern in a sequential arrangement." ;
+                   rdfs:label "next pattern" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#nextStep
+agento:nextStep rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf agento:relatedStep ;
+                rdfs:domain agento:WorkflowStep ;
+                rdfs:range agento:WorkflowStep ;
+                rdfs:comment "Defines the next step in the workflow sequence." ;
+                rdfs:label "next step" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#operatesIn
+agento:operatesIn rdf:type owl:ObjectProperty ;
+                  rdfs:domain agento:LLMAgent ;
+                  rdfs:range agento:Environment ;
+                  rdfs:comment "Relates an agent to its operational environment. (shall we not describing this at this stage?)" ;
+                  rdfs:label "operates in" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#performedBy
+agento:performedBy rdf:type owl:ObjectProperty ;
+                   rdfs:domain agento:Task ;
+                   rdfs:range agento:Tool ;
+                   rdfs:comment "Indicates the tool/agent that performs the task in a step." ;
+                   rdfs:label "performed by" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#performedByAgent
+agento:performedByAgent rdf:type owl:ObjectProperty ;
+                        rdfs:subPropertyOf agento:performedBy ;
+                        rdfs:domain agento:Task ;
+                        rdfs:range agento:LLMAgent ;
+                        rdfs:comment "Indicates the agent that performs the task in a step." ;
+                        rdfs:label "performed by agent" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#producedResource
+agento:producedResource rdf:type owl:ObjectProperty ;
+                        rdfs:domain agento:Task ;
+                        rdfs:range beam:Resource ;
+                        rdfs:comment "Relates a task to resources produced as output." ;
+                        rdfs:label "produced resource" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#relatedStep
+agento:relatedStep rdf:type owl:ObjectProperty ;
+                   rdfs:domain agento:WorkflowStep ;
+                   rdfs:range agento:WorkflowStep ;
+                   rdfs:comment "Indicates a relationship between workflow steps." ;
+                   rdfs:label "related step" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#requiresCapability
+agento:requiresCapability rdf:type owl:ObjectProperty ;
+                          rdfs:domain agento:Task ;
+                          rdfs:range agento:Capability ;
+                          rdfs:comment "capability needed for a task ." ;
+                          rdfs:label "requires capability (future work)" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#requiresResource
+agento:requiresResource rdf:type owl:ObjectProperty ;
+                        rdfs:domain agento:Task ;
+                        rdfs:range beam:Resource ;
+                        rdfs:comment "Relates a task to resources needed for its execution" ;
+                        rdfs:label "requires resource" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#resourceUsage
+agento:resourceUsage rdf:type owl:ObjectProperty ;
+                     rdfs:domain agento:Tool ;
+                     rdfs:range beam:Resource ;
+                     rdfs:comment "Tool accesses a resource on behalf of the agent." ;
+                     rdfs:label "resource usage" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#taskPrompt
+agento:taskPrompt rdf:type owl:ObjectProperty ;
+                  rdfs:subPropertyOf agento:hasPrompt ;
+                  rdfs:domain agento:Task ;
+                  rdfs:range agento:Prompt ;
+                  rdfs:comment "Prompt used within a task." ;
+                  rdfs:label "task prompt" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#toolUsage
+agento:toolUsage rdf:type owl:ObjectProperty ;
+                 rdfs:domain agento:Tool ;
+                 rdfs:range agento:Tool ;
+                 rdfs:comment "using another tool to perform tasks or access resources." ;
+                 rdfs:label "tool usage" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#useLanguageModel
+agento:useLanguageModel rdf:type owl:ObjectProperty ;
+                        rdfs:domain agento:LLMAgent ;
+                        rdfs:range agento:LanguageModel ;
+                        rdfs:comment "link Agent to an Language Model" ;
+                        rdfs:label "use language model" .
+
+
+###  https://w3id.org/agentoscin#bindsMemory
+:bindsMemory rdf:type owl:ObjectProperty ;
+             rdfs:domain :MemoryBinding ;
+             rdfs:range agento:Memory ;
+             rdfs:comment "Links a memory binding to the memory it binds." ;
+             rdfs:label "binds memory" .
+
+
+###  https://w3id.org/agentoscin#containsAgent
+:containsAgent rdf:type owl:ObjectProperty ;
+               rdfs:domain :AgenticSystem ;
+               rdfs:range agento:LLMAgent ;
+               rdfs:comment "Relates an agentic system to an agent it contains." ;
+               rdfs:label "contains agent" .
+
+
+###  https://w3id.org/agentoscin#containsOrchestration
+:containsOrchestration rdf:type owl:ObjectProperty ;
+                       rdfs:domain :AgenticSystem ;
+                       rdfs:range :Orchestration ;
+                       rdfs:comment "Relates an agentic system to its orchestration." ;
+                       rdfs:label "contains orchestration" .
+
+
+###  https://w3id.org/agentoscin#containsTeam
+:containsTeam rdf:type owl:ObjectProperty ;
+              rdfs:domain :AgenticSystem ;
+              rdfs:range agento:Team ;
+              rdfs:comment "Relates an agentic system to a team it contains." ;
+              rdfs:label "contains team" .
+
+
+###  https://w3id.org/agentoscin#dependsOn
+:dependsOn rdf:type owl:ObjectProperty ;
+           rdfs:domain agento:Task ;
+           rdfs:range agento:Task ;
+           rdfs:comment "Indicates that one task depends on another." ;
+           rdfs:label "depends on" .
+
+
+###  https://w3id.org/agentoscin#employsCoordinationPattern
+:employsCoordinationPattern rdf:type owl:ObjectProperty ;
+                            rdfs:domain agento:Team ;
+                            rdfs:range :CoordinationPattern ;
+                            rdfs:comment "Relates a team to the coordination pattern it employs." ;
+                            rdfs:label "employs coordination pattern" .
+
+
+###  https://w3id.org/agentoscin#employsReasoningPattern
+:employsReasoningPattern rdf:type owl:ObjectProperty ;
+                         rdfs:domain agento:LLMAgent ;
+                         rdfs:range :ReasoningPattern ;
+                         rdfs:comment "Relates an agent to the reasoning pattern it employs." ;
+                         rdfs:label "employs reasoning pattern" .
+
+
+###  https://w3id.org/agentoscin#hasAgentMemoryBinding
+:hasAgentMemoryBinding rdf:type owl:ObjectProperty ;
+                       rdfs:subPropertyOf :hasMemoryBinding ;
+                       rdfs:domain agento:LLMAgent ;
+                       rdfs:range :MemoryBinding ;
+                       rdfs:comment "Memory binding attached to an individual agent." ;
+                       rdfs:label "has agent memory binding" .
+
+
+###  https://w3id.org/agentoscin#hasAssociatedAgent
+:hasAssociatedAgent rdf:type owl:ObjectProperty ;
+                    rdfs:domain agento:WorkflowStep ;
+                    rdfs:range agento:LLMAgent ;
+                    rdfs:comment "Links a workflow step to the agent that executes it (e.g. a LangGraph node function implemented by a specific LLMAgent)." ;
+                    rdfs:label "has associated agent" .
+
+
+###  https://w3id.org/agentoscin#hasGuardrail
+:hasGuardrail rdf:type owl:ObjectProperty ;
+              rdfs:domain agento:Task ;
+              rdfs:range :Guardrail ;
+              rdfs:comment "Associates a guardrail with a task." ;
+              rdfs:label "has guardrail" .
+
+
+###  https://w3id.org/agentoscin#hasHumanCheckpoint
+:hasHumanCheckpoint rdf:type owl:ObjectProperty ;
+                    rdfs:domain agento:Task ;
+                    rdfs:range :HumanCheckpoint ;
+                    rdfs:comment "Associates a human-in-the-loop checkpoint with a task." ;
+                    rdfs:label "has human checkpoint" .
+
+
+###  https://w3id.org/agentoscin#hasMemoryBinding
+:hasMemoryBinding rdf:type owl:ObjectProperty ;
+                  rdfs:domain [ rdf:type owl:Class ;
+                                owl:unionOf ( agento:LLMAgent
+                                              agento:Team
+                                              :AgenticSystem
+                                            )
+                              ] ;
+                  rdfs:range :MemoryBinding ;
+                  rdfs:comment "Associates a subject (agent, team, system) with a memory binding." ;
+                  rdfs:label "has memory binding" .
+
+
+###  https://w3id.org/agentoscin#hasOutputSchema
+:hasOutputSchema rdf:type owl:ObjectProperty ;
+                 rdfs:domain [ rdf:type owl:Class ;
+                               owl:unionOf ( agento:Task
+                                             :Orchestration
+                                           )
+                             ] ;
+                 rdfs:range :Schema ;
+                 rdfs:comment "Specifies the schema of the structured output produced by an orchestration or task." ;
+                 rdfs:label "has output schema" .
+
+
+###  https://w3id.org/agentoscin#hasSubCondition
+:hasSubCondition rdf:type owl:ObjectProperty ;
+                 rdfs:domain :CompositeTermination ;
+                 rdfs:range :TerminationCondition ;
+                 rdfs:comment "A sub-condition combined within a composite termination condition." ;
+                 rdfs:label "has sub condition" .
+
+
+###  https://w3id.org/agentoscin#hasTeamMemoryBinding
+:hasTeamMemoryBinding rdf:type owl:ObjectProperty ;
+                      rdfs:subPropertyOf :hasMemoryBinding ;
+                      rdfs:domain agento:Team ;
+                      rdfs:range :MemoryBinding ;
+                      rdfs:comment "Memory binding attached to a team." ;
+                      rdfs:label "has team memory binding" .
+
+
+###  https://w3id.org/agentoscin#hasTerminationCondition
+:hasTerminationCondition rdf:type owl:ObjectProperty ;
+                         rdfs:domain agento:Team ;
+                         rdfs:range :TerminationCondition ;
+                         rdfs:comment "Relates a team to a termination condition that ends its execution." ;
+                         rdfs:label "has termination condition" .
+
+
+###  https://w3id.org/agentoscin#memoryBoundTo
+:memoryBoundTo rdf:type owl:ObjectProperty ;
+               rdfs:domain :MemoryBinding ;
+               rdfs:range [ rdf:type owl:Class ;
+                            owl:unionOf ( agento:LLMAgent
+                                          agento:Team
+                                          :AgenticSystem
+                                        )
+                          ] ;
+               rdfs:comment "Links a memory binding to the agent, team, or system that owns it." ;
+               rdfs:label "memory bound to" .
+
+
+###  https://w3id.org/agentoscin#orchestratesTeam
+:orchestratesTeam rdf:type owl:ObjectProperty ;
+                  rdfs:domain :Orchestration ;
+                  rdfs:range agento:Team ;
+                  rdfs:comment "Relates an orchestration to the team it orchestrates." ;
+                  rdfs:label "orchestrates team" .
+
+
+###  https://w3id.org/agentoscin#taskToolUsage
+:taskToolUsage rdf:type owl:ObjectProperty ;
+               rdfs:subPropertyOf agento:toolUsage ;
+               rdfs:domain agento:Task ;
+               rdfs:range agento:Tool ;
+               rdfs:comment "A tool used in the execution of a task." ;
+               rdfs:label "task tool usage" .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  http://purl.org/dc/terms/description
+dcterms:description rdf:type owl:DatatypeProperty ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "An account of the resource." ;
+                    rdfs:label "description" .
+
+
+###  http://purl.org/dc/terms/reference
+dcterms:reference rdf:type owl:DatatypeProperty ;
+                  rdfs:range xsd:string ;
+                  rdfs:comment "A reference of resource." ;
+                  rdfs:label "reference" .
+
+
+###  http://purl.org/dc/terms/title
+dcterms:title rdf:type owl:DatatypeProperty ;
+              rdfs:range xsd:string ;
+              rdfs:comment "A name given to the resource." ;
+              rdfs:label "title" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#agentID
+agento:agentID rdf:type owl:DatatypeProperty ;
+               rdfs:domain agento:LLMAgent ;
+               rdfs:range xsd:string ;
+               rdfs:comment "A unique identifier for an agent." ;
+               rdfs:label "agent ID" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#agentRole
+agento:agentRole rdf:type owl:DatatypeProperty ;
+                 rdfs:domain agento:LLMAgent ;
+                 rdfs:range xsd:string ;
+                 rdfs:comment "The role of an agent." ;
+                 rdfs:label "agent role" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#configKey
+agento:configKey rdf:type owl:DatatypeProperty ;
+                 rdfs:domain agento:Config ;
+                 rdfs:range xsd:string ;
+                 rdfs:comment "A key or name for a configuration setting." ;
+                 rdfs:label "config key" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#configValue
+agento:configValue rdf:type owl:DatatypeProperty ;
+                   rdfs:domain agento:Config ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "The value associated with a configuration key." ;
+                   rdfs:label "config value" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#envType
+agento:envType rdf:type owl:DatatypeProperty ;
+               rdfs:domain agento:Environment ;
+               rdfs:range xsd:string ;
+               rdfs:comment "A string that describes the type of environment (e.g., virtual, physical)." ;
+               rdfs:label "environment type" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#promptContext
+agento:promptContext rdf:type owl:DatatypeProperty ;
+                     rdfs:domain agento:Prompt ;
+                     rdfs:range xsd:string ;
+                     rdfs:comment "The context or background information for the prompt." ;
+                     rdfs:label "prompt context" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#promptInputData
+agento:promptInputData rdf:type owl:DatatypeProperty ;
+                       rdfs:domain agento:Prompt ;
+                       rdfs:range xsd:string ;
+                       rdfs:comment "The input data provided to the prompt." ;
+                       rdfs:label "prompt input data" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#promptInstruction
+agento:promptInstruction rdf:type owl:DatatypeProperty ;
+                         rdfs:domain agento:Prompt ;
+                         rdfs:range xsd:string ;
+                         rdfs:comment "The instruction or main content of the prompt." ;
+                         rdfs:label "prompt instruction" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#promptOutputIndicator
+agento:promptOutputIndicator rdf:type owl:DatatypeProperty ;
+                             rdfs:domain agento:Prompt ;
+                             rdfs:range xsd:string ;
+                             rdfs:comment "The expected output or response from the prompt." ;
+                             rdfs:label "prompt output indicator" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#stepOrder
+agento:stepOrder rdf:type owl:DatatypeProperty ;
+                 rdfs:domain agento:WorkflowStep ;
+                 rdfs:range xsd:integer ;
+                 rdfs:comment "Workflow step order" ;
+                 rdfs:label "step order" .
+
+
+###  https://w3id.org/agentoscin#agentType
+:agentType rdf:type owl:DatatypeProperty ;
+           rdfs:domain agento:LLMAgent ;
+           rdfs:range xsd:string ;
+           rdfs:comment "Framework-specific classification of an agent's role in the system. Values: \"GeneralPurpose\", \"UserProxy\", \"Manager\"." ;
+           rdfs:label "agent type" .
+
+
+###  https://w3id.org/agentoscin#callsCrew
+:callsCrew rdf:type owl:DatatypeProperty ;
+           rdfs:domain agento:WorkflowStep ;
+           rdfs:range xsd:string ;
+           rdfs:comment "Key of the team/crew invoked by this workflow step (e.g. CrewAI @listen method calling crew.kickoff()). Enables per-step crew binding through the ontology round-trip." ;
+           rdfs:label "calls crew" .
+
+
+###  https://w3id.org/agentoscin#hasAggregationCombinator
+:hasAggregationCombinator rdf:type owl:DatatypeProperty ;
+                          rdfs:domain agento:WorkflowStep ;
+                          rdfs:range xsd:string ;
+                          rdfs:comment "Combinator used to aggregate multiple predecessor steps in the source decorator (e.g. CrewAI @listen(or_(step_a, step_b)) stores \"or_\"). Values: \"or_\", \"and_\", or empty for single-predecessor steps." ;
+                          rdfs:label "has aggregation combinator" .
+
+
+###  https://w3id.org/agentoscin#hasCheckpointPosition
+:hasCheckpointPosition rdf:type owl:DatatypeProperty ;
+                       rdfs:domain :HumanCheckpoint ;
+                       rdfs:range xsd:string ;
+                       rdfs:comment "Point in the execution of a task at which the human checkpoint is applied (e.g. \"AfterExecution\")." ;
+                       rdfs:label "has checkpoint position" .
+
+
+###  https://w3id.org/agentoscin#hasCheckpointType
+:hasCheckpointType rdf:type owl:DatatypeProperty ;
+                   rdfs:domain :HumanCheckpoint ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "Kind of human interaction requested at a checkpoint. Values: \"Approval\", \"Review\", \"InputRequest\"." ;
+                   rdfs:label "has checkpoint type" .
+
+
+###  https://w3id.org/agentoscin#hasDecoratorArgument
+:hasDecoratorArgument rdf:type owl:DatatypeProperty ;
+                      rdfs:domain agento:WorkflowStep ;
+                      rdfs:range xsd:string ;
+                      rdfs:comment "Original literal argument(s) of the framework decorator that defined this step (e.g. CrewAI @start(\"wait_next_run\") or @listen(\"label\")). Preserves source-level identifiers that are not method names and therefore cannot be reconstructed from the inverse of nextStep edges." ;
+                      rdfs:label "has decorator argument" .
+
+
+###  https://w3id.org/agentoscin#hasDelegationStrategy
+:hasDelegationStrategy rdf:type owl:DatatypeProperty ;
+                       rdfs:domain agento:Task ;
+                       rdfs:range xsd:string ;
+                       rdfs:comment "Strategy by which a task may be handed over to another agent instead of being executed by its assigned agent." ;
+                       rdfs:label "has delegation strategy" .
+
+
+###  https://w3id.org/agentoscin#hasDependencyType
+:hasDependencyType rdf:type owl:DatatypeProperty ;
+                   rdfs:domain agento:Task ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "Nature of the dependency between two tasks. Values: \"Sequential\" (ordering imposed by the workflow) and \"ContextProviding\" (the predecessor supplies context to the successor)." ;
+                   rdfs:label "has dependency type" .
+
+
+###  https://w3id.org/agentoscin#hasDirectiveFunction
+:hasDirectiveFunction rdf:type owl:DatatypeProperty ;
+                      rdfs:domain agento:Prompt ;
+                      rdfs:range xsd:string ;
+                      rdfs:comment "Role that a prompt plays for its agent. Values: \"ModelDirective\" (instructs the underlying model), \"OrchestratorDirective\" (describes the agent to a coordinating agent), \"DualDirective\" (serves both purposes)." ;
+                      rdfs:label "has directive function" .
+
+
+###  https://w3id.org/agentoscin#hasEdgeMapping
+:hasEdgeMapping rdf:type owl:DatatypeProperty ;
+                rdfs:domain agento:WorkflowStep ;
+                rdfs:range xsd:string ;
+                rdfs:comment "JSON object mapping the return labels of a conditional step to the names of the target steps (e.g. LangGraph add_conditional_edges path map). Preserves branch targets that cannot be reconstructed from nextStep edges alone." ;
+                rdfs:label "has edge mapping" .
+
+
+###  https://w3id.org/agentoscin#hasExpectedOutput
+:hasExpectedOutput rdf:type owl:DatatypeProperty ;
+                   rdfs:domain agento:Task ;
+                   rdfs:range xsd:string ;
+                   rdfs:comment "Natural-language description of the output a task is expected to produce." ;
+                   rdfs:label "has expected output" .
+
+
+###  https://w3id.org/agentoscin#hasGuardrailType
+:hasGuardrailType rdf:type owl:DatatypeProperty ;
+                  rdfs:domain :Guardrail ;
+                  rdfs:range xsd:string ;
+                  rdfs:comment "How a guardrail is implemented. Values: \"FunctionBased\" (a validation callable) and \"LLMBased\" (a natural-language validation prompt)." ;
+                  rdfs:label "has guardrail type" .
+
+
+###  https://w3id.org/agentoscin#hasImplementationReference
+:hasImplementationReference rdf:type owl:DatatypeProperty ;
+                            rdfs:domain agento:Tool ;
+                            rdfs:range xsd:string ;
+                            rdfs:comment "Reference to the implementation of a tool, typically a module path or an \"external:<name>\" marker for imported tools that were not found in the parsed sources." ;
+                            rdfs:label "has implementation reference" .
+
+
+###  https://w3id.org/agentoscin#hasInputSchema
+:hasInputSchema rdf:type owl:DatatypeProperty ;
+                rdfs:domain agento:Tool ;
+                rdfs:range xsd:string ;
+                rdfs:comment "Serialized JSON Schema describing the arguments accepted by a tool." ;
+                rdfs:label "has input schema" .
+
+
+###  https://w3id.org/agentoscin#hasMaxReasoningAttempts
+:hasMaxReasoningAttempts rdf:type owl:DatatypeProperty ;
+                         rdfs:domain agento:LLMAgent ;
+                         rdfs:range xsd:integer ;
+                         rdfs:comment "Upper bound on the number of reasoning attempts an agent may perform before giving up." ;
+                         rdfs:label "has max reasoning attempts" .
+
+
+###  https://w3id.org/agentoscin#hasMaxRetries
+:hasMaxRetries rdf:type owl:DatatypeProperty ;
+               rdfs:domain :Guardrail ;
+               rdfs:range xsd:integer ;
+               rdfs:comment "Number of times a task may be retried when its guardrail rejects the output." ;
+               rdfs:label "has max retries" .
+
+
+###  https://w3id.org/agentoscin#hasMaxTurns
+:hasMaxTurns rdf:type owl:DatatypeProperty ;
+             rdfs:domain :TurnLimitTermination ;
+             rdfs:range xsd:integer ;
+             rdfs:comment "Maximum number of conversational turns after which execution terminates." ;
+             rdfs:label "has max turns" .
+
+
+###  https://w3id.org/agentoscin#hasMemoryScope
+:hasMemoryScope rdf:type owl:DatatypeProperty ;
+                rdfs:domain :MemoryBinding ;
+                rdfs:range xsd:string ;
+                rdfs:comment "Visibility of a memory binding. Values: \"AgentPrivate\" (memory owned by a single agent) and \"GroupShared\" (memory shared across a team)." ;
+                rdfs:label "has memory scope" .
+
+
+###  https://w3id.org/agentoscin#hasOperator
+:hasOperator rdf:type owl:DatatypeProperty ;
+             rdfs:domain :CompositeTermination ;
+             rdfs:range xsd:string ;
+             rdfs:comment "Logical operator combining the sub-conditions of a composite termination condition. Values: \"OR\", \"AND\"." ;
+             rdfs:label "has operator" .
+
+
+###  https://w3id.org/agentoscin#hasPersistenceScope
+:hasPersistenceScope rdf:type owl:DatatypeProperty ;
+                     rdfs:domain agento:Memory ;
+                     rdfs:range xsd:string ;
+                     rdfs:comment "Lifetime of a memory. Values: \"ExecutionScoped\" (discarded after the run) and \"Persistent\" (retained across runs)." ;
+                     rdfs:label "has persistence scope" .
+
+
+###  https://w3id.org/agentoscin#hasReasoningEnabled
+:hasReasoningEnabled rdf:type owl:DatatypeProperty ;
+                     rdfs:domain agento:LLMAgent ;
+                     rdfs:range xsd:boolean ;
+                     rdfs:comment "Whether explicit reasoning is enabled for an agent." ;
+                     rdfs:label "has reasoning enabled" .
+
+
+###  https://w3id.org/agentoscin#hasReasoningOrigin
+:hasReasoningOrigin rdf:type owl:DatatypeProperty ;
+                    rdfs:domain agento:LLMAgent ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Where an agent's reasoning capability comes from. Values: \"FrameworkManaged\" (the framework adds a reasoning loop) and \"ModelNative\" (the underlying model reasons on its own)." ;
+                    rdfs:label "has reasoning origin" .
+
+
+###  https://w3id.org/agentoscin#hasRoutingLogic
+:hasRoutingLogic rdf:type owl:DatatypeProperty ;
+                 rdfs:domain :ConditionalStep ;
+                 rdfs:range xsd:string ;
+                 rdfs:comment "Serialized body of the routing function that decides which branch a conditional step takes." ;
+                 rdfs:label "has routing logic" .
+
+
+###  https://w3id.org/agentoscin#hasSchemaDefinition
+:hasSchemaDefinition rdf:type owl:DatatypeProperty ;
+                     rdfs:domain :Schema ;
+                     rdfs:range xsd:string ;
+                     rdfs:comment "Serialized definition of a structured-output schema, expressed as JSON Schema." ;
+                     rdfs:label "has schema definition" .
+
+
+###  https://w3id.org/agentoscin#hasSourceAttribute
+:hasSourceAttribute rdf:type owl:DatatypeProperty ;
+                    rdfs:domain agento:Prompt ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Framework attribute(s) the annotated element was derived from (e.g. \"role, goal, backstory\", \"system_message\", \"output_pydantic\"). Enables faithful regeneration of source code from the ontology." ;
+                    rdfs:label "has source attribute" .
+
+
+###  https://w3id.org/agentoscin#hasSourceFramework
+:hasSourceFramework rdf:type owl:DatatypeProperty ;
+                    rdfs:domain :AgenticSystem ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Framework the agentic system was extracted from (e.g. \"CrewAI\", \"AutoGen\", \"LangGraph\")." ;
+                    rdfs:label "has source framework" .
+
+
+###  https://w3id.org/agentoscin#hasTriggerExpression
+:hasTriggerExpression rdf:type owl:DatatypeProperty ;
+                      rdfs:domain :EventBasedTermination ;
+                      rdfs:range xsd:string ;
+                      rdfs:comment "Expression or text whose occurrence triggers an event-based termination condition (e.g. a stop keyword in an agent message)." ;
+                      rdfs:label "has trigger expression" .
+
+
+###  https://w3id.org/agentoscin#hasValidationLogic
+:hasValidationLogic rdf:type owl:DatatypeProperty ;
+                    rdfs:domain :Guardrail ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Validation performed by a guardrail: the name of the validation function, or the validation prompt for LLM-based guardrails." ;
+                    rdfs:label "has validation logic" .
+
+
+###  https://w3id.org/agentoscin#isMandatory
+:isMandatory rdf:type owl:DatatypeProperty ;
+             rdfs:domain :HumanCheckpoint ;
+             rdfs:range xsd:boolean ;
+             rdfs:comment "Whether the human checkpoint must be passed, i.e. execution cannot continue without human input." ;
+             rdfs:label "is mandatory" .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://purl.org/net/p-plan#Plan
+p-plan:Plan rdf:type owl:Class .
+
+
+###  http://purl.org/net/p-plan#Step
+p-plan:Step rdf:type owl:Class .
+
+
+###  http://purl.org/net/p-plan#Variable
+p-plan:Variable rdf:type owl:Class .
+
+
+###  http://w3id.org/beam/core#Instance
+beam:Instance rdf:type owl:Class ;
+              rdfs:subClassOf beam:Resource .
+
+
+###  http://w3id.org/beam/core#Model
+beam:Model rdf:type owl:Class ;
+           rdfs:subClassOf beam:Resource .
+
+
+###  http://w3id.org/beam/core#Resource
+beam:Resource rdf:type owl:Class ;
+              rdfs:subClassOf p-plan:Variable ;
+              rdfs:label "Resource" .
+
+
+###  http://w3id.org/beam/core#SemanticModel
+beam:SemanticModel rdf:type owl:Class ;
+                   rdfs:subClassOf beam:Model .
+
+
+###  http://w3id.org/beam/core#StatisticalModel
+beam:StatisticalModel rdf:type owl:Class ;
+                      rdfs:subClassOf beam:Model .
+
+
+###  http://w3id.org/beam/core#System
+beam:System rdf:type owl:Class ;
+            rdfs:label "System" .
+
+
+###  http://www.w3.org/ns/prov#Agent
+prov:Agent rdf:type owl:Class .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Capability
+agento:Capability rdf:type owl:Class ;
+                  rdfs:comment "ability that can be performed by agent" ;
+                  rdfs:label "Capability" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Config
+agento:Config rdf:type owl:Class ;
+              rdfs:comment "Configuration settings for various components." ;
+              rdfs:label "Config" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Constraint
+agento:Constraint rdf:type owl:Class ;
+                  rdfs:subClassOf agento:KnowledgeBase ;
+                  rdfs:comment "A rule or condition derived from the knowledge base that restricts or guides agent behavior or decision-making." ;
+                  rdfs:label "Constraint" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Context
+agento:Context rdf:type owl:Class .
+
+
+###  http://www.w3id.org/agentic-ai/onto#EndStep
+agento:EndStep rdf:type owl:Class ;
+               rdfs:subClassOf agento:WorkflowStep ;
+               rdfs:comment "The final step in a workflow pattern, indicating completion." ;
+               rdfs:label "End Step" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Environment
+agento:Environment rdf:type owl:Class ;
+                   rdfs:subClassOf agento:Context ;
+                   rdfs:comment "The surroundings or context in which an agent operates." ;
+                   rdfs:label "Environment" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Goal
+agento:Goal rdf:type owl:Class ;
+            rdfs:subClassOf agento:Context ;
+            rdfs:comment "An objective or desired state that an agent aims to achieve. (not only agent can have goal; team can also have goal)" ;
+            rdfs:label "Goal" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#HumanAgent
+agento:HumanAgent rdf:type owl:Class ;
+                  rdfs:subClassOf prov:Agent ;
+                  rdfs:comment "A human individual who can participate in tasks and interact with agents." ;
+                  rdfs:label "Human Agent" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Instance
+agento:Instance rdf:type owl:Class .
+
+
+###  http://www.w3id.org/agentic-ai/onto#KnowledgeBase
+agento:KnowledgeBase rdf:type owl:Class ;
+                     rdfs:subClassOf agento:Instance ;
+                     rdfs:comment "A structured collection of information that an agent can reference." ;
+                     rdfs:label "Knowledge Base" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#LLMAgent
+agento:LLMAgent rdf:type owl:Class ;
+                rdfs:subClassOf prov:Agent ,
+                                agento:Tool ;
+                rdfs:comment "An entity capable of perceiving its environment, processing information, and acting to achieve goals." ;
+                rdfs:label "LLM Agent" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#LanguageModel
+agento:LanguageModel rdf:type owl:Class ;
+                     rdfs:subClassOf beam:StatisticalModel ;
+                     rdfs:comment "Language Model that is used by AI Agent" ;
+                     rdfs:label "Language Model" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Memory
+agento:Memory rdf:type owl:Class ;
+              rdfs:subClassOf agento:KnowledgeBase ;
+              rdfs:comment "A knowledge structure that stores and retrieves past information, experiences, or states to support learning and decision-making." ;
+              rdfs:label "Memory" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Objective
+agento:Objective rdf:type owl:Class ;
+                 rdfs:subClassOf agento:Context ;
+                 rdfs:comment "A collective objective that a team is assigned to accomplish." ;
+                 rdfs:label "Objective" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Prompt
+agento:Prompt rdf:type owl:Class ;
+              rdfs:comment "A structured input or instruction provided to an agent to guide its actions or responses." ;
+              rdfs:label "Prompt" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#StartStep
+agento:StartStep rdf:type owl:Class ;
+                 rdfs:subClassOf agento:WorkflowStep ;
+                 rdfs:comment "The initial step in a workflow pattern, marking the beginning of the process." ;
+                 rdfs:label "Start Step" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Task
+agento:Task rdf:type owl:Class ;
+            rdfs:comment "A specific activity that contributes to finishing a workflow step" ;
+            rdfs:label "Task" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Team
+agento:Team rdf:type owl:Class ;
+            rdfs:subClassOf beam:System ;
+            rdfs:comment "A coordinated group of agents organized to pursue a common objective or set of tasks (synonym: Crew)" ;
+            rdfs:label "Team" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#Tool
+agento:Tool rdf:type owl:Class ;
+            rdfs:comment "An instrument used by an agent to enhance its capabilities." ;
+            rdfs:label "Tool" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#WorkflowPattern
+agento:WorkflowPattern rdf:type owl:Class ;
+                       rdfs:subClassOf p-plan:Plan ;
+                       rdfs:comment "A reusable and structured template that defines a sequence or logic of tasks and interactions within an agentic workflow." ;
+                       rdfs:label "Workflow Pattern" .
+
+
+###  http://www.w3id.org/agentic-ai/onto#WorkflowStep
+agento:WorkflowStep rdf:type owl:Class ;
+                    rdfs:subClassOf p-plan:Step ;
+                    rdfs:comment "An individual action or phase within a workflow pattern to achieve the team goals" ;
+                    rdfs:label "Workflow Step" .
+
+
+###  https://w3id.org/agentoscin#AgenticSystem
+:AgenticSystem rdf:type owl:Class ;
+               rdfs:subClassOf beam:System ;
+               rdfs:comment "A complete agentic AI system encompassing one or more agents, teams, and an orchestration." ;
+               rdfs:label "Agentic System" .
+
+
+###  https://w3id.org/agentoscin#ChainOfThought
+:ChainOfThought rdf:type owl:Class ;
+                rdfs:subClassOf :ReasoningPattern ;
+                rdfs:comment "Reasoning pattern in which an agent produces explicit intermediate reasoning steps before answering." ;
+                rdfs:label "Chain of Thought" .
+
+
+###  https://w3id.org/agentoscin#CompositeTermination
+:CompositeTermination rdf:type owl:Class ;
+                      rdfs:subClassOf :TerminationCondition ;
+                      rdfs:comment "A termination condition built by combining other conditions via a logical operator." ;
+                      rdfs:label "Composite Termination" .
+
+
+###  https://w3id.org/agentoscin#ConditionalStep
+:ConditionalStep rdf:type owl:Class ;
+                 rdfs:subClassOf agento:WorkflowStep ;
+                 rdfs:comment "A workflow step that branches based on routing logic." ;
+                 rdfs:label "Conditional Step" .
+
+
+###  https://w3id.org/agentoscin#CoordinationPattern
+:CoordinationPattern rdf:type owl:Class ;
+                     rdfs:comment "A pattern of coordination among agents in a team (e.g. sequential, hierarchical, swarm)." ;
+                     rdfs:label "Coordination Pattern" .
+
+
+###  https://w3id.org/agentoscin#EventBasedTermination
+:EventBasedTermination rdf:type owl:Class ;
+                       rdfs:subClassOf :TerminationCondition ;
+                       rdfs:comment "Termination condition that fires when a designated event occurs, e.g. a stop expression appearing in an agent message." ;
+                       rdfs:label "Event Based Termination" .
+
+
+###  https://w3id.org/agentoscin#Guardrail
+:Guardrail rdf:type owl:Class ;
+           rdfs:comment "A validation, safety, or policy check applied to a task." ;
+           rdfs:label "Guardrail" .
+
+
+###  https://w3id.org/agentoscin#HumanCheckpoint
+:HumanCheckpoint rdf:type owl:Class ;
+                 rdfs:comment "A human-in-the-loop checkpoint inserted into task execution." ;
+                 rdfs:label "Human Checkpoint" .
+
+
+###  https://w3id.org/agentoscin#MemoryBinding
+:MemoryBinding rdf:type owl:Class ;
+               rdfs:comment "A reified link between a memory and the agent, team, or system that uses it, with scope and configuration." ;
+               rdfs:label "Memory Binding" .
+
+
+###  https://w3id.org/agentoscin#Orchestration
+:Orchestration rdf:type owl:Class ;
+               rdfs:subClassOf agento:Team ;
+               rdfs:comment "A controller that orchestrates one or more teams to execute a workflow." ;
+               rdfs:label "Orchestration" .
+
+
+###  https://w3id.org/agentoscin#ReAct
+:ReAct rdf:type owl:Class ;
+       rdfs:subClassOf :ReasoningPattern ;
+       rdfs:comment "Reasoning pattern interleaving reasoning steps with tool calls and observations (Reason + Act)." ;
+       rdfs:label "ReAct" .
+
+
+###  https://w3id.org/agentoscin#ReasoningPattern
+:ReasoningPattern rdf:type owl:Class ;
+                  rdfs:comment "A reasoning strategy adopted by an agent (e.g. chain-of-thought, ReAct, tree-of-thoughts)." ;
+                  rdfs:label "Reasoning Pattern" .
+
+
+###  https://w3id.org/agentoscin#ReflectionLoop
+:ReflectionLoop rdf:type owl:Class ;
+                rdfs:subClassOf :ReasoningPattern ;
+                rdfs:comment "Reasoning pattern in which an agent iteratively critiques and revises its own output." ;
+                rdfs:label "Reflection Loop" .
+
+
+###  https://w3id.org/agentoscin#RoutingTermination
+:RoutingTermination rdf:type owl:Class ;
+                    rdfs:subClassOf :TerminationCondition ;
+                    rdfs:comment "Termination condition under which execution ends because the routing logic reaches a terminal branch." ;
+                    rdfs:label "Routing Termination" .
+
+
+###  https://w3id.org/agentoscin#Schema
+:Schema rdf:type owl:Class ;
+        rdfs:comment "A structured-output schema (e.g. JSON Schema, Pydantic model)." ;
+        rdfs:label "Schema" .
+
+
+###  https://w3id.org/agentoscin#TaskCompletionTermination
+:TaskCompletionTermination rdf:type owl:Class ;
+                           rdfs:subClassOf :TerminationCondition ;
+                           rdfs:comment "Termination condition satisfied when the assigned task is completed." ;
+                           rdfs:label "Task Completion Termination" .
+
+
+###  https://w3id.org/agentoscin#TerminationCondition
+:TerminationCondition rdf:type owl:Class ;
+                      rdfs:comment "A condition under which a team's execution terminates." ;
+                      rdfs:label "Termination Condition" .
+
+
+###  https://w3id.org/agentoscin#TreeOfThoughts
+:TreeOfThoughts rdf:type owl:Class ;
+                rdfs:subClassOf :ReasoningPattern ;
+                rdfs:comment "Reasoning pattern that explores several alternative reasoning branches and selects among them." ;
+                rdfs:label "Tree of Thoughts" .
+
+
+###  https://w3id.org/agentoscin#TurnLimitTermination
+:TurnLimitTermination rdf:type owl:Class ;
+                      rdfs:subClassOf :TerminationCondition ;
+                      rdfs:comment "Termination condition that ends execution once a maximum number of turns is reached." ;
+                      rdfs:label "Turn Limit Termination" .
+
+
+###  https://w3id.org/agentoscin#Unspecified
+:Unspecified rdf:type owl:Class ;
+             rdfs:subClassOf :ReasoningPattern ;
+             rdfs:comment "Placeholder reasoning pattern used when the source system does not state which reasoning strategy an agent follows." ;
+             rdfs:label "Unspecified" .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  https://w3id.org/agentoscin#Custom
+:Custom rdf:type owl:NamedIndividual ,
+                 :CoordinationPattern ;
+        rdfs:comment "Coordination pattern that does not match any of the predefined patterns, e.g. a framework-specific or hand-written control flow." ;
+        rdfs:label "Custom" .
+
+
+###  https://w3id.org/agentoscin#Hierarchical
+:Hierarchical rdf:type owl:NamedIndividual ,
+                       :CoordinationPattern ;
+              rdfs:comment "Coordination pattern in which a manager agent delegates work to subordinate agents and integrates their results." ;
+              rdfs:label "Hierarchical" .
+
+
+###  https://w3id.org/agentoscin#Network
+:Network rdf:type owl:NamedIndividual ,
+                  :CoordinationPattern ;
+         rdfs:comment "Coordination pattern in which agents communicate peer-to-peer along a graph of connections without a central coordinator." ;
+         rdfs:label "Network" .
+
+
+###  https://w3id.org/agentoscin#ReActLoop
+:ReActLoop rdf:type owl:NamedIndividual ,
+                    :CoordinationPattern ;
+           rdfs:comment "Coordination pattern in which a single agent cycles between reasoning and tool execution until it produces a final answer." ;
+           rdfs:label "ReAct Loop" .
+
+
+###  https://w3id.org/agentoscin#RoundRobin
+:RoundRobin rdf:type owl:NamedIndividual ,
+                     :CoordinationPattern ;
+            rdfs:comment "Coordination pattern in which agents take turns in a fixed cyclic order." ;
+            rdfs:label "Round Robin" .
+
+
+###  https://w3id.org/agentoscin#SelectorBased
+:SelectorBased rdf:type owl:NamedIndividual ,
+                        :CoordinationPattern ;
+               rdfs:comment "Coordination pattern in which a selector — typically a model — chooses which agent speaks next at each turn." ;
+               rdfs:label "Selector Based" .
+
+
+###  https://w3id.org/agentoscin#Sequential
+:Sequential rdf:type owl:NamedIndividual ,
+                     :CoordinationPattern ;
+            rdfs:comment "Coordination pattern in which agents act one after another in a fixed order, each consuming the previous output." ;
+            rdfs:label "Sequential" .
+
+
+###  https://w3id.org/agentoscin#Swarm
+:Swarm rdf:type owl:NamedIndividual ,
+                :CoordinationPattern ;
+       rdfs:comment "Coordination pattern in which agents hand off control to one another dynamically, based on which agent is best suited to continue." ;
+       rdfs:label "Swarm" .
+
+
+#################################################################
+#    General axioms
+#################################################################
+
+[ rdf:type owl:AllDisjointClasses ;
+  owl:members ( :CompositeTermination
+                :EventBasedTermination
+                :RoutingTermination
+                :TaskCompletionTermination
+                :TurnLimitTermination
+              )
+] .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi
